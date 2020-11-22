@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-AU">
+  <head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <meta name="author" content="haran" />
+    <meta name="generator" content="haran" />
+
+    <link rel="stylesheet" type="text/css" href="./css/tierraverde/tierraverde-screen.css" media="screen" title="Tierra Verde (screen)" />
+    <link rel="stylesheet" type="text/css" href="./css/tierraverde/tierraverde-print.css" media="print" />
+	<?php include_once "ghoti.header.php"; ?>
+    <title><?php print $siteTitle;?></title>
+  </head>
+
+  <body onload="getDefaultPage(); checkLogin();">
+    <!-- For non-visual user agents: -->
+      <div id="top"><a href="#main-copy" class="doNotDisplay doNotPrint">Skip to main content.</a></div>
+
+    <!-- ##### Header ##### -->
+
+    <div id="header">
+      <h1 class="headerTitle">
+        <a href="#" title="Browse to homepage" lang="es">Ghoti <span><sup>CMS</sup></span></a>
+      </h1>
+
+      <div class="headerLinks">
+        <span class="doNotDisplay">Useful Links: </span>
+		<?php print $ghoti->printTopMenu();?>
+      </div>
+    </div>
+
+    <!-- ##### Side Bar ##### -->
+
+    <div id="side-bar">
+
+	<p class="sideBarTitle" id="ghotiLoginTitle">Login</p> 
+	<?php print $login->printLoginForm();?>
+	<p class="sideBarTitle">Links</p>
+	<?php print $links->getLinks(); ?>
+	<p class="sideBarTitle">Themes</p>
+	<?php print $ghoti->themeChanger(); ?>
+    </div>
+
+    <!-- ##### Main Copy ##### -->
+
+    <div id="main-copy">
+     <?php include "ghoti.body.php";?>
+    </div>
+
+    <!-- ##### Footer ##### -->
+
+    <div id="footer">
+      <div class="left doNotPrint">
+        <a href="http://validator.w3.org/check/referer">Valid XHTML 1.0 Strict</a> |
+        <a href="http://jigsaw.w3.org/css-validator/check/referer">Valid CSS</a>
+      </div>
+
+      <div class="right">
+<span class="doNotPrint"> <?php print $banners->displayBanner(false);?>  </span>
+
+      </div>
+
+      <br class="doNotPrint" />
+    </div>
+
+    <div class="subFooter">   
+    	    <? print $ghoti->ghotiui->printFooter();?>
+    </div>
+  </body>
+</html>
