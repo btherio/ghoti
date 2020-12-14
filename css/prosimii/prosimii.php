@@ -60,7 +60,7 @@
 					<h1 id="ghotiAdminMenuTitle"></h1>
 					<div id="ghotiAdminMenu"></div>
 
-					<?php // print $_SESSION['ghotiObj']->themeChanger(); ?>
+					<?php print $_SESSION['ghotiObj']->themeChanger(); ?>
         </div>
       </div>
 
