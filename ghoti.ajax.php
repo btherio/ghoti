@@ -53,6 +53,10 @@ function savePage($id,$title,$content){
 	$title = strip_tags($title); // we don't want html tags in the title.
 	return $_SESSION['ghotiObj']->ghotidb->savePage($id,$content,$title);
 }
+function savePageByTitle($title,$content){
+	//$title = strip_tags($title); // we don't want html tags in the title.
+	return $_SESSION['ghotiObj']->ghotidb->savePageByTitle($content,$title);
+}
 function addPage($title){
 	return $_SESSION['ghotiObj']->ghotidb->addPage($title);
 }
@@ -102,6 +106,7 @@ sajax_export("getPageByTitle");
 sajax_export("getPageById");
 sajax_export("editPage");
 sajax_export("savePage");
+sajax_export("savePageByTitle");
 sajax_export("addPage");
 sajax_export("deletePage");
 sajax_export("refreshPageMenu");

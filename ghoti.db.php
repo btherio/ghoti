@@ -26,7 +26,7 @@ class ghotidb{
                 $this->loadModuleSql("pages");
                 }
             }catch (exception $e){
-                ghoti::log("DB Connection Error!");
+                ghoti::log("**DB Connection Error!**");
                 ghoti::log("ghoti.db.php $e");
 				return false;
             }
@@ -39,8 +39,8 @@ class ghotidb{
 	}
 	function loadModuleSql($moduleName){
         if(!$this->adodb){
-                 try{
-            if($this->adodb = NewADOConnection($this->dsn)){
+            try{
+                if($this->adodb = NewADOConnection($this->dsn)){
                 $this->loadModuleSql("pages");
                 }
             }catch (exception $e){
@@ -62,7 +62,6 @@ class ghotidb{
 						//read file line by line into variable 
 			  			//$tablesql = $tablesql . fgets($file, 4096);
 						$this->tablesql .= fgets($file, 4096);
-
 					} 
 					fclose ($file);
 				} else {
@@ -140,6 +139,16 @@ class ghotidb{
 	function savePage($m_id,$m_content,$m_title){
 		try{
 			$nonquery = $this->adodb->Execute("update pages set content=?,title=? where id=?",array($m_content,$m_title,$m_id));
+			if (!$nonquery) mylogerr($this->adodb->ErrorMsg());	
+		}catch (exception $e){
+			ghoti::log("ghoti.db.php $e");
+			return false;
+		}
+		return true;
+	}
+    function savePageByTitle($m_content,$m_title){
+		try{
+			$nonquery = $this->adodb->Execute("update pages set content=? where title=?",array($m_content,$m_title));
 			if (!$nonquery) mylogerr($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("ghoti.db.php $e");

@@ -16,11 +16,11 @@ class ghoti {
 	public static $siteTitle = "GhotiCMS";	//title of the website
 	public static $defaultPageTitle = "Home"; 		//this page must exist
 	public static $defaultTheme = "sinorca";		//default theme
-	public static $allowRegister = true; 			//allow or disallow new registrations
+	public static $allowRegister = True; 			//allow or disallow new registrations
  	public static $ghotiLog = "ghoti.log";      	//log file to use. Should be writable by apache
 	public static $sessionName = "ghoti"; 		//change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
 	public static $headerImg = "gfx/ghoti.png"; //header image to use
-	public static $enableThemeChanger = false; //enable theme changing dropdown
+	public static $enableThemeChanger = True; //enable theme changing dropdown
 	
 	
 ################################################################
@@ -40,7 +40,7 @@ class ghoti {
 		}
 	}
 
-	public function printPageMenu($newDiv=true){
+	public function printPageMenu($newDiv=True){
 		$pageList = $this->ghotidb->getPageList();
 		return $this->ghotiui->printPageMenu($pageList,$newDiv);
 	}
@@ -57,18 +57,18 @@ class ghoti {
     	return True;
 	}
 	function themeChanger(){
-	/*opens xml file. parses the xml into an array
-     *and uses ghotiui to print a theme changing dropdown box
-     */
-     if(enableThemeChanger == true){
-            $xml = file_get_contents("themes.xml");
-            $p = xml_parser_create();//create a parser
-            xml_parse_into_struct($p, $xml, $array, $index); //parse the shit
-            xml_parser_free($p); //kill the parser
-            return $this->ghotiui->printThemeChanger($array);
-		} else {
-            return ""; //send a blank
-		}
+        /*opens xml file. parses the xml into an array
+        *and uses ghotiui to print a theme changing dropdown box
+        */
+        if($this::$enableThemeChanger == True){
+                $xml = file_get_contents("themes.xml");
+                $p = xml_parser_create();//create a parser
+                xml_parse_into_struct($p, $xml, $array, $index); //parse the shit
+                xml_parser_free($p); //kill the parser
+                return $this->ghotiui->printThemeChanger($array);
+        } else {
+                return ""; //send a blank
+        }
     }
 }
 ?>
