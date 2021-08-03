@@ -104,6 +104,6 @@ function getLinks_cb(links){
 		for(x in linksArray){
 				$("#ghotiLinks"+links[0]+"List").append("<li><a href=\""+stripslashes(linksArray[x]['url'].toString())+"\">"+stripslashes(linksArray[x]['name'].toString())+"</a></li>");
 		}	
-		window.setTimeout('x_getLinks("'+links[0]+'",getLinks_cb)',3000);
+		//window.setTimeout('x_getLinks("'+links[0]+'",getLinks_cb)',3000);
 	}
 }

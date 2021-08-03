@@ -150,7 +150,7 @@ function login_cb(id){
 		x_isAdmin(id,adminMenu_cb);
 		cancelPopup('popup-bg');
 		getDefaultPage();
-		
+		hideMenu();
 	}else if(id == 0){
 		$("#loginFeedback").html("Bad username or password!");
 		window.setTimeout('$("#loginFeedback").html("");',3000);

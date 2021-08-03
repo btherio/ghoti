@@ -65,7 +65,7 @@ function setSessionVars($id){
 			ghoti::log("[Exception] $e");
 			return false;
 	}
-	session_write_close();
+	//session_write_close();
 	return true;	
 }
 function changePassword($password,$newPassword){
@@ -89,11 +89,14 @@ function changePassword($password,$newPassword){
 }
 function logout(){
 	try{
-	    $_SESSION["userId"] = 0;
-	    $_SESSION["loggedIn"] = false;
+	    $_SESSION['userId'] = 0;
+	    $_SESSION['loggedIn'] = false;
 		unset($_SESSION['loggedIn']);
 		unset($_SESSION['userId']);
 		unset($_SESSION['admin']);
+		
+        $_SESSION['userId'] = 0;
+	    $_SESSION['loggedIn'] = false;
 		
 		session_unset();
 		unset($_GET["login"]);
@@ -101,8 +104,7 @@ function logout(){
 		session_unset();
 		unset($_COOKIE[ghoti::$sessionName]);
 		//setcookie(ghoti::$sessionName, FALSE, time() - 3600);
-		
-		
+		session_write_close();
 	 }catch (Exception $e) {
     return $e->getMessage();
   	}

@@ -21,37 +21,75 @@
 	width: 100%;
 	z-index: 1;
 }
-#popup{
-	background: #ADADAD;
-	border: solid;
-	border-width: 2px;
-	border-color: #578EFA;
-	display: block;
-	float: none;
-	left:0;
-	margin-left: 33%;
-	margin-right: 33%;
-	margin-top: 7%;
-	min-height: 15ex;
-	min-width: 33%;
-	position: absolute;
-	text-align: center;
-	top:0;
-	vertical-align: middle;
-	z-index: 1;
+@media (max-width: 800px) {
+  /* CSS that should be displayed if width is equal to or less than 800px goes here */
+    #popup{
+        background: #ADADAD;
+        border: solid;
+        border-width: 2px;
+        border-color: #578EFA;
+        display: block;
+        float: none;
+        left:0;
+        margin-left: 5%;
+        /*margin-right: 33%;*/
+        margin-top: 7%;
+        min-height: 15ex;
+        min-width: 33%;
+        position: absolute;
+        text-align: center;
+        top:0;
+        vertical-align: middle;
+        z-index: 1;
+    }    
+    #popup-content{
+        display:block;
+        text-align: center;
+        vertical-align: middle;
+        max-height:50ex;
+        min-height:10ex;
+        min-width: 33%;
+        overflow: auto;
+        padding: 0.5em 0.5em 0.5em 0.5em;
+        position: relative;
+        float: none;
+        z-index: 1;
+    }    
 }
-#popup-content{
-	display:block;
-    text-align: center;
-    vertical-align: middle;
-	max-height:50ex;
-	min-height:10ex;
-	min-width: 33%;
-    overflow: auto;
-    padding: 0.5em 0.5em 0.5em 0.5em;
-    position: relative;
-    float: none;
-    z-index: 1;
+@media (min-width: 801px){
+    #popup{
+        background: #ADADAD;
+        border: solid;
+        border-width: 2px;
+        border-color: #578EFA;
+        display: block;
+        float: none;
+        left:0;
+        margin-left: 33%;
+        /*margin-right: 33%;*/
+        margin-top: 7%;
+        min-height: 15ex;
+        min-width: 33%;
+        position: absolute;
+        text-align: center;
+        top:0;
+        vertical-align: middle;
+        z-index: 1;
+    }
+    #popup-content{
+        display:block;
+        text-align: center;
+        vertical-align: middle;
+        max-height:50ex;
+        min-height:10ex;
+        min-width: 33%;
+        overflow: auto;
+        padding: 0.5em 0.5em 0.5em 0.5em;
+        position: relative;
+        float: none;
+        z-index: 1;
+    }
+
 }
 
 #popup-title{
@@ -117,3 +155,19 @@
 #ghotiAdminMenuTitle{ visibility:hidden; }
 #ghotiPrivateMenu{ visibility:hidden; }
 #ghotiAdminMenu{ visibility:hidden; }
+
+.flex-container {
+  display: flex;
+  flex-wrap: nowrap;
+  background-color: White;
+}
+
+.flex-container .box {
+  background-color: #f1f1f1;
+  width: 50%;
+  margin: 1px;
+  padding: 2px;
+  text-align: center;
+  /*line-height: 75px;*/
+  font-size: 12px;
+}

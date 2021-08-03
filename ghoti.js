@@ -7,7 +7,9 @@ $(document).ready(function(){
 	
 	x_getDefaultPage(printPage);
 	x_getLinks(getLinks_cb); //gets the links and starts the timed links updating cycle that I'm not fond of.
-	
+    x_readSensors(printSensorsOverview); //so lets do the same thing with this one? ***SENSORS MODULE CODE***
+ 	hideMenu();
+    
 	$(".ghotiMenu").click(function(e){
 		e.preventDefault();// stop normal link click on ghotiMenu links
 	});
@@ -19,6 +21,7 @@ $(document).ready(function(){
 * an alternative to this could have been shooting the slashed data back to php ala
 * sajax.
 */
+var menuHide = false;
 function addslashes(str) {
 	str=str.replace(/\\/g,'\\\\');
 	str=str.replace(/\'/g,'\\\'');
@@ -35,7 +38,7 @@ function stripslashes(str) {
 }
 
 function showPopup() {
- $("#popup-bg").slideDown("slow");;
+ $("#popup-bg").slideDown("slow");
 }
 
 function popupFeedBack(text){
@@ -46,6 +49,32 @@ function cancelPopup(name) {
 	$("#popup-content").html("");
 	$("#"+name).slideUp("slow");
 }
+function hideMenu() {
+    if(menuHide == false){
+        $("#main-copy").css("margin","0 0 0 0");
+        $("#side-bar").css("width", "0");
+        $("#side-bar").css("visibility","hidden");
+        $("#sideBarText").css("visibility","hidden");
+        $("#sideBarTitle").css("visibility","hidden");
+        $("#ghotiPrivateMenu").css("visibility","hidden");
+        $("#ghotiAdminMenu").css("visibility","hidden");
+        $("#ghotiPrivateMenuTitle").css("visibility","hidden");
+        $("#ghotiAdminMenuTitle").css("visibility","hidden")
+        menuHide = true;
+    }else{
+        $("#main-copy").css("margin","0 0 0 15em");
+        $("#side-bar").css("width", "15em");
+        $("#side-bar").css("visibility","visible");
+        $("#sideBarText").css("visibility","visible");
+        $("#sideBarTitle").css("visibility","visible");
+        $("#ghotiPrivateMenu").css("visibility","visible");
+        $("#ghotiAdminMenu").css("visibility","visible");
+        $("#ghotiPrivateMenuTitle").css("visibility","visible");
+        $("#ghotiAdminMenuTitle").css("visibility","visible")
+        menuHide = false;
+    }
+}
+
 function pageFeedBack(text){
 	$("#popupTitle").html("Ghoti CMS");
 	$("#popup-content").html(text);
