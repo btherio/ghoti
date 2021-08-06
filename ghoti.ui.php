@@ -23,7 +23,7 @@ class ghotiui{
 	}
 	
 	function printFooter(){
-		return "GhotiCMS ". `cat VERSION`;
+		return "Powered by Smartend and GhotiCMS ";
 	}
 		
 	function printCloseButton($popupName){

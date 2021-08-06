@@ -39,13 +39,13 @@ function saveSensor(){
     }
 }
 
-function addSensorForm(name="",address="10.0.0.0"){
+function addSensorForm(name="",address="192.168.12.*"){
 	$("#popupTitle").html("Add a Sensor");
     $("#popup-content").html("Sensor Name:<input type=\"text\" id=\"sensorName\" size=\"10\" value=\""+name+"\" /><br />\n");
 	$("#popup-content").append("Sensor IP address:<input type=\"text\" id=\"sensorAddress\" size=\"20\" value=\""+address+"\" /><br />\n");
 	$("#popup-content").append("Sensor Type: <select id=\"sensorType\"></select><br />\n");	
-	$("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addSensor();\" >Add</a>\n");
-    //$("#popup-content").append("<input type=\"button\" value=\"Add\" onclick=\"addSensor();\" />\n");
+	$("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addSensor();\" >Add</a>&nbsp;\n");
+    $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"getSensors();\">Cancel</a>&nbsp;");
     //i hardcoded these becasue... i did
     $("#sensorType").append("<option value=\"dht\">DHT</option>");
     $("#sensorType").append("<option value=\"ds18b20\">DS18B20</option>");
@@ -56,7 +56,7 @@ function addSensorForm(name="",address="10.0.0.0"){
 	showPopup();
 }
 
-function modifySensorForm(id=0,name="",address="10.0.0.0"){
+function modifySensorForm(id=0,name="",address="192.168.12.*"){
     $("#popupTitle").html("Modify Sensor");
     $("#popup-content").html("Sensor Name:<input type=\"text\" id=\"sensorName\" size=\"10\" value=\""+name+"\" /><br />\n");
     $("#popup-content").append("<input type=\"hidden\" id=\"sensorID\" value=\""+id+"\" /><br />\n");
@@ -222,70 +222,11 @@ function printSensorData(result){
     //console.log(result);
 	$("#popup-content").html("<p>");
 
-for (x in data){
-	$("#popup-content").append(x);
-	$("#popup-content").append("<br />");
-}
+    for (x in data){
+        $("#popup-content").append(result[x][1]);
+        $("#popup-content").append("<br />");
+    }
 	$("#popup-content").append("</p>");
-
-
-/*
-    picasso = require("picasso.js")
-    $("#popup-content").html(
-    picasso.chart({
-  element: document.querySelector('#container'),
-  data,
-  settings: {
-    scales: {
-      y: {
-        data: { field: 'Sales' },
-        invert: true,
-        expand: 0.2
-      },
-      t: { data: { extract: { field: 'Year' } } }
-    },
-    components: [{
-      type: 'axis',
-      dock: 'left',
-      scale: 'y',
-      formatter: {
-        type: 'd3-number',
-        format: '$,.1r'
-      },
-    },{
-      type: 'axis',
-      dock: 'bottom',
-      scale: 't',
-      formatter: {
-        type: 'd3-time',
-        format: '%Y-%m'
-      }
-    }, {
-      key: 'lines',
-      type: 'line',
-      data: {
-        extract: {
-          field: 'Year',
-          props: {
-            v: { field: 'Sales' }
-          }
-        }
-      },
-      settings: {
-        coordinates: {
-          major: { scale: 't' },
-          minor: { scale: 'y', ref: 'v' }
-        },
-        layers: {
-          line: {}
-        }
-      }
-    }]
-  }
-})     
-    );
-*/
-
     showPopup(); 
 }
 function searchSensors(){

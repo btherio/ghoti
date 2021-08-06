@@ -15,12 +15,10 @@ class sensors{
 		}
 	
 	##checks for running AP and Lists clients
-
-    
     public function checkAP(){
-        //$checkAP = 1; //for testing only
+        // $checkAP = 1; //for testing only
         try{
-            //system("/usr/bin/create_ap --list-running | grep -c wlan0",$checkAP);
+            // system("/usr/bin/create_ap --list-running | grep -c wlan0",$checkAP);
             $checkAP = shell_exec("ps aux|grep -c [c]reate_ap");
         }catch(exception $e){
             die("EXECUTION ERROR $e");
@@ -32,13 +30,14 @@ class sensors{
         }
     }
     public function listAP(){
-        $listAP = "test listing....";
+        //Lists hosts connected to this machine's AP
+        // this relies on root cron entry like:  
+        //   */5 * * * * cp -R /tmp/create_ap.wlan0.conf.*/dnsmasq.leases /srv/http/smartent/mod/sensors/listAP.leases
+        //
+        
+        //$listAP = "test listing....";
         try{
-            //system('/usr/bin/create_ap --list-clients wlan0',$listAP);
             exec('cat mod/sensors/listAP.leases',$listAP);
-           // $contents = file_get_contents("/tmp/create_ap.wlan0.conf.current/dnsmasq.leases");
-           // $contents = explode("\n", $contents);
-           // $listAP = $contents;
         } catch(exception $e){
            die("EXECUTION ERROR $e");
         }
