@@ -38,7 +38,7 @@ function addScheduleForm(){
     $("#popup-content").append("<select id=\"ScheduleState\"></select>\n");
     $("#ScheduleState").append("<option value=\"On\">On</option>");
     $("#ScheduleState").append("<option value=\"Off\">Off</option>");
-    //$("#popup-content").append("<input type=\"button\" value=\"Add\" onclick=\"addSchedule();\" /><br />\n");
+    $("#ScheduleState").append("<option value=\"Pulse\">Pulse</option>");
     $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addSchedule();\" >Add</a><br />\n");
     $("#popup-content").append("<i>Schedule format: Minute, Hour, Day of Month, Month, Day of Week</i><br />");
     $("#popup-content").append("<i> eg: <b>\"30 6 * * *\"</b> for 6:30am every day</i><br />");
@@ -62,11 +62,12 @@ function printSchedulesForm(result){
     } else {
         $("#schedulesForm").append("<i>Schedule format: Minute, Hour, Day of Month, Month, Day of Week</i><br />");
         for (x in schedulesArray){
-            $("#schedulesForm").append("<b>"+schedulesArray[x]+"</b>");
-            $("#schedulesForm").append("<input type=\"hidden\" id=\"cron"+x+"\" value=\""+schedulesArray[x]+"\">");
-            //$("#schedulesForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"deleteSchedule(++)\" >Delete</a>");
-            $("#schedulesForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"deleteSchedule("+x+")\" >Delete</a>");
-            $("#schedulesForm").append("<br />");
+            if(schedulesArray[x].length > 0){
+                $("#schedulesForm").append("<b>"+schedulesArray[x]+"</b>");
+                $("#schedulesForm").append("<input type=\"hidden\" id=\"cron"+x+"\" value=\""+schedulesArray[x]+"\">");
+                $("#schedulesForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"deleteSchedule("+x+")\" >Delete</a>");
+                $("#schedulesForm").append("<br />");
+                }
             }
     }
 }
