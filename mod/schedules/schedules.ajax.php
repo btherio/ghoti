@@ -25,7 +25,7 @@ function addSchedule($schedule,$pin,$state){
 		ghoti::log("schedules.ajax.php: $e\n");
 		return $e->getMessage();
 	}
-	$job = "$schedule /srv/http/ghotiCMS/mod/relays/gpio-relay.sh $pin $state > /dev/null 2>&1\n\r";
+	$job = "$schedule /srv/http/ghotiCMS/mod/relays/gpio-relay.sh $pin $state > /dev/null 2>&1";
     
     //old code to add job line to file.
     //file_put_contents("mod/schedules/cron", "$schedule /srv/http/ghotiCMS/mod/relays/gpio-relay.sh $pin $state > /dev/null 2>&1\n\r", FILE_APPEND);
@@ -34,7 +34,9 @@ function addSchedule($schedule,$pin,$state){
     if (!cronjob_exists($job)) {
         //add job to crontab
         exec('echo -e "`crontab -l`\n' . $job . '" | crontab -', $output);
-        ghoti::log($output);
+        foreach($output as $x){
+            ghoti::log($x);
+        }
     } else {
         ghoti::log("schedules.ajax.php: Cron job exists.\n");
 		return False;

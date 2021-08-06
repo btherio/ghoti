@@ -19,7 +19,7 @@ class ghoti {
 	public static $allowRegister = True; 			//allow or disallow new registrations
  	public static $ghotiLog = "ghoti.log";      	//log file to use. Should be writable by apache
 	public static $sessionName = "ghoti"; 	        //change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
-	public static $headerImg = "gfx/RRGF1.png";  //header image to use
+	public static $headerImg = "gfx/RRGF.png";  //header image to use
 	public static $enableThemeChanger = False;      //enable theme changing dropdown
 	
 ################################################################
