@@ -13,13 +13,13 @@ class ghoti {
 ### Configure things here...
 #################################################################	
 
-	public static $siteTitle = "SMARTent";	        //title of the website
+	public static $siteTitle = "SMARTend";	        //title of the website
 	public static $defaultPageTitle = "Home"; 		//this page must exist
 	public static $defaultTheme = "sinorca";		//default theme
 	public static $allowRegister = True; 			//allow or disallow new registrations
  	public static $ghotiLog = "ghoti.log";      	//log file to use. Should be writable by apache
 	public static $sessionName = "ghoti"; 	        //change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
-	public static $headerImg = "gfx/smartent.png";  //header image to use
+	public static $headerImg = "gfx/RRGF.png";  //header image to use
 	public static $enableThemeChanger = False;      //enable theme changing dropdown
 	
 ################################################################
