@@ -62,6 +62,15 @@ class relaysdb extends ghotidb{
 			return $e->getMessage();
 		}
 		return $relays; //return the fields here for a simpler array?
+	}	
+	public function getRelayNameByPin($pin){
+        try{
+            $relays = $this->adodb->GetArray("select name from relays where pin=?;",array($pin));
+		}catch (exception $e){
+			ghoti::log("relays.db.php $e");
+			return $e->getMessage();
+		}
+		return $relays; //return the fields here for a simpler array?
 	}
 	function modifyRelay($id,$name,$pin){
 		try{

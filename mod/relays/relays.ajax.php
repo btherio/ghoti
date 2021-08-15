@@ -44,6 +44,16 @@ function getRelayById($id,$index=0){
 }
 sajax_export("getRelayById");
 
+function getRelayNameByPin($pin,$index=0){
+//returns list of relays from database table,
+    if($index > 0){
+        return array($index, $_SESSION["relaysObj"]->relaysdb->getRelayNameByPin($pin));
+    }else{
+        return array($_SESSION["relaysObj"]->relaysdb->getRelayNameByPin($pin));
+    }
+}
+sajax_export("getRelayNameByPin");
+
 function deleteRelay($id){
 	try{
 		$_SESSION["ghotiObj"]->validate->checkNumber($id);

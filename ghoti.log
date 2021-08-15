@@ -1,37 +1,14 @@
 
-[Thu Aug  5 23:34:37 MDT 2021]Checking login, found uid2
-[Fri Aug  6 11:40:56 MDT 2021]Checking login, found uid2
-[Fri Aug  6 11:41:02 MDT 2021]Checking login, found uid2
-[Fri Aug  6 11:41:02 MDT 2021]Logged in USER(2) from 10.0.0.179
-[Fri Aug  6 11:41:02 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
-[Fri Aug  6 12:11:42 MDT 2021]Checking login, found uid2
-[Fri Aug  6 13:17:41 MDT 2021]Checking login, found uid2
-[Fri Aug  6 13:26:30 MDT 2021]Checking login, found uid2
-[Fri Aug  6 13:26:30 MDT 2021]Checking login, found uid2
-[Fri Aug  6 13:26:31 MDT 2021]Logged in USER(2) from 10.0.0.179
-[Fri Aug  6 13:26:31 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
-[Fri Aug  6 14:07:43 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:07:51 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:07:51 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:07:51 MDT 2021]Logged in USER(2) from 10.0.0.179
-[Fri Aug  6 14:07:51 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
-[Fri Aug  6 14:07:58 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:07:58 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:07:58 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:12:36 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:12:48 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:13:16 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:13:22 MDT 2021]Checking login, found uid2
-[Fri Aug  6 14:13:22 MDT 2021]Logged in USER(2) from 10.0.0.179
-[Fri Aug  6 14:13:22 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
-[Fri Aug  6 15:27:49 MDT 2021]Login attempt(bryan) from 162.216.47.3
-[Fri Aug  6 15:30:57 MDT 2021]Login attempt(smartent) from 10.0.0.179
-[Fri Aug  6 15:30:57 MDT 2021]Logged in USER(2) from 10.0.0.179
-[Fri Aug  6 15:30:57 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
-[Fri Aug  6 15:31:50 MDT 2021]Checking login, found uid2
-[Fri Aug  6 15:32:05 MDT 2021]Saving sensor(17:SOIL1 (long):192.168.12.228:Soil)
-[Fri Aug  6 15:32:21 MDT 2021]Saving sensor(18:SOIL2 (Cap):192.168.12.140:Soil)
-[Fri Aug  6 15:32:38 MDT 2021]Checking login, found uid2
-[Fri Aug  6 16:12:52 MDT 2021]Login attempt(admin) from 10.0.0.179
-[Fri Aug  6 16:12:52 MDT 2021]Logged in USER(1) from 10.0.0.179
-[Fri Aug  6 16:12:52 MDT 2021]Logged in ADMIN(1) from 10.0.0.179
+[Sun Aug  8 21:22:05 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:22:05 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:23:59 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:24:11 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:24:12 MDT 2021]Logged in USER(2) from 10.0.0.179
+[Sun Aug  8 21:24:12 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
+[Sun Aug  8 21:24:16 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:25:16 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:25:16 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:25:28 MDT 2021]Logged in USER(2) from 10.0.0.179
+[Sun Aug  8 21:25:28 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
+[Sun Aug  8 21:25:51 MDT 2021]Checking login, found uid2
+[Sun Aug  8 21:25:51 MDT 2021]Checking login, found uid2
