@@ -42,13 +42,13 @@ function addScheduleForm(){
     $("#popup-content").append("<i> eg: <b>\"30 6 * * *\"</b> for 6:30am every day</i><br />");
     $("#popup-content").append("<i> eg: <b>\"0 17 * * sun\"</b> for 5:00pm every Sunday</i><br />");
     $("#popup-content").append("<i> eg: <b>\"*/10 * * * *\"</b> for every 10 minutes</i><br />");
-    $("#popup-content").append("<i> eg: <b>\"0 */2 * * *\"</b> for every 2 hours</i><br />");
+    $("#popup-content").append("<i> eg: <b>\"0 */2 * * *\"</b> for every 2 hours, on the hour</i><br />");
     x_getRelays(getRelaysDD2_cb);
     showPopup();
 }
 function printRelayName_cb(result){
     for(x in result[0]){
-            $("#relayName"+result[x][0]d).html(""+result[x]+"");
+            $("#relayName"+result[x][0]).html(""+result[x]+"");
     }
 }
 function printSchedulesForm(result){

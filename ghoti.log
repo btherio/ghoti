@@ -12,3 +12,11 @@
 [Sun Aug  8 21:25:28 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
 [Sun Aug  8 21:25:51 MDT 2021]Checking login, found uid2
 [Sun Aug  8 21:25:51 MDT 2021]Checking login, found uid2
+[Tue Aug 17 23:14:25 MDT 2021]Login attempt(admin) from 10.0.0.179
+[Tue Aug 17 23:14:25 MDT 2021]Login attempt(admin) from 10.0.0.179
+[Tue Aug 17 23:14:26 MDT 2021]Logged in USER(1) from 10.0.0.179
+[Tue Aug 17 23:14:26 MDT 2021]Logged in ADMIN(1) from 10.0.0.179
+[Tue Aug 17 23:14:26 MDT 2021]Logged in USER(1) from 10.0.0.179
+[Tue Aug 17 23:14:26 MDT 2021]Logged in ADMIN(1) from 10.0.0.179
+[Tue Aug 17 23:14:35 MDT 2021]Checking login, found uid1
+[Tue Aug 17 23:20:32 MDT 2021]Checking login, found uid1
