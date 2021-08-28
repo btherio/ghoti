@@ -1,22 +1,73 @@
 
-[Sun Aug  8 21:22:05 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:22:05 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:23:59 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:24:11 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:24:12 MDT 2021]Logged in USER(2) from 10.0.0.179
-[Sun Aug  8 21:24:12 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
-[Sun Aug  8 21:24:16 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:25:16 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:25:16 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:25:28 MDT 2021]Logged in USER(2) from 10.0.0.179
-[Sun Aug  8 21:25:28 MDT 2021]Logged in ADMIN(2) from 10.0.0.179
-[Sun Aug  8 21:25:51 MDT 2021]Checking login, found uid2
-[Sun Aug  8 21:25:51 MDT 2021]Checking login, found uid2
-[Tue Aug 17 23:14:25 MDT 2021]Login attempt(admin) from 10.0.0.179
-[Tue Aug 17 23:14:25 MDT 2021]Login attempt(admin) from 10.0.0.179
-[Tue Aug 17 23:14:26 MDT 2021]Logged in USER(1) from 10.0.0.179
-[Tue Aug 17 23:14:26 MDT 2021]Logged in ADMIN(1) from 10.0.0.179
-[Tue Aug 17 23:14:26 MDT 2021]Logged in USER(1) from 10.0.0.179
-[Tue Aug 17 23:14:26 MDT 2021]Logged in ADMIN(1) from 10.0.0.179
-[Tue Aug 17 23:14:35 MDT 2021]Checking login, found uid1
-[Tue Aug 17 23:20:32 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:33:01 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:33:55 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:41:36 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:41:36 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:41:36 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:41:36 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:41:41 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:43:41 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:43:41 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:43:51 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:43:51 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:44:14 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:46:08 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:46:08 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:46:08 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:46:08 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:46:11 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:48:11 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:48:11 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:48:17 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:48:17 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:48:33 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:49:21 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:49:21 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:49:22 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:49:22 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:49:41 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:49:48 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:49:48 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:49:48 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:49:54 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:50:01 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:50:01 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:50:07 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:50:07 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:52:35 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:52:35 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:52:45 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:52:45 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:52:53 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:53:39 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:53:39 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:53:39 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:53:39 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:53:46 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:54:24 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:56:37 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:56:46 MDT 2021]Checking login, found uid1
+[Fri Aug 27 18:56:53 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 18:56:53 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 18:57:25 MDT 2021]Checking login, found uid1
+[Fri Aug 27 19:26:55 MDT 2021]Checking login, found uid1
+[Fri Aug 27 19:26:55 MDT 2021]Checking login, found uid1
+[Fri Aug 27 19:26:56 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 19:26:56 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 20:51:51 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:51:51 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:52:01 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:52:10 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:52:10 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 20:52:10 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 20:53:25 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:53:31 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:53:31 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 20:53:31 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 20:53:37 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:53:54 MDT 2021]Saving sensor(21:Soil Sensor (long):192.168.12.194:Soil)
+[Fri Aug 27 20:54:13 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:54:14 MDT 2021]Checking login, found uid1
+[Fri Aug 27 20:54:14 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Fri Aug 27 20:54:14 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Fri Aug 27 20:54:53 MDT 2021]Checking login, found uid1

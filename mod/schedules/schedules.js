@@ -1,11 +1,23 @@
 function getSchedules(){
     x_getSchedules(printSchedulesForm);
-} 
+}
+function printRelayName_cb(result){
+    for(x in result){
+            $("#relayName"+result[0][0]).html(""+result[1][0]['name']+"");
+    }
+}
 function getRelaysDD2_cb(result){
     relaysArray = result[0];
     for (x in relaysArray){
         $("#SchedulePin").append("<option value=\""+stripslashes(relaysArray[x]['pin'].toString())+"\">"+stripslashes(relaysArray[x]['name'].toString())+"</option>\n");
     }
+}
+function deleteSchedule(lineNum){
+	var confirmation = confirm ('Delete is permanent! \nAre you sure?');
+	if (confirmation){
+        var CronString  = $("#cron"+lineNum).val();
+        x_deleteSchedule(CronString,getSchedules);
+	}
 }
 
 function addSchedule(){
@@ -19,15 +31,6 @@ function addSchedule(){
 		x_addSchedule(ScheduleString,SchedulePin,ScheduleState,getSchedules);
 	}
 }
-
-function deleteSchedule(lineNum){
-    var CronString  = $("#cron"+lineNum).val();
-	var confirmation = confirm ('Delete is permanent! \nAre you sure?');
-	if (confirmation){
-		x_deleteSchedule(CronString,getSchedules);
-	}
-}
- 
 
 function addScheduleForm(){
     $("#popupTitle").html("Add a Schedule");
@@ -46,11 +49,7 @@ function addScheduleForm(){
     x_getRelays(getRelaysDD2_cb);
     showPopup();
 }
-function printRelayName_cb(result){
-    for(x in result[0]){
-            $("#relayName"+result[x][0]).html(""+result[x]+"");
-    }
-}
+
 function printSchedulesForm(result){
     schedulesArray = result;
     $("#popupTitle").html("Schedules");
@@ -63,8 +62,8 @@ function printSchedulesForm(result){
     } else {
         $("#schedulesForm").append("<i>Schedule format: Minute, Hour, Day of Month, Month, Day of Week</i><br />");
         $("#schedulesForm").append("<b>");
+        y = 1; //start at 1
         for (x in schedulesArray){
-            y=x+1; //start at 1 instead of 0;
             if(schedulesArray[x].length > 0){
                 var explode = schedulesArray[x].split(" "); //explode string and just displaying good bits.
                 for(var i = 0; i < explode.length; i++){
@@ -82,6 +81,8 @@ function printSchedulesForm(result){
                 $("#schedulesForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"deleteSchedule("+y+")\" >Delete</a>");
                 $("#schedulesForm").append("<br />");
                 }
+            y++; //increment
             }
+            
     }
 }
