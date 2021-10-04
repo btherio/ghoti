@@ -60,16 +60,17 @@ function printRelaysForm(result){
     
     for (x in relaysArray){
         $("#relaysForm").append("<input type=\"hidden\" id=\""+relaysArray[x]['id']+"-id\" value=\""+relaysArray[x]['id']+"\" />");
-        $("#relaysForm").append("<label alt=\"name\" id=\""+relaysArray[x]['id']+"-name\"><b>"+stripslashes(relaysArray[x]['name'])+"</b></label>&nbsp;&nbsp;&nbsp;");
-        $("#relaysForm").append("<label id=\""+relaysArray[x]['id']+"-pin\">"+stripslashes(relaysArray[x]['pin'])+"</label>&nbsp;&nbsp;&nbsp;");
-        //$("#relaysForm").append("<label id=\""+relaysArray[x]['id']+"-state\">"+stripslashes(relaysArray[x]['state'])+"</label>&nbsp;&nbsp;&nbsp;");
+        $("#relaysForm").append("<label alt=\"name\" id=\""+relaysArray[x]['id']+"-name\"><b>"+stripslashes(relaysArray[x]['name'])+"</b></label>&emsp;&emsp;");
+        $("#relaysForm").append("<label id=\""+relaysArray[x]['id']+"-pin\">"+stripslashes(relaysArray[x]['pin'])+"</label>&emsp;&emsp;");
+        //$("#relaysForm").append("<label id=\""+relaysArray[x]['id']+"-state\">"+stripslashes(relaysArray[x]['state'])+"</label>&emsp;&emsp;&emsp;");
+        $("#relaysForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"modifyRelayForm("+relaysArray[x]['id']+",'"+stripslashes(relaysArray[x]['name'])+"','"+stripslashes(relaysArray[x]['pin'])+"')\" >Edit</a>&emsp;");
+        $("#relaysForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"deleteRelay("+relaysArray[x]['id']+")\" >Delete</a>&emsp;");
         if(stripslashes(relaysArray[x]['state']) == "off"){
-            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'on',getRelays);\">Force On</a>&nbsp;");
+            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'on',getRelays);\">Force On</a>&emsp;");
         } else {
-            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'off',getRelays);\">Force Off</a>&nbsp;");
+            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'off',getRelays);\">Force Off</a>&emsp;");
         }
-        $("#relaysForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"modifyRelayForm("+relaysArray[x]['id']+",'"+stripslashes(relaysArray[x]['name'])+"','"+stripslashes(relaysArray[x]['pin'])+"')\" >Edit</a>&nbsp;");
-        $("#relaysForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"deleteRelay("+relaysArray[x]['id']+")\" >Delete</a>");
+        
         $("#relaysForm").append("<br />");
         }
     

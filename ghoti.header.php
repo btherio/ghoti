@@ -9,6 +9,7 @@
 //-->
 </script>
 <?php/*Third party libs*/?>
+<script src="https://cdn.plot.ly/plotly-2.5.1.min.js"></script>
 <script type="text/javascript" src="./lib/md5.js"></script>
 <script type="text/javascript" src="./lib/ckeditor/ckeditor.js"></script>
 <script type="text/javascript" src="./lib/jquery-1.4.2.js"></script>

@@ -17,6 +17,7 @@ if($_GET && $_GET['apikey'] == $apikey){    // check get variable, and check api
     $ghotidb = new ghotidb();
     $sensorsdb = new sensorsdb();
     $relays = new relays();
+    date_default_timezone_set('America/Edmonton');
     
     if($_GET['sensorip'] && $_GET['data']){   // check additional variables
     //get sensor by ip

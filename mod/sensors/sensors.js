@@ -17,7 +17,6 @@ function clearSensorData(id){
 		getSensors();
 	}
 }
-
 function clearSetpoints(id){
     //clears sensor setpoints for a given sensor
 	var confirmation = confirm ('This is permanent! \nAre you sure?');
@@ -26,6 +25,7 @@ function clearSetpoints(id){
 		manageSetpoints(id);
 	}
 }
+
 function saveSensor(){
     //saves a sensor from the modifySensorForm
     var id = $("#sensorID").val();
@@ -195,7 +195,7 @@ function printSensorsOverview(result){
     if(("#liveContent").length){
         x_getRelays(printRelaysOverview);// add relays
         $("#liveSensors").html(liveContent); //write the content to the page
-        window.setTimeout('x_readSensors(printSensorsOverview)',10000); //loop it    
+        window.setTimeout('x_readSensors(printSensorsOverview)',20000); //loop it    
     }
     
 }
@@ -217,17 +217,43 @@ function listAP_cb(result){
     }
 }
 function printSensorData(result){
-    data = result[0][0];
-    $("#popupTitle").html("Sensor Data");
-    //console.log(result);
-	$("#popup-content").html("<p>");
-
-    for (x in data){
-        $("#popup-content").append(result[x][1]);
-        $("#popup-content").append("<br />");
+    //clear the main div and set some variables
+    $("#ghotiContent").html("");
+    var x_arr = [];
+    var y_arr = [];
+    var id = result[0][0];
+            
+    //split the data from the array
+    for (x in result){
+        x_arr[x] = result[x][1];
+        y_arr[x] = result[x][2];
     }
-	$("#popup-content").append("</p>");
-    showPopup(); 
+ 
+    //plotly code
+    var trace1 = {
+    x: x_arr,
+    y: y_arr,
+    type: 'scatter'
+    };
+
+    var data = [trace1];
+
+    var layout = {
+        title: 'Sensor Data',
+        showlegend: false
+    };
+
+    Plotly.newPlot('ghotiContent', data, layout, {scrollZoom: true});
+    //Plotly.newPlot('ghotiContent', data, layout, {staticPlot: true});
+    
+    $("#ghotiContent").append("<br />      <a href=\"#\" class=\"ghotiMenu\" onclick=\"x_getSensorDataById("+id+",printSensorData)\">Recent</a>");
+    $("#ghotiContent").append("&nbsp;&nbsp;<a href=\"#\" class=\"ghotiMenu\" onclick=\"x_getSensorDataByIdToday("+id+",printSensorData)\">Today</a>");
+    $("#ghotiContent").append("&nbsp;&nbsp;<a href=\"#\" class=\"ghotiMenu\" onclick=\"x_getSensorDataByIdThisMonth("+id+",printSensorData)\">This Month</a>");
+    $("#ghotiContent").append("&nbsp;&nbsp;<a href=\"#\" class=\"ghotiMenu\" onclick=\"x_getSensorDataByIdLastMonth("+id+",printSensorData)\">Last Month</a>");
+    $(".ghotiMenu").click(function(e){
+        e.preventDefault();// stop normal link click on ghotiMenu links
+    });
+
 }
 function searchSensors(){
     $("#popupTitle").html("Connected Sensors");

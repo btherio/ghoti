@@ -143,11 +143,30 @@ function readSensors(){
 }
 sajax_export("readSensors");
 
-function getSensorDataById($id){
-    $sensorData = $_SESSION["sensorsObj"]->sensorsdb->getSensorDataById($id);
+function getSensorDataById($id,$numRows=500){
+    $sensorData = $_SESSION["sensorsObj"]->sensorsdb->getSensorDataById($id,$numRows);
     return $sensorData;
 }
 sajax_export("getSensorDataById");
+
+function getSensorDataByIdToday($id){
+    $sensorData = $_SESSION["sensorsObj"]->sensorsdb->getSensorDataByIdToday($id);
+    return $sensorData;
+}
+sajax_export("getSensorDataByIdToday");
+
+function getSensorDataByIdThisMonth($id){
+    $sensorData = $_SESSION["sensorsObj"]->sensorsdb->getSensorDataByIdThisMonth($id);
+    return $sensorData;
+}
+sajax_export("getSensorDataByIdThisMonth");
+
+
+function getSensorDataByIdLastMonth($id){
+    $sensorData = $_SESSION["sensorsObj"]->sensorsdb->getSensorDataByIdLastMonth($id);
+    return $sensorData;
+}
+sajax_export("getSensorDataByIdLastMonth");
 
 function clearSensorData($sensorID){
     

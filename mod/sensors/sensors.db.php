@@ -66,7 +66,7 @@ class sensorsdb extends ghotidb{
 		return True;
 	
 	}
-    function getSensorDataById($sensorID, $numRows=50){
+    function getSensorDataById($sensorID, $numRows=250){
         try{
 			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? order by date desc limit ?;",array($sensorID,$numRows));
 			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
@@ -74,11 +74,46 @@ class sensorsdb extends ghotidb{
 			ghoti::log("sensors.db.php $e");
 			return False;
 		}
-		return $Query[0];
+		return $Query;
+	
+	}
+	function getSensorDataByIdToday($sensorID){
+        try{
+			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? and date(date) = curdate() order by date;",array($sensorID));
+			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
+		}catch (exception $e){
+			ghoti::log("sensors.db.php $e");
+			return False;
+		}
+		return $Query;
+	
+	}
+    function getSensorDataByIdThisMonth($sensorID){
+        try{
+			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? and month(date) = month(curdate()) order by date;",array($sensorID));
+			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
+		}catch (exception $e){
+			ghoti::log("sensors.db.php $e");
+			return False;
+		}
+		return $Query;
+	
+	}
+    function getSensorDataByIdLastMonth($sensorID){
+        try{
+			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? and month(date) = (month(curdate())- 1) order by date;",array($sensorID));
+			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
+		}catch (exception $e){
+			ghoti::log("sensors.db.php $e");
+			return False;
+		}
+		return $Query;
 	
 	}
     function deleteSensor($id){
-		try{
+        $this->clearSensorData($id);
+        $this->clearSetpoints($id);
+        try{
 			$nonQuery = $this->adodb->Execute("delete from sensors where id=?",array($id));
 			if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
 		}catch (exception $e){

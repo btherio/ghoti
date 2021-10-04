@@ -1,73 +1,315 @@
 
-[Fri Aug 27 18:33:01 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:33:55 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:41:36 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:41:36 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:41:36 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:41:36 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:41:41 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:43:41 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:43:41 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:43:51 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:43:51 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:44:14 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:46:08 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:46:08 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:46:08 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:46:08 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:46:11 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:48:11 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:48:11 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:48:17 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:48:17 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:48:33 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:49:21 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:49:21 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:49:22 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:49:22 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:49:41 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:49:48 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:49:48 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:49:48 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:49:54 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:50:01 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:50:01 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:50:07 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:50:07 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:52:35 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:52:35 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:52:45 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:52:45 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:52:53 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:53:39 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:53:39 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:53:39 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:53:39 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:53:46 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:54:24 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:56:37 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:56:46 MDT 2021]Checking login, found uid1
-[Fri Aug 27 18:56:53 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 18:56:53 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 18:57:25 MDT 2021]Checking login, found uid1
-[Fri Aug 27 19:26:55 MDT 2021]Checking login, found uid1
-[Fri Aug 27 19:26:55 MDT 2021]Checking login, found uid1
-[Fri Aug 27 19:26:56 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 19:26:56 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 20:51:51 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:51:51 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:52:01 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:52:10 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:52:10 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 20:52:10 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 20:53:25 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:53:31 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:53:31 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 20:53:31 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 20:53:37 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:53:54 MDT 2021]Saving sensor(21:Soil Sensor (long):192.168.12.194:Soil)
-[Fri Aug 27 20:54:13 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:54:14 MDT 2021]Checking login, found uid1
-[Fri Aug 27 20:54:14 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Fri Aug 27 20:54:14 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Fri Aug 27 20:54:53 MDT 2021]Checking login, found uid1
+[Sun Sep 12 18:10:14 MDT 2021]Checking login, found uid2
+[Sun Sep 12 18:39:06 MDT 2021]Login attempt(smartent) from 10.0.0.218
+[Sun Sep 12 18:39:06 MDT 2021]Logged in USER(2) from 10.0.0.218
+[Sun Sep 12 18:39:06 MDT 2021]Logged in ADMIN(2) from 10.0.0.218
+[Sun Sep 12 18:39:37 MDT 2021]Checking login, found uid2
+[Sat Oct  2 15:58:13 MDT 2021]Login attempt(admin) from 10.0.0.182
+[Sat Oct  2 15:58:13 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 15:58:13 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 15:58:29 MDT 2021]Checking login, found uid1
+[Sat Oct  2 15:58:30 MDT 2021]Checking login, found uid1
+[Sat Oct  2 15:58:50 MDT 2021]Checking login, found uid1
+[Sat Oct  2 16:00:54 MDT 2021]Checking login, found uid1
+[Sat Oct  2 16:00:54 MDT 2021]Checking login, found uid1
+[Sat Oct  2 16:00:54 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 16:00:54 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:44:04 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:44:04 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:44:04 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:44:04 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:45:00 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:47:47 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:47:47 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:47:47 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:47:47 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:48:54 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:48:54 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:48:54 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:48:54 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:49:56 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:49:56 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:49:56 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:49:56 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:50:04 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:50:57 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:50:57 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:50:58 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:50:58 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:51:41 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:51:41 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:51:42 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:51:42 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:53:10 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:53:10 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:53:10 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:53:10 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 19:54:07 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:54:07 MDT 2021]Checking login, found uid1
+[Sat Oct  2 19:54:07 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sat Oct  2 19:54:07 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sat Oct  2 20:50:06 MDT 2021]Login attempt(smartent) from 10.0.0.182
+[Sat Oct  2 20:50:06 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sat Oct  2 20:50:06 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sat Oct  2 20:50:09 MDT 2021]Checking login, found uid2
+[Sat Oct  2 20:51:03 MDT 2021]Checking login, found uid2
+[Sat Oct  2 20:52:58 MDT 2021]Checking login, found uid2
+[Sat Oct  2 20:53:42 MDT 2021]Checking login, found uid2
+[Sat Oct  2 20:54:27 MDT 2021]Checking login, found uid2
+[Sat Oct  2 20:54:27 MDT 2021]Checking login, found uid2
+[Sat Oct  2 20:54:27 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sat Oct  2 20:54:27 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 12:39:10 MDT 2021]Login attempt(admin) from 10.0.0.182
+[Sun Oct  3 12:39:10 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 12:39:10 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 13:58:20 MDT 2021]Checking login, found uid1
+[Sun Oct  3 13:58:20 MDT 2021]Checking login, found uid1
+[Sun Oct  3 13:58:20 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 13:58:20 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 13:59:44 MDT 2021]Checking login, found uid1
+[Sun Oct  3 13:59:44 MDT 2021]Checking login, found uid1
+[Sun Oct  3 13:59:44 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 13:59:44 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 14:01:22 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:01:22 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:01:23 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 14:01:23 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 14:02:47 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:02:47 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:02:48 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 14:02:48 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 14:06:50 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:06:50 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:06:51 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 14:06:51 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 14:28:51 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:28:52 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:28:52 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 14:28:52 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 14:33:49 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:33:49 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:33:49 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 14:33:49 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 14:38:14 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:38:14 MDT 2021]Checking login, found uid1
+[Sun Oct  3 14:38:14 MDT 2021]Logged in USER(1) from 10.0.0.182
+[Sun Oct  3 14:38:14 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
+[Sun Oct  3 14:39:06 MDT 2021]Checking login, found uid1
+[Sun Oct  3 15:00:38 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Sun Oct  3 15:02:01 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='17' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Sun Oct  3 15:04:13 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Sun Oct  3 15:06:57 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Sun Oct  3 15:07:54 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Sun Oct  3 15:08:30 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Sun Oct  3 15:11:19 MDT 2021]Login attempt(smartent) from 10.0.0.182
+[Sun Oct  3 15:11:19 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:11:19 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:11:21 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:11:51 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:12:13 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:12:21 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:14:23 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:14:23 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:14:23 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:14:23 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:15:43 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:15:43 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:15:44 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:15:44 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:16:45 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:16:45 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:16:46 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:16:46 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:19:30 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:19:31 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:19:31 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:19:31 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:20:11 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:20:11 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:20:11 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:20:11 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:20:37 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:22:24 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:22:24 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:22:24 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:22:24 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:23:24 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:23:24 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:23:25 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:23:25 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:23:45 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:23:46 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:23:46 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:23:46 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:24:48 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:24:48 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:24:49 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:24:49 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:25:11 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:25:11 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:25:11 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:25:11 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:27:40 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:27:41 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:27:41 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:27:41 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:28:46 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:28:47 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:28:47 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:28:47 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:31:28 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:31:28 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:31:28 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:31:28 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:32:19 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:32:19 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:32:19 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:32:19 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:33:21 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:33:21 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:33:21 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:33:21 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:35:01 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:35:02 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:35:02 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:35:02 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:35:50 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:35:50 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:35:50 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:35:50 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:36:40 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:36:40 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:36:41 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:36:41 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:37:03 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:37:03 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:37:03 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:37:03 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:38:40 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:38:40 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:38:40 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:38:40 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:39:13 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:39:13 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:39:13 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:39:13 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:40:35 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:40:35 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:40:35 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:40:35 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:42:12 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:42:12 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:42:12 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:42:12 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:43:06 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:43:06 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:43:06 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:43:06 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:44:11 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:44:11 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:44:11 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 15:44:11 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 15:46:52 MDT 2021]Checking login, found uid2
+[Sun Oct  3 15:49:13 MDT 2021]Checking login, found uid2
+[Sun Oct  3 17:56:37 MDT 2021]Checking login, found uid2
+[Sun Oct  3 17:57:25 MDT 2021]Checking login, found uid2
+[Sun Oct  3 17:57:25 MDT 2021]Checking login, found uid2
+[Sun Oct  3 17:57:25 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 17:57:25 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 18:00:50 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:04:04 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:04:04 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:04:05 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 18:04:05 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 18:04:06 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:04:29 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:04:29 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:04:30 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 18:04:30 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 18:04:31 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:05:19 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:05:19 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:05:19 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 18:05:19 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 18:05:20 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:06:24 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:06:24 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:06:25 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 18:06:25 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 18:06:27 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:07:07 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:07:07 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:07:07 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 18:07:07 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 18:07:09 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:07:55 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:07:55 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:07:55 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Sun Oct  3 18:07:55 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Sun Oct  3 18:08:08 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:08:25 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:08:52 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:08:55 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:09:52 MDT 2021]Checking login, found uid2
+[Sun Oct  3 18:21:04 MDT 2021]Checking login, found uid2
+[Sun Oct  3 20:37:39 MDT 2021]Login attempt(smartent) from 10.0.0.229
+[Sun Oct  3 20:37:39 MDT 2021]Logged in USER(2) from 10.0.0.229
+[Sun Oct  3 20:37:39 MDT 2021]Logged in ADMIN(2) from 10.0.0.229
+[Sun Oct  3 20:37:41 MDT 2021]Checking login, found uid2
+[Sun Oct  3 20:38:28 MDT 2021]Checking login, found uid2
+[Sun Oct  3 20:38:28 MDT 2021]Adding a new sensor DHT-22 of type dht at 192.168.12.59
+[Sun Oct  3 20:38:33 MDT 2021]Checking login, found uid2

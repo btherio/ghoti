@@ -1,5 +1,3 @@
-
-
 Add new files:
 
     git add -A
@@ -15,6 +13,14 @@ Push changes to remote master:
 Push changes to remote branch:
 
     git push origin <branchname>
+
+Stash changes
+
+    git stash
+    
+Pull changes into working dir
+
+    git pull
     
 Fetch changes to master and rebase into branch
 
