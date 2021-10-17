@@ -222,7 +222,9 @@ function printSensorData(result){
     var x_arr = [];
     var y_arr = [];
     var id = result[0][0];
-            
+    var name = result[0][3];
+    var type = result[0][4];
+    
     //split the data from the array
     for (x in result){
         x_arr[x] = result[x][1];
@@ -238,8 +240,10 @@ function printSensorData(result){
 
     var data = [trace1];
 
+    
+    //maybe we could vary the layout depending on sensor type result[x][4]
     var layout = {
-        title: 'Sensor Data',
+        title: name,
         showlegend: false
     };
 

@@ -68,7 +68,7 @@ class sensorsdb extends ghotidb{
 	}
     function getSensorDataById($sensorID, $numRows=250){
         try{
-			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? order by date desc limit ?;",array($sensorID,$numRows));
+			$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? order by date desc limit ?;",array($sensorID,$numRows));
 			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("sensors.db.php $e");
@@ -79,7 +79,7 @@ class sensorsdb extends ghotidb{
 	}
 	function getSensorDataByIdToday($sensorID){
         try{
-			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? and date(date) = curdate() order by date;",array($sensorID));
+			$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? and date(date) = curdate() order by date;",array($sensorID));
 			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("sensors.db.php $e");
@@ -90,7 +90,7 @@ class sensorsdb extends ghotidb{
 	}
     function getSensorDataByIdThisMonth($sensorID){
         try{
-			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? and month(date) = month(curdate()) order by date;",array($sensorID));
+			$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors where sensorData.id=sensors.id and sensorData.id=? and month(date) = month(curdate()) order by date;",array($sensorID));
 			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("sensors.db.php $e");
@@ -101,7 +101,7 @@ class sensorsdb extends ghotidb{
 	}
     function getSensorDataByIdLastMonth($sensorID){
         try{
-			$Query = $this->adodb->GetArray("select id,date,data from sensorData where id=? and month(date) = (month(curdate())- 1) order by date;",array($sensorID));
+			$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? and month(date) = (month(curdate())- 1) order by date;",array($sensorID));
 			//if (!$Query) mylogerr($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("sensors.db.php $e");

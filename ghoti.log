@@ -313,3 +313,66 @@ Stack trace:
 [Sun Oct  3 20:38:28 MDT 2021]Checking login, found uid2
 [Sun Oct  3 20:38:28 MDT 2021]Adding a new sensor DHT-22 of type dht at 192.168.12.59
 [Sun Oct  3 20:38:33 MDT 2021]Checking login, found uid2
+[Sun Oct  3 21:48:40 MDT 2021]Checking login, found uid2
+[Mon Oct  4 19:26:27 MDT 2021]Checking login, found uid2
+[Mon Oct  4 19:26:27 MDT 2021]Checking login, found uid2
+[Mon Oct  4 19:26:27 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Mon Oct  4 19:26:27 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Mon Oct  4 19:28:09 MDT 2021]Checking login, found uid2
+[Mon Oct  4 19:29:05 MDT 2021]Checking login, found uid2
+[Mon Oct  4 19:29:15 MDT 2021]Checking login, found uid2
+[Mon Oct  4 19:41:37 MDT 2021]Checking login, found uid2
+[Mon Oct  4 19:58:02 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:08:20 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:08:21 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:08:21 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Mon Oct  4 20:08:21 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Mon Oct  4 20:10:01 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1052: Column 'id' in where clause is ambiguous] in EXECUTE("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and id='23' order by date desc limit 500;") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Mon Oct  4 20:10:22 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:10:22 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:10:22 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Mon Oct  4 20:10:22 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Mon Oct  4 20:10:25 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1052: Column 'id' in where clause is ambiguous] in EXECUTE("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and id='11' order by date desc limit 500;") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
+Stack trace:
+#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
+#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
+#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
+#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
+#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
+#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
+#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
+#7 {main}
+[Mon Oct  4 20:12:55 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:12:55 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:12:55 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Mon Oct  4 20:12:55 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Mon Oct  4 20:13:26 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:16:31 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:16:31 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:16:31 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Mon Oct  4 20:16:31 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Mon Oct  4 20:33:37 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:34:45 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:34:57 MDT 2021]Checking login, found uid2
+[Mon Oct  4 20:40:00 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:20:53 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:24:42 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:24:45 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:24:53 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:24:53 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:24:53 MDT 2021]Logged in USER(2) from 10.0.0.182
+[Tue Oct  5 21:24:53 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
+[Tue Oct  5 21:45:54 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:45:55 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:45:56 MDT 2021]Checking login, found uid2
+[Tue Oct  5 21:47:04 MDT 2021]Checking login, found uid2
+[Wed Oct  6 21:48:40 MDT 2021]Checking login, found uid2
