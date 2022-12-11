@@ -1,8 +1,8 @@
 function getRelays(){
-    x_getRelays(printRelaysForm);
+    x_getRelays(900,printRelaysForm);
 }  
 function getRelaysOverview(){
-    x_getRelays(printRelaysOverview);
+    x_getRelays(900,printRelaysOverview);
 }
 function addRelay(){
 	var RelayName = $("#RelayName").val();
@@ -36,7 +36,6 @@ function addRelayForm(name="",pin="0"){
 	$("#popup-content").html("Relay Name:<input type=\"text\" id=\"RelayName\" size=\"10\" value=\""+name+"\" /><br />\n");
 	$("#popup-content").append("Relay pin (BCM):<input type=\"text\" id=\"RelayPin\" size=\"3\" value=\""+pin+"\" /><br />\n");
     $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addRelay();\" >Add</a>\n");
-	//$("#popup-content").append("<input type=\"button\" value=\"Add\" onclick=\"addRelay();\" />\n");
     $("#popupTitle").html("Add a Relay");
 	showPopup();
 }
@@ -46,7 +45,6 @@ function modifyRelayForm(id=0,name="",pin=0){
     $("#popup-content").append("<input type=\"hidden\" id=\"RelayID\" value=\""+id+"\" /><br />\n");
     $("#popup-content").append("Relay pin (BCM):<input type=\"text\" id=\"RelayPin\" size=\"3\" value=\""+pin+"\" /><br />\n");
     $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"saveRelay();\" >Save</a>\n");
-	//$("#popup-content").append("<input type=\"button\" value=\"Save\" onclick=\"saveRelay();\" />\n");
     $("#popupTitle").html("Modify Relay");    
 	showPopup();
 }
@@ -59,8 +57,8 @@ function printRelaysForm(result){
     showPopup();
     
     for (x in relaysArray){
-        $("#relaysForm").append("<input type=\"hidden\" id=\""+relaysArray[x]['id']+"-id\" value=\""+relaysArray[x]['id']+"\" />");
-        $("#relaysForm").append("<label alt=\"name\" id=\""+relaysArray[x]['id']+"-name\"><b>"+stripslashes(relaysArray[x]['name'])+"</b></label>&emsp;&emsp;");
+        $("#relaysForm").append("<input type=\"hidden\" id=\""+relaysArray[x]['id']+"-id\" value=\""+relaysArray[x]['id']+"\" />&emsp;");
+        $("#relaysForm").append("<label alt=\"name\" id=\""+relaysArray[x]['id']+"-name\"><b>"+stripslashes(relaysArray[x]['name'])+"</b></label>&emsp;&emsp;Pin:");
         $("#relaysForm").append("<label id=\""+relaysArray[x]['id']+"-pin\">"+stripslashes(relaysArray[x]['pin'])+"</label>&emsp;&emsp;");
         //$("#relaysForm").append("<label id=\""+relaysArray[x]['id']+"-state\">"+stripslashes(relaysArray[x]['state'])+"</label>&emsp;&emsp;&emsp;");
         $("#relaysForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"modifyRelayForm("+relaysArray[x]['id']+",'"+stripslashes(relaysArray[x]['name'])+"','"+stripslashes(relaysArray[x]['pin'])+"')\" >Edit</a>&emsp;");

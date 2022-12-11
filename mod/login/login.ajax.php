@@ -95,8 +95,8 @@ function logout(){
 		unset($_SESSION['userId']);
 		unset($_SESSION['admin']);
 		
-        $_SESSION['userId'] = 0;
-	    $_SESSION['loggedIn'] = false;
+        //$_SESSION['userId'] = 0;
+	    //$_SESSION['loggedIn'] = false;
 		
 		session_unset();
 		unset($_GET["login"]);

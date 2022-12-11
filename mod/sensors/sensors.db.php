@@ -134,7 +134,8 @@ class sensorsdb extends ghotidb{
     public function getSetpoints($id){
         try{
             //$setpoints = $this->adodb->GetArray("select id,setpoint,type,action from sensorSetpoints where id=?;",array($id));
-            $setpoints = $this->adodb->GetArray("select relays.id,sensorSetpoints.setpoint,sensorSetpoints.type,sensorSetpoints.action,sensorSetpoints.id,relays.name as 'action' from sensorSetpoints inner join relays on sensorSetpoints.action = relays.id where sensorSetpoints.id = ?;",array($id));
+            //$setpoints = $this->adodb->GetArray("select relays.id,sensorSetpoints.setpoint,sensorSetpoints.type,sensorSetpoints.action,sensorSetpoints.id,relays.name as 'action' from sensorSetpoints inner join relays on sensorSetpoints.action = relays.id where sensorSetpoints.id = ?;",array($id));
+            $setpoints = $this->adodb->GetArray("select relays.id,sensorSetpoints.setpoint,sensorSetpoints.type,sensorSetpoints.action,sensorSetpoints.id,relays.name as 'action',sensors.name from sensorSetpoints,relays,sensors where sensorSetpoints.action = relays.id AND sensorSetpoints.id = sensors.id AND sensorSetpoints.id = ?",array($id));
 		}catch (exception $e){
 			ghoti::log("sensors.db.php $e");
 			return $e->getMessage();
@@ -184,7 +185,17 @@ class sensorsdb extends ghotidb{
     function modifySensor($id,$name,$address,$type){
 		try{
 			$nonQuery = $this->adodb->Execute("update sensors set name=?,address=?,type=? where id=?",array($name,$address,$type,$id));
-			if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());	
+			if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
+		}catch (exception $e){
+			ghoti::log("sensors.db.php $e");
+			return False;
+		}
+		return True;
+	}
+	function setAlarmSent($id,$setpoint){
+		try{
+			$nonQuery = $this->adodb->Execute("update sensorSetpoints set action=922 where action=911 and id=? and setpoint=?",array($id,$setpoint));
+			if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 		}catch (exception $e){
 			ghoti::log("sensors.db.php $e");
 			return False;

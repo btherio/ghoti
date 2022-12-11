@@ -16,7 +16,7 @@ function getPage($content){
 	$content.= $_SESSION["commentsObj"]->commentsui->displayComments($pageComments,true);
 	
 	if(checkLogin()){//print the comment button if we're logged in
-		$content .= $_SESSION["commentsObj"]->commentsui->addCommentButton();
+		//$content .= $_SESSION["commentsObj"]->commentsui->addCommentButton();
 	}
 	if(isSet($_SESSION['userId'])){
 		if(isAdmin($_SESSION['userId'])){

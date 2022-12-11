@@ -28,9 +28,9 @@ function addRelay($name,$pin){
 }
 sajax_export("addRelay");
 
-function getRelays(){
+function getRelays($limit){
 //returns list of relays from database table,
-    return array($_SESSION["relaysObj"]->relaysdb->getRelays());
+    return array($_SESSION["relaysObj"]->relaysdb->getRelays($limit));
 }
 sajax_export("getRelays");
 

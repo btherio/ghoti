@@ -49,10 +49,13 @@ function addSensorForm(name="",address="192.168.12.*"){
     //i hardcoded these becasue... i did
     $("#sensorType").append("<option value=\"dht\">DHT</option>");
     $("#sensorType").append("<option value=\"ds18b20\">DS18B20</option>");
-    $("#sensorType").append("<option value=\"tds\">TDS</option>");
     $("#sensorType").append("<option value=\"thermistor\">Thermistor</option>");
+    $("#sensorType").append("<option value=\"tds\">TDS</option>");
+    $("#sensorType").append("<option value=\"refrig\">PH</option>");
     $("#sensorType").append("<option value=\"soil\">Soil</option>");
     $("#sensorType").append("<option value=\"relay\">Relay</option>");
+    $("#sensorType").append("<option value=\"refrig\">Refrigeration</option>");
+
 	showPopup();
 }
 
@@ -66,10 +69,12 @@ function modifySensorForm(id=0,name="",address="192.168.12.*"){
     //i hardcoded these becasue... i did
     $("#sensorType").append("<option value=\"dht\">DHT</option>");
     $("#sensorType").append("<option value=\"ds18b20\">DS18B20</option>");
-    $("#sensorType").append("<option value=\"tds\">TDS</option>");
     $("#sensorType").append("<option value=\"thermistor\">Thermistor</option>");
+    $("#sensorType").append("<option value=\"tds\">TDS</option>");
+    $("#sensorType").append("<option value=\"refrig\">PH</option>");
     $("#sensorType").append("<option value=\"soil\">Soil</option>");
     $("#sensorType").append("<option value=\"relay\">Relay</option>");
+    $("#sensorType").append("<option value=\"refrig\">Refrigeration</option>");
     showPopup();
 }
 function manageSetpoints(id){
@@ -98,7 +103,6 @@ function getRelaysDD_cb(result){
     for (x in relaysArray){
         $("#setpointAction").append("<option value=\""+stripslashes(relaysArray[x]['id'].toString())+"\">"+stripslashes(relaysArray[x]['name'].toString())+"</option>\n");
     }
-    //$("#setpointAction").append("<option value=\"911\">Alarm</option>\n");
 }
 function addSetpointForm(id){
     $("#popupTitle").html("Add Setpoint");
@@ -119,7 +123,8 @@ function addSetpointForm(id){
             $("#setpoint").append("<option value=\""+i+"\">"+i+"</option>");
         }
     } 
-    x_getRelays(getRelaysDD_cb);
+    x_getRelays(915,getRelaysDD_cb);
+    //$("#setpointAction").append("<option value=\"911\">Alarm</option>\n");  //doesntwork
 }
 
 function addSetpoint(){
@@ -193,7 +198,7 @@ function printSensorsOverview(result){
     liveContent += "</div></form>";
     
     if(("#liveContent").length){
-        x_getRelays(printRelaysOverview);// add relays
+        x_getRelays(900,printRelaysOverview);// add relays
         $("#liveSensors").html(liveContent); //write the content to the page
         window.setTimeout('x_readSensors(printSensorsOverview)',20000); //loop it    
     }

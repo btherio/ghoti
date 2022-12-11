@@ -17,7 +17,7 @@ class relays{
         try{
             ghoti::log("Switching pin ". $pin ." to ". $state ."...");
             
-            if(shell_exec("/srv/http/ghotiCMS/mod/relays/gpio-relay.sh $pin $state") == 0){ //if result is positive (ie, we have successfully switched relay pin
+            if(shell_exec("/srv/http/smartent/mod/relays/gpio-relay.sh $pin $state") == 0){ //if result is positive (ie, we have successfully switched relay pin
                 //save state to database
                 ghoti::log("Saving relay state to database: ".$id.":".$state."...");
                 $this->relaysdb->saveRelayState($id,$state);

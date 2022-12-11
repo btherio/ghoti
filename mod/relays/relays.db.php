@@ -45,9 +45,9 @@ class relaysdb extends ghotidb{
 			return False;
 		}
 	}
-	public function getRelays(){
+	public function getRelays($limit){
         try{
-            $relays = $this->adodb->GetArray("select id,name,pin,state from relays;");
+            $relays = $this->adodb->GetArray("select id,name,pin,state from relays where pin < ?;",array($limit));
 		}catch (exception $e){
 			ghoti::log("relays.db.php $e");
 			return $e->getMessage();

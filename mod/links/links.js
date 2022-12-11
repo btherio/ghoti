@@ -97,7 +97,7 @@ function getLinks_cb(links){
 		for(x in linksArray){
 				$("#ghotiLinksList").append("<li><a href=\""+stripslashes(linksArray[x]['url'].toString())+"\">"+stripslashes(linksArray[x]['name'].toString())+"</a></li>");
 		}	
-		window.setTimeout('x_getLinks(getLinks_cb)',3000); //wait, then repeat the whole thing.
+		//window.setTimeout('x_getLinks(getLinks_cb)',3000); //wait, then repeat the whole thing.
 	}else{
 		//do it all over again, with a twist.
 		$("#ghotiLinks"+links[0]).html("<ul id=\"ghotiLinks"+links[0]+"List\"></ul>");

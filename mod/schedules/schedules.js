@@ -1,4 +1,4 @@
-function getSchedules(){
+    function getSchedules(){
     x_getSchedules(printSchedulesForm);
 }
 function printRelayName_cb(result){
@@ -46,7 +46,7 @@ function addScheduleForm(){
     $("#popup-content").append("<i> eg: <b>\"0 17 * * sun\"</b> for 5:00pm every Sunday</i><br />");
     $("#popup-content").append("<i> eg: <b>\"*/10 * * * *\"</b> for every 10 minutes</i><br />");
     $("#popup-content").append("<i> eg: <b>\"0 */2 * * *\"</b> for every 2 hours, on the hour</i><br />");
-    x_getRelays(getRelaysDD2_cb);
+    x_getRelays(900,getRelaysDD2_cb);
     showPopup();
 }
 

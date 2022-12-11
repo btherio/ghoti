@@ -26,7 +26,7 @@ function addSchedule($schedule,$pin,$state){
 		ghoti::log("schedules.ajax.php: $e\n");
 		return $e->getMessage();
 	}
-	$job = "$schedule /srv/http/ghotiCMS/mod/relays/gpio-relay.sh $pin $state > /dev/null 2>&1";
+	$job = "$schedule /srv/http/smartend/mod/relays/gpio-relay.sh $pin $state > /dev/null 2>&1";
     
     if (!cronjob_exists($job)) {
         //add job to crontab

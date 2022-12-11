@@ -5,6 +5,13 @@
  *
  */
 include_once('sensors.db.php');
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+require_once 'lib/PHPMailer/src/Exception.php';
+require_once 'lib/PHPMailer/src/PHPMailer.php';
+require_once 'lib/PHPMailer/src/SMTP.php';
+
 class sensors{
 	public $sensorsdb;
     public int $checkAP;
@@ -42,6 +49,71 @@ class sensors{
            die("EXECUTION ERROR $e");
         }
         return $listAP;
+    }
+
+
+    public function sendAlarm($name,$data,$setpoint,$id,$alarmType){
+
+
+        $alarmAddress = "7802356747@msg.telus.com";
+        if($alarmType == "911"){
+
+            ghoti::log("Attempting to send alarm email to: $alarmAddress \n");
+
+            //Create a new PHPMailer instance
+            $mail = new PHPMailer(True);
+            //Tell PHPMailer to use SMTP
+            $mail->isSMTP();
+            //Enable SMTP debugging
+            //SMTP::DEBUG_OFF = off (for production use)
+            //SMTP::DEBUG_CLIENT = client messages
+            //SMTP::DEBUG_SERVER = client and server messages
+            $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+            //Set the hostname of the mail server
+            $mail->Host = 'smtp.gmail.com';
+            //Set the SMTP port number - likely to be 25, 465 or 587
+            $mail->Port = 465;
+            //ssl
+            $mail->SMTPSecure = "ssl";
+            //Whether to use SMTP authentication
+            $mail->SMTPAuth = TRUE;
+            //Username to use for SMTP authentication
+            $mail->Username = 'btherio@gmail.com';
+            //Password to use for SMTP authentication
+            $mail->Password = 'xoqzvqhyuunrdhba';
+            //Set who the message is to be sent from
+            $mail->setFrom('btherio@gmail.com', 'SmarTEND');
+            //Set an alternative reply-to address
+            $mail->addReplyTo('btherio@gmail.com', 'SmarTEND');
+            //Set who the message is to be sent to
+            $mail->addAddress($alarmAddress, '');
+            //Set the subject line
+            $mail->Subject = 'SmarTEND';
+            $mail->Body = "Alarm: Currently $name has exceeded limit of $setpoint at $data.";
+
+
+            try{
+                //send the message, check for errors
+                if (!$mail->send()) {
+                    ghoti::log( "Mailer Error: " . $mail->ErrorInfo . "\n" );
+                } else {
+                    ghoti::log( "Alarm sent for $name!\n" );
+                    //mark setpoint as alarm-sent, to be reset by cron at scheduled intervals. ie: send alarm once per hour or once per day
+                    $this->sensorsdb = new sensorsdb();
+                    $this->sensorsdb->setAlarmSent($id,$setpoint);
+                    $this->sensorsdb->__destruct;
+                }
+            } catch (Exception $e){
+                /* PHPMailer exception. */
+                ghoti::log($e->errorMessage());
+            } catch (\Exception $e) {
+                /* PHP exception (note the backslash to select the global namespace Exception class). */
+                ghoti::log($e->getMessage());
+            }
+        } else {
+        //must be 922, ignore for now
+        //ghoti::log("922 alarm received, already sent");
+        }
     }
 }
 ?>

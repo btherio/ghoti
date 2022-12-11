@@ -1,4 +1,4 @@
-<?php
+    <?php
 /*
  * Created on Dec 20, 2020
  * Sensors module sajax code
@@ -65,6 +65,7 @@ function deleteSensor($id){
 		ghoti::log("sensors.ajax.php: $e\n");
 		return False;
 	}
+	$csp = array($_SESSION["sensorsObj"]->sensorsdb->clearSetpoints($id)); //clears sensor data
  	$_SESSION["sensorsObj"]->sensorsdb->deleteSensor($id);
 	return True;
 }
@@ -81,6 +82,7 @@ function saveSensor($id,$name,$address,$type){
 		return False;
 	}
 	$_SESSION["ghotiObj"]->log("Saving sensor($id:$name:$address:$type)");
+
 	return $_SESSION["sensorsObj"]->sensorsdb->modifySensor($id,$name,$address,$type);
 }
 sajax_export("saveSensor");

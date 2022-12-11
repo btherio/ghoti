@@ -1,378 +1,303 @@
 
-[Sun Sep 12 18:10:14 MDT 2021]Checking login, found uid2
-[Sun Sep 12 18:39:06 MDT 2021]Login attempt(smartent) from 10.0.0.218
-[Sun Sep 12 18:39:06 MDT 2021]Logged in USER(2) from 10.0.0.218
-[Sun Sep 12 18:39:06 MDT 2021]Logged in ADMIN(2) from 10.0.0.218
-[Sun Sep 12 18:39:37 MDT 2021]Checking login, found uid2
-[Sat Oct  2 15:58:13 MDT 2021]Login attempt(admin) from 10.0.0.182
-[Sat Oct  2 15:58:13 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 15:58:13 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 15:58:29 MDT 2021]Checking login, found uid1
-[Sat Oct  2 15:58:30 MDT 2021]Checking login, found uid1
-[Sat Oct  2 15:58:50 MDT 2021]Checking login, found uid1
-[Sat Oct  2 16:00:54 MDT 2021]Checking login, found uid1
-[Sat Oct  2 16:00:54 MDT 2021]Checking login, found uid1
-[Sat Oct  2 16:00:54 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 16:00:54 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:44:04 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:44:04 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:44:04 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:44:04 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:45:00 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:47:47 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:47:47 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:47:47 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:47:47 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:48:54 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:48:54 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:48:54 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:48:54 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:49:56 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:49:56 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:49:56 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:49:56 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:50:04 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:50:57 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:50:57 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:50:58 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:50:58 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:51:41 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:51:41 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:51:42 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:51:42 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:53:10 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:53:10 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:53:10 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:53:10 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 19:54:07 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:54:07 MDT 2021]Checking login, found uid1
-[Sat Oct  2 19:54:07 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sat Oct  2 19:54:07 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sat Oct  2 20:50:06 MDT 2021]Login attempt(smartent) from 10.0.0.182
-[Sat Oct  2 20:50:06 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sat Oct  2 20:50:06 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sat Oct  2 20:50:09 MDT 2021]Checking login, found uid2
-[Sat Oct  2 20:51:03 MDT 2021]Checking login, found uid2
-[Sat Oct  2 20:52:58 MDT 2021]Checking login, found uid2
-[Sat Oct  2 20:53:42 MDT 2021]Checking login, found uid2
-[Sat Oct  2 20:54:27 MDT 2021]Checking login, found uid2
-[Sat Oct  2 20:54:27 MDT 2021]Checking login, found uid2
-[Sat Oct  2 20:54:27 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sat Oct  2 20:54:27 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 12:39:10 MDT 2021]Login attempt(admin) from 10.0.0.182
-[Sun Oct  3 12:39:10 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 12:39:10 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 13:58:20 MDT 2021]Checking login, found uid1
-[Sun Oct  3 13:58:20 MDT 2021]Checking login, found uid1
-[Sun Oct  3 13:58:20 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 13:58:20 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 13:59:44 MDT 2021]Checking login, found uid1
-[Sun Oct  3 13:59:44 MDT 2021]Checking login, found uid1
-[Sun Oct  3 13:59:44 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 13:59:44 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 14:01:22 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:01:22 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:01:23 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 14:01:23 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 14:02:47 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:02:47 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:02:48 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 14:02:48 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 14:06:50 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:06:50 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:06:51 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 14:06:51 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 14:28:51 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:28:52 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:28:52 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 14:28:52 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 14:33:49 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:33:49 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:33:49 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 14:33:49 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 14:38:14 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:38:14 MDT 2021]Checking login, found uid1
-[Sun Oct  3 14:38:14 MDT 2021]Logged in USER(1) from 10.0.0.182
-[Sun Oct  3 14:38:14 MDT 2021]Logged in ADMIN(1) from 10.0.0.182
-[Sun Oct  3 14:39:06 MDT 2021]Checking login, found uid1
-[Sun Oct  3 15:00:38 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Sun Oct  3 15:02:01 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='17' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Sun Oct  3 15:04:13 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Sun Oct  3 15:06:57 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Sun Oct  3 15:07:54 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Sun Oct  3 15:08:30 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1064: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near ''1000'' at line 1] in EXECUTE("select id,date,data from sensorData where id='11' order by date desc limit '1000';") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Sun Oct  3 15:11:19 MDT 2021]Login attempt(smartent) from 10.0.0.182
-[Sun Oct  3 15:11:19 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:11:19 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:11:21 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:11:51 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:12:13 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:12:21 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:14:23 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:14:23 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:14:23 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:14:23 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:15:43 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:15:43 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:15:44 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:15:44 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:16:45 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:16:45 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:16:46 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:16:46 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:19:30 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:19:31 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:19:31 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:19:31 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:20:11 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:20:11 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:20:11 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:20:11 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:20:37 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:22:24 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:22:24 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:22:24 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:22:24 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:23:24 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:23:24 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:23:25 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:23:25 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:23:45 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:23:46 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:23:46 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:23:46 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:24:48 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:24:48 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:24:49 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:24:49 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:25:11 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:25:11 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:25:11 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:25:11 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:27:40 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:27:41 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:27:41 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:27:41 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:28:46 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:28:47 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:28:47 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:28:47 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:31:28 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:31:28 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:31:28 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:31:28 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:32:19 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:32:19 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:32:19 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:32:19 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:33:21 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:33:21 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:33:21 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:33:21 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:35:01 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:35:02 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:35:02 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:35:02 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:35:50 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:35:50 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:35:50 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:35:50 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:36:40 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:36:40 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:36:41 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:36:41 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:37:03 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:37:03 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:37:03 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:37:03 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:38:40 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:38:40 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:38:40 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:38:40 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:39:13 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:39:13 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:39:13 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:39:13 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:40:35 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:40:35 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:40:35 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:40:35 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:42:12 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:42:12 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:42:12 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:42:12 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:43:06 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:43:06 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:43:06 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:43:06 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:44:11 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:44:11 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:44:11 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 15:44:11 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 15:46:52 MDT 2021]Checking login, found uid2
-[Sun Oct  3 15:49:13 MDT 2021]Checking login, found uid2
-[Sun Oct  3 17:56:37 MDT 2021]Checking login, found uid2
-[Sun Oct  3 17:57:25 MDT 2021]Checking login, found uid2
-[Sun Oct  3 17:57:25 MDT 2021]Checking login, found uid2
-[Sun Oct  3 17:57:25 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 17:57:25 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 18:00:50 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:04:04 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:04:04 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:04:05 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 18:04:05 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 18:04:06 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:04:29 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:04:29 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:04:30 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 18:04:30 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 18:04:31 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:05:19 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:05:19 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:05:19 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 18:05:19 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 18:05:20 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:06:24 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:06:24 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:06:25 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 18:06:25 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 18:06:27 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:07:07 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:07:07 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:07:07 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 18:07:07 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 18:07:09 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:07:55 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:07:55 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:07:55 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Sun Oct  3 18:07:55 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Sun Oct  3 18:08:08 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:08:25 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:08:52 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:08:55 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:09:52 MDT 2021]Checking login, found uid2
-[Sun Oct  3 18:21:04 MDT 2021]Checking login, found uid2
-[Sun Oct  3 20:37:39 MDT 2021]Login attempt(smartent) from 10.0.0.229
-[Sun Oct  3 20:37:39 MDT 2021]Logged in USER(2) from 10.0.0.229
-[Sun Oct  3 20:37:39 MDT 2021]Logged in ADMIN(2) from 10.0.0.229
-[Sun Oct  3 20:37:41 MDT 2021]Checking login, found uid2
-[Sun Oct  3 20:38:28 MDT 2021]Checking login, found uid2
-[Sun Oct  3 20:38:28 MDT 2021]Adding a new sensor DHT-22 of type dht at 192.168.12.59
-[Sun Oct  3 20:38:33 MDT 2021]Checking login, found uid2
-[Sun Oct  3 21:48:40 MDT 2021]Checking login, found uid2
-[Mon Oct  4 19:26:27 MDT 2021]Checking login, found uid2
-[Mon Oct  4 19:26:27 MDT 2021]Checking login, found uid2
-[Mon Oct  4 19:26:27 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Mon Oct  4 19:26:27 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Mon Oct  4 19:28:09 MDT 2021]Checking login, found uid2
-[Mon Oct  4 19:29:05 MDT 2021]Checking login, found uid2
-[Mon Oct  4 19:29:15 MDT 2021]Checking login, found uid2
-[Mon Oct  4 19:41:37 MDT 2021]Checking login, found uid2
-[Mon Oct  4 19:58:02 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:08:20 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:08:21 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:08:21 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Mon Oct  4 20:08:21 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Mon Oct  4 20:10:01 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1052: Column 'id' in where clause is ambiguous] in EXECUTE("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and id='23' order by date desc limit 500;") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Mon Oct  4 20:10:22 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:10:22 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:10:22 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Mon Oct  4 20:10:22 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Mon Oct  4 20:10:25 MDT 2021]sensors.db.php ADODB_Exception: mysqli error: [1052: Column 'id' in where clause is ambiguous] in EXECUTE("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and id='11' order by date desc limit 500;") in /srv/http/smartent/lib/adodb5/adodb-exceptions.inc.php:80
-Stack trace:
-#0 /srv/http/smartent/lib/adodb5/adodb.inc.php(1277): adodb_throw()
-#1 /srv/http/smartent/lib/adodb5/adodb.inc.php(1217): ADOConnection->_Execute()
-#2 /srv/http/smartent/lib/adodb5/adodb.inc.php(1808): ADOConnection->Execute()
-#3 /srv/http/smartent/mod/sensors/sensors.db.php(71): ADOConnection->GetArray()
-#4 /srv/http/smartent/mod/sensors/sensors.ajax.php(147): sensorsdb->getSensorDataById()
-#5 /srv/http/smartent/lib/Sajax.php(119): getSensorDataById()
-#6 /srv/http/smartent/index.php(37): sajax_handle_client_request()
-#7 {main}
-[Mon Oct  4 20:12:55 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:12:55 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:12:55 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Mon Oct  4 20:12:55 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Mon Oct  4 20:13:26 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:16:31 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:16:31 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:16:31 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Mon Oct  4 20:16:31 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Mon Oct  4 20:33:37 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:34:45 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:34:57 MDT 2021]Checking login, found uid2
-[Mon Oct  4 20:40:00 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:20:53 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:24:42 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:24:45 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:24:53 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:24:53 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:24:53 MDT 2021]Logged in USER(2) from 10.0.0.182
-[Tue Oct  5 21:24:53 MDT 2021]Logged in ADMIN(2) from 10.0.0.182
-[Tue Oct  5 21:45:54 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:45:55 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:45:56 MDT 2021]Checking login, found uid2
-[Tue Oct  5 21:47:04 MDT 2021]Checking login, found uid2
-[Wed Oct  6 21:48:40 MDT 2021]Checking login, found uid2
+[Sun Nov 27 17:58:44 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:00:12 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:14:42 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 18:14:44 MST 2022]Alarm sent for Refrig HP!
+
+[Sun Nov 27 18:14:44 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 18:14:46 MST 2022]Alarm sent for Humidity!
+
+[Sun Nov 27 18:14:47 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 18:14:48 MST 2022]Alarm sent for PH Sensor!
+
+[Sun Nov 27 18:14:48 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 18:14:50 MST 2022]Alarm sent for PH Sensor!
+
+[Sun Nov 27 18:14:50 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 18:14:52 MST 2022]Alarm sent for PH Sensor!
+
+[Sun Nov 27 18:22:01 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:22:01 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:22:02 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 18:22:02 MST 2022]Logged in ADMIN(2) from 10.0.0.197
+[Sun Nov 27 18:22:03 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:22:40 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:22:40 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:22:41 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 18:22:41 MST 2022]Logged in ADMIN(2) from 10.0.0.197
+[Sun Nov 27 18:22:42 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:23:00 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:23:02 MST 2022]Checking login, found uid2
+[Sun Nov 27 18:23:12 MST 2022]Saving sensor(24:PH Sensor:192.168.12.210:PH)
+[Sun Nov 27 18:59:01 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 18:59:03 MST 2022]Alarm sent for Incubator!
+
+[Sun Nov 27 19:00:01 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 19:00:03 MST 2022]Alarm sent for PH Sensor!
+
+[Sun Nov 27 19:00:03 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 19:00:05 MST 2022]Alarm sent for PH Sensor!
+
+[Sun Nov 27 19:00:05 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 19:00:06 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 19:00:07 MST 2022]Alarm sent for PH Sensor!
+
+[Sun Nov 27 19:00:08 MST 2022]Alarm sent for Incubator!
+
+[Sun Nov 27 19:00:09 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 19:00:10 MST 2022]Alarm sent for Humidity!
+
+[Sun Nov 27 19:06:08 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Nov 27 19:06:09 MST 2022]Alarm sent for Refrig HP!
+
+[Sun Nov 27 19:09:09 MST 2022]Login attempt(smartent) from 10.0.0.116
+[Sun Nov 27 19:09:10 MST 2022]Logged in USER(2) from 10.0.0.116
+[Sun Nov 27 19:09:10 MST 2022]Logged in ADMIN(2) from 10.0.0.116
+[Sun Nov 27 19:09:14 MST 2022]Toggling admin status for userID: 2 from 10.0.0.116
+[Sun Nov 27 19:09:15 MST 2022]Attempting to save user info for smartent from 10.0.0.116
+[Sun Nov 27 19:09:22 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:09:22 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:09:22 MST 2022]Logged in USER(2) from 10.0.0.116
+[Sun Nov 27 19:09:28 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:09:29 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:09:46 MST 2022]Saving sensor(27:Incubator:192.168.12.56:Thermistor)
+[Sun Nov 27 19:09:50 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:10:00 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:10:03 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:12:43 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:12:49 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:12:56 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:17:57 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:33:59 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:51:09 MST 2022]Login attempt(smartent) from 10.0.0.229
+[Sun Nov 27 19:51:09 MST 2022]Logged in USER(2) from 10.0.0.229
+[Sun Nov 27 19:51:11 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:56:50 MST 2022]Login attempt(smartent) from 10.0.0.197
+[Sun Nov 27 19:56:50 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 19:56:53 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:56:55 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:56:57 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:58:59 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:59:00 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:59:00 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 19:59:18 MST 2022]Checking login, found uid2
+[Sun Nov 27 19:59:40 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:00:10 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:02:38 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:02:40 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:03:06 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:04:34 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:04:34 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:04:35 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 20:06:00 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:06:57 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:06:58 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:06:59 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:07:29 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:09:40 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:09:42 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:28:02 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:28:02 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:28:02 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 20:29:58 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:31:58 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:32:23 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:32:49 MST 2022]Saving Relay(3:Example:18)
+[Sun Nov 27 20:37:35 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:37:36 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:37:36 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 20:38:23 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:39:13 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:39:23 MST 2022]Saving sensor(26:Humidity:192.168.12.241:DHT)
+[Sun Nov 27 20:40:34 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:43:16 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:49:18 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:50:40 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:52:21 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:55:34 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:55:34 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:55:35 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 20:55:37 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:55:40 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:58:16 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:58:16 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:58:16 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 20:58:21 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:58:51 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:58:51 MST 2022]Checking login, found uid2
+[Sun Nov 27 20:58:51 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 20:58:53 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:05:00 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:05:01 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:05:01 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 21:05:07 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:10:24 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:10:24 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:10:24 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 21:10:34 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:10:34 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:10:35 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 21:11:53 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:11:57 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:11:59 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:11:59 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:11:59 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 21:12:00 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:28:25 MST 2022]Login attempt(smartent) from 10.0.0.197
+[Sun Nov 27 21:28:25 MST 2022]Logged in USER(2) from 10.0.0.197
+[Sun Nov 27 21:28:28 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:28:57 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:29:20 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:30:33 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:30:53 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:32:45 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:34:29 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:39:46 MST 2022]Switching pin 15 to on...
+[Sun Nov 27 21:39:46 MST 2022]Saving relay state to database: 2:on...
+[Sun Nov 27 21:40:36 MST 2022]Login attempt(smartent) from 10.0.0.229
+[Sun Nov 27 21:40:46 MST 2022]Login attempt(smartent) from 10.0.0.229
+[Sun Nov 27 21:40:49 MST 2022]Login attempt(smartent) from 10.0.0.229
+[Sun Nov 27 21:40:59 MST 2022]Login attempt(smartent) from 10.0.0.229
+[Sun Nov 27 21:41:13 MST 2022]Login attempt(smartent) from 10.0.0.229
+[Sun Nov 27 21:41:13 MST 2022]Logged in USER(2) from 10.0.0.229
+[Sun Nov 27 21:41:16 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:42:28 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:42:28 MST 2022]schedules.ajax.php: Cron job exists.
+
+[Sun Nov 27 21:42:36 MST 2022]Switching pin 15 to off...
+[Sun Nov 27 21:42:36 MST 2022]Saving relay state to database: 2:off...
+[Sun Nov 27 21:42:41 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:45:09 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:45:09 MST 2022]Checking login, found uid2
+[Sun Nov 27 21:45:09 MST 2022]Logged in USER(2) from 10.0.0.229
+[Mon Nov 28 09:30:02 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Mon Nov 28 09:30:03 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Mon Nov 28 09:30:04 MST 2022]Alarm sent for Humidity!
+
+[Mon Nov 28 09:30:06 MST 2022]Alarm sent for PH Sensor!
+
+[Mon Nov 28 09:30:09 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Mon Nov 28 09:30:12 MST 2022]Alarm sent for Refrig HP!
+
+[Mon Nov 28 17:20:06 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Mon Nov 28 17:20:09 MST 2022]Alarm sent for PH Sensor!
+
+[Mon Nov 28 17:20:09 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Mon Nov 28 17:20:10 MST 2022]Alarm sent for PH Sensor!
+
+[Mon Nov 28 17:20:13 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:20:14 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:20:15 MST 2022]Logged in USER(2) from 10.0.0.116
+[Mon Nov 28 17:21:38 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:26:40 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:27:42 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:27:43 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:27:43 MST 2022]Logged in USER(2) from 10.0.0.116
+[Mon Nov 28 17:27:48 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:28:54 MST 2022]Login attempt(smartent) from 10.0.0.116
+[Mon Nov 28 17:28:54 MST 2022]Logged in USER(2) from 10.0.0.116
+[Mon Nov 28 17:28:56 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:30:03 MST 2022]Checking login, found uid2
+[Mon Nov 28 17:44:30 MST 2022]Checking login, found uid2
+[Tue Nov 29 09:30:06 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Tue Nov 29 09:30:07 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Tue Nov 29 09:30:08 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Tue Nov 29 09:30:08 MST 2022]Alarm sent for Refrig HP!
+
+[Tue Nov 29 09:30:09 MST 2022]Alarm sent for PH Sensor!
+
+[Tue Nov 29 09:30:10 MST 2022]Alarm sent for Humidity!
+
+[Wed Nov 30 09:30:01 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Wed Nov 30 09:30:03 MST 2022]Alarm sent for Humidity!
+
+[Wed Nov 30 09:30:05 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Wed Nov 30 09:30:06 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Wed Nov 30 09:30:07 MST 2022]Alarm sent for Refrig HP!
+
+[Wed Nov 30 09:30:08 MST 2022]Alarm sent for PH Sensor!
+
+[Thu Dec  1 09:30:06 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Thu Dec  1 09:30:07 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Thu Dec  1 09:30:08 MST 2022]Alarm sent for PH Sensor!
+
+[Thu Dec  1 09:30:09 MST 2022]Alarm sent for Refrig HP!
+
+[Fri Dec  2 09:30:02 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Fri Dec  2 09:30:04 MST 2022]Alarm sent for PH Sensor!
+
+[Fri Dec  2 09:30:08 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Fri Dec  2 09:30:10 MST 2022]Alarm sent for Refrig HP!
+
+[Sat Dec  3 09:30:04 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sat Dec  3 09:30:05 MST 2022]Alarm sent for Refrig HP!
+
+[Sat Dec  3 09:30:06 MST 2022]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sat Dec  3 09:30:08 MST 2022]Alarm sent for PH Sensor!
+
+[Sat Dec  3 20:52:45 MST 2022]Login attempt(smartent) from 10.0.0.253
+[Sat Dec  3 20:52:45 MST 2022]Logged in USER(2) from 10.0.0.253
+[Sat Dec  3 20:53:34 MST 2022]Checking login, found uid2
+[Sat Dec  3 20:54:49 MST 2022]Checking login, found uid2
+[Sat Dec  3 20:58:20 MST 2022]Checking login, found uid2
+[Sat Dec  3 20:58:36 MST 2022]Checking login, found uid2
+[Sat Dec  3 20:58:37 MST 2022]Checking login, found uid2
+[Sat Dec  3 20:58:38 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:39:11 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:39:25 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:39:25 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:39:26 MST 2022]Logged in USER(2) from 10.0.0.253
+[Sat Dec  3 21:39:26 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:40:10 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:40:12 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:40:56 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:41:06 MST 2022]Saving sensor(24:PH Sensor:192.168.12.210:PH)
+[Sat Dec  3 21:41:25 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:41:27 MST 2022]Checking login, found uid2
+[Sat Dec  3 21:43:15 MST 2022]Checking login, found uid2
+[Sun Dec  4 19:59:02 MST 2022]Checking login, found uid2
+[Sun Dec  4 19:59:05 MST 2022]Checking login, found uid2
+[Sun Dec  4 19:59:05 MST 2022]Logged in USER(2) from 10.0.0.253
+[Sun Dec  4 20:00:08 MST 2022]Checking login, found uid2
+[Sun Dec  4 20:00:21 MST 2022]Saving sensor(25:Refrig HP:192.168.12.80:Refrigeration)
+[Sun Dec  4 20:00:47 MST 2022]Checking login, found uid2
+[Sun Dec  4 20:00:47 MST 2022]Checking login, found uid2
+[Sun Dec  4 20:00:47 MST 2022]Checking login, found uid2
+[Sun Dec  4 20:00:47 MST 2022]Logged in USER(2) from 10.0.0.253
+[Sun Dec  4 20:06:53 MST 2022]Checking login, found uid2
+[Mon Dec  5 19:54:51 MST 2022]Checking login, found uid2
+[Mon Dec  5 19:54:51 MST 2022]Checking login, found uid2
+[Mon Dec  5 19:54:58 MST 2022]Logged in USER(2) from 10.0.0.253
+[Sat Dec 10 13:09:14 MST 2022]Checking login, found uid2
+[Sun Dec 11 16:16:14 MST 2022]Login attempt(admin) from 10.0.0.202
+[Sun Dec 11 16:16:14 MST 2022]Logged in USER(1) from 10.0.0.202
+[Sun Dec 11 16:16:14 MST 2022]Logged in ADMIN(1) from 10.0.0.202

@@ -34,9 +34,15 @@ class ghotidb{
 
 	function __destruct(){
 		//close our connection to db
-		//if(isset($this->adodb)){
-		if($this->adodb = NewADOConnection($this->dsn)){
-    		$this->adodb->Close();
+		if (@$this->adodb->isConnected) {
+            try{
+                //var_dump(@$this->adodb);
+                @$this->adodb->Close();
+            }catch (exception $e){
+                ghoti::log("**DB Disconnection Error!**");
+                ghoti::log("ghoti.db.php $e");
+				return false;
+            } 
         }
 	}
 	function loadModuleSql($moduleName="default"){
