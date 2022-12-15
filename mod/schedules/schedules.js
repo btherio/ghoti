@@ -25,10 +25,17 @@ function addSchedule(){
     var ScheduleString  = $("#ScheduleString").val();
     var SchedulePin     = $("#SchedulePin").val();
     var ScheduleState   = $("#ScheduleState :selected").val();
+    var pulseLength = "";
+    if(ScheduleState == "Pulse"){
+        var splitString = ScheduleString.split(" ");
+        pulseLength = splitString[5]; //grab the 5th character group (separated by spaces)
+        ScheduleString = ScheduleString.slice(0, -3); //remove the last 3 characters 
+    }
+    
 	if(ScheduleString.length < 1 || SchedulePin.length < 1 ){
 		popupFeedBack("Required field missing.");
 	}else{
-		x_addSchedule(ScheduleString,SchedulePin,ScheduleState,getSchedules);
+		x_addSchedule(ScheduleString,SchedulePin,ScheduleState,pulseLength,getSchedules);
 	}
 }
 
@@ -41,7 +48,7 @@ function addScheduleForm(){
     $("#ScheduleState").append("<option value=\"Off\">Off</option>");
     $("#ScheduleState").append("<option value=\"Pulse\">Pulse</option>");
     $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addSchedule();\" >Add</a><br />\n");
-    $("#popup-content").append("<i>Schedule format: Minute, Hour, Day of Month, Month, Day of Week</i><br />");
+    $("#popup-content").append("<i>Schedule format: Minute, Hour, Day of Month, Month, Day of Week, <b>Pulse Length (0-99)</b></i><br />");
     $("#popup-content").append("<i> eg: <b>\"30 6 * * *\"</b> for 6:30am every day</i><br />");
     $("#popup-content").append("<i> eg: <b>\"0 17 * * sun\"</b> for 5:00pm every Sunday</i><br />");
     $("#popup-content").append("<i> eg: <b>\"*/10 * * * *\"</b> for every 10 minutes</i><br />");
@@ -67,10 +74,10 @@ function printSchedulesForm(result){
             if(schedulesArray[x].length > 0){
                 var explode = schedulesArray[x].split(" "); //explode string and just displaying good bits.
                 for(var i = 0; i < explode.length; i++){
-                    if (i < 5 || i == 7){
+                    if (i < 14 && (i < 5 || i == 7 )){ //basically we want character groups <14 but only <5 and == 7. strip out the rest, not important.
                         $("#schedulesForm").append(explode[i] + " ");
                     }
-                    if (i == 6){
+                    if (i == 6){ //character group 6 is the relay pin, we are going to pull the name from the database.
                         x_getRelayNameByPin(explode[i],y,printRelayName_cb);
                         $("#schedulesForm").append("  <label id=\"relayName"+y+"\"></label>  ");
                     }

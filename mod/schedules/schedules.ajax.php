@@ -16,7 +16,9 @@ function cronjob_exists($command){
     return $cronjob_exists;
 }
 
-function addSchedule($schedule,$pin,$state){
+function addSchedule($schedule,$pin,$state,$seconds=""){
+    //for testing
+    ghoti::log("$schedule,$pin,$state,$seconds");
 	$userId = checkLogin();
 	try{
 		$_SESSION["ghotiObj"]->validate->checkExists($schedule);
@@ -26,11 +28,12 @@ function addSchedule($schedule,$pin,$state){
 		ghoti::log("schedules.ajax.php: $e\n");
 		return $e->getMessage();
 	}
-	$job = "$schedule /srv/http/smartend/mod/relays/gpio-relay.sh $pin $state > /dev/null 2>&1";
+	$job = "$schedule /srv/http/smartend/mod/relays/gpio-relay.sh $pin $state $seconds > /dev/null 2>&1";
     
-    if (!cronjob_exists($job)) {
-        //add job to crontab
-        exec('echo -e "`crontab -l`\n' . $job . '" | crontab -', $output);
+    ghoti::log("addJob: $job");
+    
+    if (!cronjob_exists($job)) { //check if this cronjob exists, if it doesnt...
+        exec('echo -e "`crontab -l`\n' . $job . '" | crontab -', $output); //add the new cronjob
     } else {
         ghoti::log("schedules.ajax.php: Cron job exists.\n");
 		return False;

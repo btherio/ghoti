@@ -32,19 +32,19 @@ case $2 in
 	pulse)
 		mysql --user="$username" --password="$password" --database=smartent  --execute="update relays set state='on' where pin='$1'";
         	gpio -g write $1 0
-        	sleep 3;
+        	sleep $3;
 		mysql --user="$username" --password="$password" --database=smartent  --execute="update relays set state='off' where pin='$1'";
         	gpio -g write $1 1
         	;;
-    	Pulse)
+	Pulse)
 		mysql --user="$username" --password="$password" --database=smartent  --execute="update relays set state='on' where pin='$1'";
         	gpio -g write $1 0
-        	sleep 3;
+        	sleep $3;
 		mysql --user="$username" --password="$password" --database=smartent  --execute="update relays set state='off' where pin='$1'";
         	gpio -g write $1 1
         	;;
 	*)
-		echo "Usage gpio-relay.sh <bcm-pin> {on|off|pulse}"
+		echo "Usage gpio-relay.sh <bcm-pin> {on|off|pulse} <seconds>"
 		exit 1
 		;;
 esac
