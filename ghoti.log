@@ -1,2 +1,31 @@
 
 [Thu Dec 15 15:42:00 MST 2022]Checking login, found uid1
+[Thu Dec 15 15:58:00 MST 2022]Checking login, found uid1
+[Fri Dec 16 22:05:10 MST 2022]Login attempt(admin) from 10.0.0.253
+[Fri Dec 16 22:05:11 MST 2022]Logged in USER(1) from 10.0.0.253
+[Fri Dec 16 22:05:11 MST 2022]Logged in ADMIN(1) from 10.0.0.253
+[Fri Dec 16 22:05:15 MST 2022]Checking login, found uid1
+[Fri Dec 16 22:37:13 MST 2022]Saving sensor(27:Temperature:192.168.12.56:Thermistor)
+[Sun Dec 18 11:44:04 MST 2022]Login attempt(admin) from 10.0.0.253
+[Sun Dec 18 11:44:04 MST 2022]Logged in USER(1) from 10.0.0.253
+[Sun Dec 18 11:44:04 MST 2022]Logged in ADMIN(1) from 10.0.0.253
+[Sun Dec 18 11:44:07 MST 2022]Checking login, found uid1
+[Sun Dec 18 11:44:10 MST 2022]Checking login, found uid1
+[Sun Dec 18 12:47:06 MST 2022]Checking login, found uid1
+[Sun Dec 18 12:47:12 MST 2022]Checking login, found uid1
+[Sun Dec 18 12:47:12 MST 2022]Logged in USER(1) from 10.0.0.253
+[Sun Dec 18 12:47:12 MST 2022]Logged in ADMIN(1) from 10.0.0.253
+[Tue Dec 27 09:05:48 MST 2022]Login attempt(admin) from 10.0.0.8
+[Tue Dec 27 09:05:48 MST 2022]Logged in USER(1) from 10.0.0.8
+[Tue Dec 27 09:05:48 MST 2022]Logged in ADMIN(1) from 10.0.0.8
+[Tue Dec 27 09:06:37 MST 2022]Checking login, found uid1
+[Tue Dec 27 09:06:37 MST 2022]Checking login, found uid1
+[Tue Dec 27 09:06:37 MST 2022]Checking login, found uid1
+[Sat Jan  7 15:29:39 MST 2023]Login attempt(smartent) from 10.0.0.174
+[Sat Jan  7 15:29:39 MST 2023]Logged in USER(2) from 10.0.0.174
+[Sat Jan  7 15:29:41 MST 2023]Checking login, found uid2
+[Sat Jan  7 15:30:22 MST 2023]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sat Jan  7 15:30:24 MST 2023]Alarm sent for Humidity!
+
+[Sat Jan  7 15:30:43 MST 2023]Checking login, found uid2

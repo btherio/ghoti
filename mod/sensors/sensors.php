@@ -53,9 +53,12 @@ class sensors{
 
 
     public function sendAlarm($name,$data,$setpoint,$id,$alarmType){
-
-
+        $smtpEmail = 'btherio@gmail.com';
+        $smtpPW = 'INSERT PASSWORD HERE';
+        $smtpHost = 'smtp.gmail.com';
+        $smtpPort = 465;
         $alarmAddress = "7802356747@msg.telus.com";
+        
         if($alarmType == "911"){
 
             ghoti::log("Attempting to send alarm email to: $alarmAddress \n");
@@ -70,21 +73,21 @@ class sensors{
             //SMTP::DEBUG_SERVER = client and server messages
             $mail->SMTPDebug = SMTP::DEBUG_SERVER;
             //Set the hostname of the mail server
-            $mail->Host = 'smtp.gmail.com';
+            $mail->Host = $smtpHost;
             //Set the SMTP port number - likely to be 25, 465 or 587
-            $mail->Port = 465;
+            $mail->Port = $smtpPort;
             //ssl
             $mail->SMTPSecure = "ssl";
             //Whether to use SMTP authentication
             $mail->SMTPAuth = TRUE;
             //Username to use for SMTP authentication
-            $mail->Username = 'btherio@gmail.com';
+            $mail->Username = $smtpEmail;
             //Password to use for SMTP authentication
-            $mail->Password = 'xoqzvqhyuunrdhba';
+            $mail->Password = $smtpPW;
             //Set who the message is to be sent from
-            $mail->setFrom('btherio@gmail.com', 'SmarTEND');
+            $mail->setFrom($smtpEmail, 'SmarTEND');
             //Set an alternative reply-to address
-            $mail->addReplyTo('btherio@gmail.com', 'SmarTEND');
+            $mail->addReplyTo($smtpEmail, 'SmarTEND');
             //Set who the message is to be sent to
             $mail->addAddress($alarmAddress, '');
             //Set the subject line
