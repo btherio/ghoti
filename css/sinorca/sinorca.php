@@ -37,7 +37,8 @@
 
       <div class="subHeader">
         <span class="doNotDisplay">Navigation:</span>
-	<?php print $_SESSION['ghotiObj']->printPageMenu();	?>
+	<?php session_start();
+        print $_SESSION['ghotiObj']?->printPageMenu();	?>
       </div>
     </div>
 

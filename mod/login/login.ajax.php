@@ -65,7 +65,7 @@ function setSessionVars($id){
 			ghoti::log("[Exception] $e");
 			return false;
 	}
-	session_write_close();
+	//session_write_close();
 	return true;	
 }
 function changePassword($password,$newPassword){

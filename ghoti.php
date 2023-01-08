@@ -13,20 +13,19 @@ class ghoti {
 ### Configure things here...
 #################################################################	
 
-	public static $siteTitle = "GhotiCMS";	//title of the website
+	public static $siteTitle = "Ghoti";	        //title of the website
 	public static $defaultPageTitle = "Home"; 		//this page must exist
-	public static $defaultTheme = "sinorca";		//default theme
+	public static $defaultTheme = "prosimii";		//default theme
 	public static $allowRegister = True; 			//allow or disallow new registrations
  	public static $ghotiLog = "ghoti.log";      	//log file to use. Should be writable by apache
-	public static $sessionName = "ghoti"; 		//change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
+	public static $sessionName = "ghoti"; 	//change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
 	public static $headerImg = "gfx/ghoti.png"; //header image to use
-	public static $enableThemeChanger = True; //enable theme changing dropdown
-	
+	public static $enableThemeChanger = True;      //enable theme changing dropdown
 	
 ################################################################
 	public $ghotidb,$ghotiui,$pageList; //php typing practise.
 
-	public function ghoti(){
+	public function __construct(){
 		//construct
 		$this->ghotidb = new ghotidb();
 		$this->ghotiui = new ghotiui();
@@ -41,8 +40,16 @@ class ghoti {
 	}
 
 	public function printPageMenu($newDiv=True){
-		$pageList = $this->ghotidb->getPageList();
-		return $this->ghotiui->printPageMenu($pageList,$newDiv);
+		//session_start();
+        $this->ghotiui = new ghotiui();
+        try{
+            $_SESSION["ghotiObj"]->ghotidb = new ghotidb();
+            $pageList = $_SESSION["ghotiObj"]->ghotidb->getPageList();
+            $pageMenu = $this->ghotiui->printPageMenu($pageList,$newDiv);
+        } catch (Exception $e){
+            return $e->getMessage();
+        }
+        return $pageMenu;
 	}
 
 	public static function log($line){

@@ -18,14 +18,14 @@ class logindb extends ghotidb{
 			try{
 				//execute the sql
 				$nonQuery = $this->adodb->Execute("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$password,$email,false));
-				if (!$nonQuery) mylogerr($this->adodb->ErrorMsg()); //log any mysql errors
+				if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg()); //log any mysql errors
 				
 				$query = $this->adodb->Execute("select count(userId) from users;");//select the usercount to see if we should make them admin
-				if(!$query) mylogerr($this->adodb->ErrorMsg());
+				if(!$query) ghoti::log($this->adodb->ErrorMsg());
 				
 				if($query->fields[0] === '1'){ //if the count is 1, then this is the first user and we want to grant admin rights
 					$nonquery = $this->adodb->Execute("update users set admin = ? where admin = 0",array("1"));
-					if (!$nonquery) mylogerr($this->adodb->ErrorMsg());
+					if (!$nonquery) ghoti::log($this->adodb->ErrorMsg());
 				}
 				
 			}catch (exception $e){
@@ -43,7 +43,7 @@ class logindb extends ghotidb{
 		$result = array();
 		try{
 			$records = $this->adodb->Execute("select userId from users where userName = ? or email = ?",array($userName,$email));
-			if (!$records) mylogerr($this->adodb->ErrorMsg());	
+			if (!$records) ghoti::log($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("login.db.php $e");
 			return false;
@@ -82,7 +82,7 @@ class logindb extends ghotidb{
 		$result = array("");
 		try{
 			$auth = $this->adodb->Execute("select userId from users where userName = ? and password = ?",array($userName,$password));
-			if (!$auth) mylogerr($this->adodb->ErrorMsg());	
+			if (!$auth) ghoti::log($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("login.db.php $e");
 			return false;
@@ -97,7 +97,7 @@ class logindb extends ghotidb{
 	public function getUserList(){
 		try{
 			$userList = $this->adodb->Execute("select userId,userName,email,admin from users");
-			if (!$userList) mylogerr($this->adodb->ErrorMsg());	
+			if (!$userList) ghoti::log($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("login.db.php $e");
 			return false;
@@ -107,7 +107,7 @@ class logindb extends ghotidb{
 	public function updateUser($userId,$userName,$email){
 		try{
 			$rs = $this->adodb->Execute("update users set userName = ?, email = ? where userId = ?",array($userName,$email,$userId));
-			if (!$rs) mylogerr($this->adodb->ErrorMsg());	
+			if (!$rs) ghoti::log($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("login.db.php $e");
 			return false;
@@ -117,14 +117,14 @@ class logindb extends ghotidb{
 	public function deleteUser($userId){
 		try{
 			$numberOfAdmins = $this->adodb->Execute("select count(userId) from users where admin = 1;");//select the usercount to see if we should make them admin
-			if(!$numberOfAdmins) mylogerr($this->adodb->ErrorMsg());
+			if(!$numberOfAdmins) ghoti::log($this->adodb->ErrorMsg());
 			if($numberOfAdmins->fields[0] === '1' && isAdmin($userId)){ //if the count is 1, then there's only 1 admin left and Im it, then we don't want to delete.
 					Throw new Exception("Can't delete only admin.");
 			}else{
 				$users = $this->adodb->Execute("delete from users where userId = ?;",array($userId));
-				if (!$users) mylogerr($this->adodb->ErrorMsg());
+				if (!$users) ghoti::log($this->adodb->ErrorMsg());
 				$comments = $this->adodb->Execute("delete from comments where userId = ?;",array($userId));
-				if (!$comments) mylogerr($this->adodb->ErrorMsg());
+				if (!$comments) ghoti::log($this->adodb->ErrorMsg());
 			}
 		}catch (exception $e){
 			ghoti::log("login.db.php ".$e->getMessage());
@@ -144,7 +144,7 @@ class logindb extends ghotidb{
 		try{
 			if(isAdmin($userId)){
 				$numberOfAdmins = $this->adodb->Execute("select count(userId) from users where admin = 1;");//select the usercount to see if we should make them admin
-				if(!$numberOfAdmins) mylogerr($this->adodb->ErrorMsg());
+				if(!$numberOfAdmins) ghoti::log($this->adodb->ErrorMsg());
 				if($numberOfAdmins->fields[0] === '1'){ //if the count is 1, then there's only 1 admin left(us presumably) and we don't want to toggle.
 					Throw new Exception("Can't revoke admin rights from only admin.");
 				}else{
@@ -153,7 +153,7 @@ class logindb extends ghotidb{
 			}else{
 				$rs = $this->adodb->Execute("update users set admin = 1 where userId = ?;",array($userId)); //toggle it on
 			}
-			if (!$rs) mylogerr($this->adodb->ErrorMsg());
+			if (!$rs) ghoti::log($this->adodb->ErrorMsg());
 		}catch (Exception $e){
 			ghoti::log("login.db.php ".$e->getMessage()); //we only want to log the message this time.
 			return $e->getMessage();
@@ -172,7 +172,7 @@ class logindb extends ghotidb{
 	public function getUserNameById($userId){
 		try{
 			$query = $this->adodb->Execute("select userName from users where userId = ?",array($userId));
-			if (!$query) mylogerr($this->adodb->ErrorMsg());
+			if (!$query) ghoti::log($this->adodb->ErrorMsg());
 		}catch (exception $e){
 			ghoti::log("login.db.php $e");
 			return false;		

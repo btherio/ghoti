@@ -1,4 +1,3 @@
-<!-- //
 $(document).ready(function(){
 	//this runs these functions when the page is finished loading
 	checkLogin();//checks if we're logged in
@@ -238,5 +237,3 @@ function getLogin_cb(result){
 		popupLogin();   //and we should popup a login prompt
 	}
 }
-// -->
-

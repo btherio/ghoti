@@ -5,9 +5,7 @@
 ?>
 
 <script type="text/javascript">
-<!--// 
 <?php sajax_show_javascript(); ?>
-//-->
 </script>
 <?/*Third party libs*/?>
 <script type="text/javascript" src="./lib/md5.js"></script>

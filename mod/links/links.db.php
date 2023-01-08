@@ -37,7 +37,7 @@ class linksdb extends ghotidb{
 	function addLink($userId,$name,$url,$group="default"){
 		try{
 			$nonQuery = $this->adodb->Execute("insert into links(userId,name,url,grp) values(?,?,?,?)",array((integer)$userId,$name,$url,$group));
-			if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());	
+			if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			print_r($e);
 			return false;
@@ -47,7 +47,7 @@ class linksdb extends ghotidb{
 	function checkDupe($name,$url){
 		try{
 			$query = $this->adodb->Execute("select count(name) from links where name = ? or url = ?",array($name,$url));
-			if (!$query) mylogerr($this->adodb->ErrorMsg());	
+			if (!$query) ghoti::log($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("links.db.php $e");
 			return false;
@@ -61,7 +61,7 @@ class linksdb extends ghotidb{
 	function editLink($id,$name,$url,$grp){
 		try{
 			$nonQuery = $this->adodb->Execute("update links set name=?,url=?,grp=? where id=?",array($name,$url,$grp,$id));
-			if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());	
+			if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("links.db.php $e");
 			return false;
@@ -71,7 +71,7 @@ class linksdb extends ghotidb{
 	function deleteLink($id){
 		try{
 			$nonQuery = $this->adodb->Execute("delete from links where id=?",array($id));
-			if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
+			if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 		}catch (exception $e){
 			ghoti::log("links.db.php $e");
 			return false;

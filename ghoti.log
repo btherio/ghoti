@@ -1,7 +1,101 @@
-[Mon Dec 14 13:45:44 MST 2020]Login attempt(bryan) from 172.98.80.163
-[Mon Dec 14 13:45:44 MST 2020]Logged in USER(1) from 172.98.80.163
-[Mon Dec 14 13:45:44 MST 2020]Logged in ADMIN(1) from 172.98.80.163
-[Mon Dec 14 13:46:15 MST 2020]Checking login, found uid1
-[Mon Dec 14 13:46:15 MST 2020]Checking login, found uid1
-[Mon Dec 14 13:46:16 MST 2020]Logged in USER(1) from 172.98.80.163
-[Mon Dec 14 13:46:16 MST 2020]Logged in ADMIN(1) from 172.98.80.163
+
+[Sat Jan  7 19:40:04 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:05 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:08 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:11 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:15 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:17 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:17 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:40:18 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:18 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:18 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:40:21 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:24 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:28 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:31 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:34 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:37 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:40 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:43 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:47 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:48 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:48 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:40:50 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:53 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:56 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:40:59 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:03 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:05 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:05 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:05 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:41:05 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:05 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:06 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:07 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:07 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:41:07 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:07 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:41:08 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:08 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:41:09 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:09 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:09 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:41:12 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:15 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:18 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:21 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:25 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:28 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:31 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:34 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:37 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:40 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:51 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:54 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:41:57 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:00 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:03 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:06 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:09 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:12 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:16 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:19 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:22 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:25 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:28 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:31 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:35 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:38 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:41 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:44 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:47 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:50 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:53 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:42:57 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:00 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:03 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:06 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:09 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:12 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:15 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:18 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:22 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:25 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:28 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:29 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:29 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:29 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:30 MST 2023]Checking login, found uid1
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:30 MST 2023]Logged in USER(1) from 181.41.202.160
+[Sat Jan  7 19:43:30 MST 2023]Logged in ADMIN(1) from 181.41.202.160
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:30 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:33 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:36 MST 2023]Loaded objects into session variables
+[Sat Jan  7 19:43:39 MST 2023]Loaded objects into session variables

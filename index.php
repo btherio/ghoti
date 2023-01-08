@@ -27,7 +27,11 @@ $_SESSION['linksObj'] = new links();
 $_SESSION['loginObj'] = new login();
 $_SESSION['bannersObj'] = new banners();
 $_SESSION['commentsObj'] = new comments();
+$_SESSION['ghotidb'] = new ghotidb();
 
+if($_SESSION['ghotiObj']){
+    $_SESSION['ghotiObj']->log("Loaded objects into session variables");
+}
 //inititalize sajax
 sajax_init();
 sajax_handle_client_request();
@@ -53,6 +57,4 @@ if($_GET){
 
 //load the default theme
 include_once "css/".ghoti::$defaultTheme."/".ghoti::$defaultTheme.".php";
-
-
 ?>
