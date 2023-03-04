@@ -1,3 +1,4 @@
+<!-- //
 $(document).ready(function(){
 	//this runs these functions when the page is finished loading
 	checkLogin();//checks if we're logged in
@@ -16,15 +17,10 @@ function login(){
 		x_login(username,md5password,login_cb);			
 	}
 }
-function logout_cb(result){
-		if(result){
-			//x_logToFile('logout success');
-			location.href = "index.php";//refresh the page. 
-		}
-}
+
 function logout(){
-	//x_logToFile('logout trial...');
-	x_logout(logout_cb);
+	x_logout();
+	location.href = "index.php";//refresh the page. 
 }
 function register(){
 	var username = $("#registerForm-userName").val();
@@ -242,3 +238,5 @@ function getLogin_cb(result){
 		popupLogin();   //and we should popup a login prompt
 	}
 }
+// -->
+

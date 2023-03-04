@@ -1,6 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-AU">
   <head>
     <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
@@ -28,7 +26,7 @@
 					<?php print $_SESSION['loginObj']->loginui->printPopupLogin();?>
         </div>
         <div class="right">
-					<?php print $_SESSION['bannersObj']->displayBanner(true);?>
+					<?php //print $_SESSION['bannersObj']->displayBanner(true);?>
         </div>
       </div>
 
@@ -55,17 +53,18 @@
 				<p class="sideBarTitle" id="ghotiAdminMenuTitle"></p>
 				<div id="ghotiAdminMenu"></div>
       </div>
-<?php /*
-      <div>
-				<?php print $_SESSION['ghotiObj']->themeChanger(); ?>
-      </div>
+
 
       <div class="lighterBackground">
-        <p class="sideBarTitle">Links</p>
+        <p class="sideBarTitle">Shortcuts</p>
         <div id="ghotiLinks">Loading...</div>
       </div>
     
-    <
+<?php /*
+
+      <div>
+				<?php print $_SESSION['ghotiObj']->themeChanger(); ?>
+      </div>
       <div>
         <p class="sideBarTitle">Validation</p>
         <span class="sideBarText">
@@ -79,7 +78,9 @@
 				<?php print $_SESSION['bannersObj']->displayBanner(true);?> 
       </div> 
 */ ?>
-      
+
+
+
     </div>
 
     <!-- ##### Main Copy ##### -->

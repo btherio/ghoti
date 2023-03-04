@@ -53,11 +53,11 @@ class sensors{
 
 
     public function sendAlarm($name,$data,$setpoint,$id,$alarmType){
-        $smtpEmail = 'btherio@gmail.com';
-        $smtpPW = 'INSERT PASSWORD HERE';
+        $smtpEmail = 'smtpEmail';
+        $smtpPW = 'smtpPassword';
         $smtpHost = 'smtp.gmail.com';
         $smtpPort = 465;
-        $alarmAddress = "7802356747@msg.telus.com";
+        $alarmAddress = "Alarms@sent.to.address.com";
         
         if($alarmType == "911"){
 
@@ -91,8 +91,8 @@ class sensors{
             //Set who the message is to be sent to
             $mail->addAddress($alarmAddress, '');
             //Set the subject line
-            $mail->Subject = 'SmarTEND';
-            $mail->Body = "Alarm: Currently $name has exceeded limit of $setpoint at $data.";
+            $mail->Subject = '';
+            $mail->Body = "SmarTEND Alarm: Currently $name has exceeded limit of $setpoint at $data.";
 
 
             try{

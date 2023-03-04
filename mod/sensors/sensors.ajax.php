@@ -145,6 +145,49 @@ function readSensors(){
 }
 sajax_export("readSensors");
 
+function readSensorsFromDB(){
+    $sensorData = array();
+    $curlData = "";
+    $result = array();
+    try{
+        $result = array($_SESSION["sensorsObj"]->sensorsdb->getSensors()); //get a list of sensors from the database
+        foreach($result[0] as $k => $x){
+        //ghoti::log("result[0]". $k ."->".$x." ");
+        //readout database sensors into this new array
+        $sensorData[$k][0] = $x[0]; //id
+        $sensorData[$k][1] = $x[1]; //name
+        $sensorData[$k][2] = $x[2]; //address
+        $sensorData[$k][3] = $x[3]; //type
+        $ch = curl_init(); //we're going to use this curlhandle to fetch the sensor information from each sensor
+        // set URL and other appropriate options
+        //curl_setopt($ch, CURLOPT_HTTP_CONTENT_DECODING, False);
+        //curl_setopt($ch, CURLOPT_VERBOSE, True);//verbose output
+        //curl_setopt($ch, CURLINFO_HEADER_OUT, True); //track handle's request string
+        curl_setopt($ch, CURLOPT_URL, "http://".$x[2]."/HTML/");
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3); // was 3
+        curl_setopt($ch, CURLOPT_TIMEOUT, 3); //timeout in seconds
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, True);
+        // fetch that shit and save it into the array
+        if(!$curlData = curl_exec($ch)){ //fetch that shit
+            $sensorData[$k][4] = "<img src=\"mod/sensors/disconnect.png\" height=\"16\" width=\"16\" alt=\"Connection Error!\" />"; //if it doesnt fetch, it's a connection error
+            //$sensorData[$k][4] = $curlData; //write new data to array
+        } else {
+            //$sensorData[$k][4] = $curlData; //write new data to array
+
+            $sensorData[$k][4] = "<h3><img src=\"mod/sensors/connect.png\" height=\"16\" width=\"16\" alt=\""+$x[0]+"\" />"+$x[1]+"</h3><p>"+$x[2]+"</p>";
+        }
+        // close cURL resource, and free up system resources
+        curl_close($ch);
+    }
+    } catch(Exception $e){
+        ghoti::log("sensors.ajax.php: $e\n");
+		return False;
+    }
+    return $sensorData;
+}
+sajax_export("readSensorsFromDB");
+
 function getSensorDataById($id,$numRows=500){
     $sensorData = $_SESSION["sensorsObj"]->sensorsdb->getSensorDataById($id,$numRows);
     return $sensorData;

@@ -13,9 +13,9 @@ class relaysdb extends ghotidb{
 	}
 	
 	
-	function checkDupe($name,$pin){
+	function checkDupe($name,$address){
 		try{
-			$query = $this->adodb->Execute("select count(name) from relays where name = ? or pin = ?",array($name,$pin));
+			$query = $this->adodb->Execute("select count(name) from relays where name = ? or address = ?",array($name,$address));
 			if (!$query) throw new Exception($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("relays.db.php $e");
@@ -26,9 +26,9 @@ class relaysdb extends ghotidb{
 		}
 		return False; //if we made it this far, no dupes
 	}
-    function addRelay($name,$pin,$state="off"){
+    function addRelay($name,$pin,$state="off",$address="none"){
 		try{
-			$nonQuery = $this->adodb->Execute("insert into relays(name,pin,state) values(?,?,?)",array($name,$pin,$state));
+			$nonQuery = $this->adodb->Execute("insert into relays(name,pin,state,address) values(?,?,?,?)",array($name,$pin,$state,$address));
 			if (!$nonQuery) throw new Exception($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("relays.db.php $e");
@@ -47,7 +47,7 @@ class relaysdb extends ghotidb{
 	}
 	public function getRelays($limit){
         try{
-            $relays = $this->adodb->GetArray("select id,name,pin,state from relays where pin < ?;",array($limit));
+            $relays = $this->adodb->GetArray("select id,name,pin,state,address from relays where pin < ?;",array($limit));
 		}catch (exception $e){
 			ghoti::log("relays.db.php $e");
 			return $e->getMessage();
@@ -56,7 +56,7 @@ class relaysdb extends ghotidb{
 	}
 	public function getRelayById($id){
         try{
-            $relays = $this->adodb->GetArray("select id,name,pin,state from relays where id=?;",array($id));
+            $relays = $this->adodb->GetArray("select id,name,pin,state,address from relays where id=?;",array($id));
 		}catch (exception $e){
 			ghoti::log("relays.db.php $e");
 			return $e->getMessage();
@@ -72,9 +72,9 @@ class relaysdb extends ghotidb{
 		}
 		return $relays; //return the fields here for a simpler array?
 	}
-	function modifyRelay($id,$name,$pin){
+	function modifyRelay($id,$name,$pin,$address=0){
 		try{
-			$nonQuery = $this->adodb->Execute("update relays set name=?,pin=? where id=?",array($name,$pin,$id));
+			$nonQuery = $this->adodb->Execute("update relays set name=?,pin=?,address=? where id=?",array($name,$pin,$address,$id));
 			if (!$nonQuery) throw new Exception($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("relays.db.php $e");

@@ -90,11 +90,12 @@ if($_GET && $_GET['apikey'] == $apikey){    // check get variable, and check api
                                 foreach ($relay as $z){
                                     $relayid = $z[0]; //get out the relayid
                                     $relayState = $z[3]; //and the state
+                                    $relayAddress = $z[4]; //and the address
                                 }
                                 //check to see relay state matches what we want.
                                 if($relayState == "on"){ //High SP is reached, turn off relay
                                     echo "Switching Relay $relayid Off. \n";
-                                    $relays->switchRelay($relayid,$setpoint[3],"off"); //needs id,pin,state
+                                    $relays->switchRelay($relayid,$setpoint[3],"off",$relayAddress); //needs id,pin,state
                                 } else { echo "Relay $relayid already $relayState. \n"; }
                             }
                         } else {
@@ -108,11 +109,12 @@ if($_GET && $_GET['apikey'] == $apikey){    // check get variable, and check api
                                 foreach ($relay as $z){
                                     $relayid = $z[0]; //get out the relayid
                                     $relayState = $z[3]; //and the state
+                                    $relayAddress = $z[4]; //and the address
                                 }
                                 //energize if de-energized
                                 if($relayState == "off"){
                                     echo "Switching Relay $relayid On. \n";
-                                    $relays->switchRelay($relayid,$setpoint[3],"on"); //needs id,pin,state
+                                    $relays->switchRelay($relayid,$setpoint[3],"on",$relayAddress); //needs id,pin,state
                                 } else { echo "Relay $relayid already $relayState."; }
                             }
                         }
@@ -138,10 +140,11 @@ if($_GET && $_GET['apikey'] == $apikey){    // check get variable, and check api
                                 foreach ($relay as $z){
                                     $relayid = $z[0]; //get out the relayid
                                     $relayState = $z[3]; //and the state
+                                    $relayAddress = $z[4]; //and the address
                                 }
                                 if($relayState == "on"){
                                     echo "Switching Relay $relayid Off. \n";
-                                    $relays->switchRelay($relayid,$setpoint[3],"off"); //needs id,pin,state
+                                    $relays->switchRelay($relayid,$setpoint[3],"off",$relayAddress); //needs id,pin,state
                                 } else { echo "Relay $relayid already $relayState."; }
                             }
                         } else {
@@ -156,11 +159,12 @@ if($_GET && $_GET['apikey'] == $apikey){    // check get variable, and check api
                                 foreach ($relay as $z){
                                     $relayid = $z[0]; //get out the relayid
                                     $relayState = $z[3]; //and the state
+                                    $relayAddress = $z[4]; //and the address
                                 }
                                 //energize if de-energized
                                 if($relayState == "off"){
                                     echo " Switching Relay $relayid On. \n";
-                                    $relays->switchRelay($relayid,$setpoint[3],"on"); //needs id,pin,state
+                                    $relays->switchRelay($relayid,$setpoint[3],"on",$relayAddress); //needs id,pin,state
                                 } else { echo "Relay $relayid already $relayState."; }
                             }
                         }

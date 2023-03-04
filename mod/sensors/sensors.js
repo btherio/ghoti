@@ -6,6 +6,7 @@ function deleteSensor(id){
     var confirmation = confirm ('Delete is permanent! \nAre you sure?');
 	if (confirmation){
 		x_deleteSensor(id, getSensors);
+        popupFeedBack("Deleting Sensor.");
 		getSensors();
 	}
 }
@@ -15,6 +16,7 @@ function clearSensorData(id){
 	if (confirmation){
 		x_clearSensorData(id, getSensors);
 		getSensors();
+        popupFeedBack("Clearing Sensor Data.");
 	}
 }
 function clearSetpoints(id){
@@ -23,6 +25,7 @@ function clearSetpoints(id){
 	if (confirmation){
 		x_clearSetpoints(id, doNothing_cb);
 		manageSetpoints(id);
+        popupFeedBack("Clearing Sensor Setpoints.");
 	}
 }
 
@@ -33,17 +36,18 @@ function saveSensor(){
     var address = $("#sensorAddress").val();
     var type = $("#sensorType :selected").text();
 	if(!name || !address || !type ){ //|| name.length < 1 || address.length < 1 || type.length < 1){
-		pageFeedBack("Required field missing, failed javascript check");
+		popupFeedBack("Required field missing, failed javascript check");
 	}else{
 		x_saveSensor(id,name,address,type,getSensors);	//switched callback to sensorsForm...  trying something new
+        popupFeedBack("Saving Sensor.")
     }
 }
 
 function addSensorForm(name="",address="192.168.12.*"){
 	$("#popupTitle").html("Add a Sensor");
-    $("#popup-content").html("Sensor Name:<input type=\"text\" id=\"sensorName\" size=\"10\" value=\""+name+"\" /><br />\n");
-	$("#popup-content").append("Sensor IP address:<input type=\"text\" id=\"sensorAddress\" size=\"20\" value=\""+address+"\" /><br />\n");
-	$("#popup-content").append("Sensor Type: <select id=\"sensorType\"></select><br />\n");	
+    $("#popup-content").html("<br />Sensor Name:<input type=\"text\" id=\"sensorName\" size=\"10\" value=\""+name+"\" /><br />\n");
+	$("#popup-content").append("Sensor IP address:<input type=\"text\" id=\"sensorAddress\" size=\"15\" value=\""+address+"\" /><br />\n");
+	$("#popup-content").append("Sensor Type: <select id=\"sensorType\"></select><br /><br />\n");
 	$("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addSensor();\" >Add</a>&nbsp;\n");
     $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"getSensors();\">Cancel</a>&nbsp;");
     //i hardcoded these becasue... i did
@@ -55,17 +59,17 @@ function addSensorForm(name="",address="192.168.12.*"){
     $("#sensorType").append("<option value=\"soil\">Soil</option>");
     $("#sensorType").append("<option value=\"relay\">Relay</option>");
     $("#sensorType").append("<option value=\"refrig\">Refrigeration</option>");
-
-	showPopup();
+    showPopup();
 }
 
 function modifySensorForm(id=0,name="",address="192.168.12.*"){
     $("#popupTitle").html("Modify Sensor");
-    $("#popup-content").html("Sensor Name:<input type=\"text\" id=\"sensorName\" size=\"10\" value=\""+name+"\" /><br />\n");
-    $("#popup-content").append("<input type=\"hidden\" id=\"sensorID\" value=\""+id+"\" /><br />\n");
-    $("#popup-content").append("Sensor IP address:<input type=\"text\" id=\"sensorAddress\" size=\"20\" value=\""+address+"\" /><br />\n");
-    $("#popup-content").append("Sensor Type: <select id=\"sensorType\"></select>\n");	
-    $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"saveSensor();\" >Save</a>\n");
+    $("#popup-content").html("<br />Sensor Name:<input type=\"text\" id=\"sensorName\" size=\"10\" value=\""+name+"\" /><br />\n");
+    $("#popup-content").append("<input type=\"hidden\" id=\"sensorID\" value=\""+id+"\" />\n");
+    $("#popup-content").append("Sensor IP address:<input type=\"text\" id=\"sensorAddress\" size=\"15\" value=\""+address+"\" /><br />\n");
+    $("#popup-content").append("Sensor Type: <select id=\"sensorType\"></select><br /><br />\n");
+    $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"saveSensor();\" >Save</a>&nbsp;\n");
+    $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"getSensors();\">Cancel</a>&nbsp;");
     //i hardcoded these becasue... i did
     $("#sensorType").append("<option value=\"dht\">DHT</option>");
     $("#sensorType").append("<option value=\"ds18b20\">DS18B20</option>");
@@ -106,15 +110,18 @@ function getRelaysDD_cb(result){
 }
 function addSetpointForm(id){
     $("#popupTitle").html("Add Setpoint");
-    $("#popup-content").html("<form id=\"setpointForm\" action=\"#\"></form>");
+    $("#popup-content").html("<b>HIGH setpoints trigger when sensor value is \< setpoint.</b> Logically, the relay being activated should increase the sensor value.<br />");
+    $("#popup-content").append("<b>LOW setpoints trigger when sensor value is \> setpoint.</b> Logically, the relay being activated should decrease the sensor valve.<br />");
+    $("#popup-content").append("<br /><form id=\"setpointForm\" action=\"#\"></form>");
     $("#setpointForm").append("<input type=\"hidden\" id=\"sensorID\" value=\""+id+"\" />");
     $("#setpointForm").append("Setpoint: <select id=\"setpoint\" value=\"\" ></select>");
+    //$("#setpoint").slider();
     $("#setpointForm").append("Type: <select id=\"setpointType\"></select>");
     $("#setpointType").append("<option value=\"HIGH\">HIGH</option>");
     $("#setpointType").append("<option value=\"LOW\">LOW</option>");
-    $("#setpointForm").append("Action: <select id=\"setpointAction\"></select><br />");
+    $("#setpointForm").append("Action: <select id=\"setpointAction\"></select><br /><br />");
+    $("#setpointForm").append("<a href=\"#\" onclick=\"addSetpoint();\">Add Setpoint</a>&nbsp;");
     $("#setpointForm").append("<a href=\"#\" onclick=\"getSensors();\">Cancel</a>&nbsp;");
-    $("#setpointForm").append("<a href=\"#\" onclick=\"addSetpoint();\">Add Setpoint</a>");
     //populate setpoints dropdown
     for (i = -10000; i < 10000; i++) {
         if(i == 0){
@@ -156,7 +163,7 @@ function printSensorsForm(result){
 	sensorsArray = result[0];
     $("#popupTitle").html("Sensors");
 	$("#popup-content").html("<form id=\"sensorsForm\" action=\"#\"></form>");
-    $("#popup-content").append("<a alt=\"Sensors\" class=\"ghotiMenu\" href=\"#\" onclick=\"searchSensors();\">Add Sensor</a>");
+    $("#popup-content").append("<br /><a alt=\"Sensors\" class=\"ghotiMenu\" href=\"#\" onclick=\"searchSensors();\">Add Sensor</a>");
     $("#setpointForm").append("<a href=\"#\" onclick=\"getSensors();\">Cancel</a>&nbsp;");
     showPopup();
     
@@ -267,7 +274,8 @@ function printSensorData(result){
 function searchSensors(){
     $("#popupTitle").html("Connected Sensors");
     $("#popup-content").html("<p id=\"checkAP\"></p><form id=\"clientsForm\" action=\"#\"></form>");
-    $("#popup-content").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"addSensorForm();\">Add Sensor Manually</a>");
+    $("#popup-content").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"addSensorForm();\">Add Sensor Manually</a>&nbsp;");
+    $("#popup-content").append("<a href=\"#\" onclick=\"getSensors();\">Cancel</a>&nbsp;");
     showPopup();
     x_checkAP(checkAP_cb);
     x_listAP(listAP_cb);

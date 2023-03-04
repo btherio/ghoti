@@ -3,5 +3,6 @@ create table if not exists relays(
 	`name` varchar(32) not null,
 	`pin` int(11) not null,
 	`state` varchar(500) not null,
+	`address` varchar(32),
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;

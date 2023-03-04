@@ -6,8 +6,8 @@ function checkGetLogin(){
 //  if($_GET && isset($_GET['login'])){
 //		//return True;
 //	} else { return false; }
-	return false; //we dont allow this anymore
-} 
+	return false;
+}
 function login($username,$password){
  	ghoti::log("Login attempt($username) from ".$_SERVER['REMOTE_ADDR']."");
 	$id = $_SESSION["loginObj"]->logindb->authenticate($username,$password);
@@ -87,32 +87,27 @@ function changePassword($password,$newPassword){
 		return False;
 	}
 }
-function logout(){ 
+function logout(){
 	try{
-		ghoti::log("Trying logout...");
+	    $_SESSION['userId'] = 0;
+	    $_SESSION['loggedIn'] = false;
 		unset($_SESSION['loggedIn']);
 		unset($_SESSION['userId']);
 		unset($_SESSION['admin']);
-	    $_SESSION["userId"] = 0;
-	    $_SESSION["loggedIn"] = 0;
-		$_SESSION["admin"] = 0;
-		unset($_SESSION['loggedIn']);
-		unset($_SESSION['userId']);
-		unset($_SESSION['admin']);
+		
+        //$_SESSION['userId'] = 0;
+	    //$_SESSION['loggedIn'] = false;
 		
 		session_unset();
 		unset($_GET["login"]);
 		session_destroy();
 		session_unset();
-		//unset($_COOKIE[ghoti::$sessionName]);
+		unset($_COOKIE[ghoti::$sessionName]);
 		//setcookie(ghoti::$sessionName, FALSE, time() - 3600);
-		
-		
+		session_write_close();
 	 }catch (Exception $e) {
-		ghoti::log($e->getMessage());
-		return $e->getMessage();
+    return $e->getMessage();
   	}
-  	ghoti::log("Logout finished.");
 	return true;
 }
 function isAdmin($id){
@@ -134,7 +129,7 @@ function toggleAdmin($id){
 }	
 function checkLogin(){
     //if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == true && isset($_SESSION["userId"]) && $_SESSION["userId"] > 0){
-    if($_SESSION["loggedIn"] == True && $_SESSION["userId"] > 0){
+    if($_SESSION["loggedIn"] == true && $_SESSION["userId"] > 0){
 		ghoti::log("Checking login, found uid" .$_SESSION["userId"]."");
 	    return $_SESSION["userId"];   
     }

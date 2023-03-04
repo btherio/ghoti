@@ -8,7 +8,6 @@
 include_once('schedules.db.php');
 class schedules{
 	public $schedulesdb;
-   
 	public function __construct(){
 		$this->schedulesdb = new schedulesdb();
 		}
