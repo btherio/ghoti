@@ -106,8 +106,6 @@ function logout(){
 		session_unset();
 		//unset($_COOKIE[ghoti::$sessionName]);
 		//setcookie(ghoti::$sessionName, FALSE, time() - 3600);
-		
-		
 	 }catch (Exception $e) {
 		ghoti::log($e->getMessage());
 		return $e->getMessage();
@@ -135,7 +133,7 @@ function toggleAdmin($id){
 function checkLogin(){
     //if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == true && isset($_SESSION["userId"]) && $_SESSION["userId"] > 0){
     if($_SESSION["loggedIn"] == True && $_SESSION["userId"] > 0){
-		ghoti::log("Checking login, found uid" .$_SESSION["userId"]."");
+		//ghoti::log("Checking login, found uid" .$_SESSION["userId"]."");
 	    return $_SESSION["userId"];   
     }
 	else

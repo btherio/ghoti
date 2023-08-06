@@ -36,7 +36,8 @@ if($_GET && $_GET['apikey'] == $apikey){    // check get variable, and check api
         //echo date(DATE_ATOM);
         
         $data = doubleval($_GET['data']);  //cast the data to double type. This will fail if the data is non-numeric
-        
+        $auxData = doubleval($_GET['aux']); //get the auxdata
+
         if(count($sensor, COUNT_NORMAL) > 0){ //tryna check if we got a sensor id back, if not this sensor isnt in the db.
             $id = doubleval($sensor['id']);
             echo "Server: Found sensor ID $id\n";
@@ -48,7 +49,12 @@ if($_GET && $_GET['apikey'] == $apikey){    // check get variable, and check api
         
         if($id > 0){ //this prevents unwanted additions.
             echo "Server: Logging sensor data to database...\n";
-            $sensorsdb->addSensorData($id,date(DATE_ATOM),$data); //save sensor data, id,date,data
+            $date = exec('date'); //get system date
+            $unixTime = time(); //get the unixtime
+
+
+            //$date = new DateTime("now");
+            $sensorsdb->addSensorData($id,$unixTime,$data,$auxData); //save sensor data, id,unixtime(date),data
             $setpoints = $sensorsdb->getSetpoints($id); //lookup setpoints for this sensor
             $sensorsdb->__destruct(); //disconnect?
             if(count($setpoints) <= 0){

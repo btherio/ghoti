@@ -1,163 +1,29 @@
 
-[Sat Feb 25 10:44:56 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:45:12 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:45:19 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:45:32 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:46:03 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:47:18 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:47:18 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:47:18 MST 2023]Logged in USER(1) from 10.0.0.253
-[Sat Feb 25 10:47:18 MST 2023]Logged in ADMIN(1) from 10.0.0.253
-[Sat Feb 25 10:47:20 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:47:32 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:47:45 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:47:58 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:48:11 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:48:19 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:48:22 MST 2023]Switching wifi relay at 192.168.12.256 to on...
-[Sat Feb 25 10:48:22 MST 2023]Saving relay state to database: 5:on...
-[Sat Feb 25 10:48:25 MST 2023]Switching wifi relay at 192.168.12.256 to off...
-[Sat Feb 25 10:48:25 MST 2023]Saving relay state to database: 5:off...
-[Sat Feb 25 10:48:37 MST 2023]Switching wifi relay at 192.168.12.100 to on...
-[Sat Feb 25 10:48:37 MST 2023]Saving relay state to database: 1:on...
-[Sat Feb 25 10:48:39 MST 2023]Switching wifi relay at 192.168.12.100 to off...
-[Sat Feb 25 10:48:39 MST 2023]Saving relay state to database: 1:off...
-[Sat Feb 25 10:48:41 MST 2023]Switching wifi relay at 192.168.12.100 to on...
-[Sat Feb 25 10:48:41 MST 2023]Saving relay state to database: 1:on...
-[Sat Feb 25 10:48:43 MST 2023]Switching wifi relay at 192.168.12.100 to off...
-[Sat Feb 25 10:48:43 MST 2023]Saving relay state to database: 1:off...
-[Sat Feb 25 10:48:44 MST 2023]Switching wifi relay at 192.168.12.100 to on...
-[Sat Feb 25 10:48:44 MST 2023]Saving relay state to database: 1:on...
-[Sat Feb 25 10:48:48 MST 2023]Switching pin 15 to on...
-[Sat Feb 25 10:48:48 MST 2023]failed to switch relay state
-[Sat Feb 25 10:48:49 MST 2023]Switching pin 15 to off...
-[Sat Feb 25 10:48:49 MST 2023]failed to switch relay state
-[Sat Feb 25 10:49:09 MST 2023]Saving Relay(3:TEST WIFI RLY:1:192.168.12.0)
-[Sat Feb 25 10:49:20 MST 2023]Saving Relay(4:TEST WIFI RLY2:1:192.168.12.213)
-[Sat Feb 25 10:49:31 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:49:31 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:49:38 MST 2023]Logged in USER(1) from 10.0.0.253
-[Sat Feb 25 10:49:38 MST 2023]Logged in ADMIN(1) from 10.0.0.253
-[Sat Feb 25 10:49:38 MST 2023]Switching wifi relay at 192.168.12.100 to off...
-[Sat Feb 25 10:49:38 MST 2023]Saving relay state to database: 1:off...
-[Sat Feb 25 10:49:40 MST 2023]Checking login, found uid1
-[Sat Feb 25 10:51:27 MST 2023]Trying logout...
-[Sat Feb 25 10:51:27 MST 2023]Logout finished.
-[Sat Feb 25 10:51:49 MST 2023]Login attempt(smartent) from 10.0.0.253
-[Sat Feb 25 10:51:49 MST 2023]Login attempt(smartent) from 10.0.0.253
-[Sat Feb 25 10:51:50 MST 2023]Logged in USER(2) from 10.0.0.253
-[Sat Feb 25 10:51:50 MST 2023]Logged in USER(2) from 10.0.0.253
-[Sat Feb 25 10:51:53 MST 2023]Checking login, found uid2
-[Sat Feb 25 10:52:13 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:34:05 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:34:27 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:34:27 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:34:27 MST 2023]Logged in USER(2) from 10.0.0.253
-[Sat Feb 25 11:35:20 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:41:44 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:41:50 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:41:51 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:42:27 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:42:27 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:42:28 MST 2023]Logged in USER(2) from 10.0.0.253
-[Sat Feb 25 11:42:29 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:42:29 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:42:30 MST 2023]Logged in USER(2) from 10.0.0.253
-[Sat Feb 25 11:42:34 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:43:18 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:43:32 MST 2023]Checking login, found uid2
-[Sat Feb 25 11:43:49 MST 2023]Trying logout...
-[Sat Feb 25 11:43:49 MST 2023]Logout finished.
-[Sat Feb 25 11:44:00 MST 2023]Login attempt(admin) from 10.0.0.253
-[Sat Feb 25 11:44:01 MST 2023]Logged in USER(1) from 10.0.0.253
-[Sat Feb 25 11:44:01 MST 2023]Logged in ADMIN(1) from 10.0.0.253
-[Sat Feb 25 11:44:18 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:44:21 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:44:36 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:45:33 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:47:05 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:47:07 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:48:20 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:48:27 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:49:19 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:50:04 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:50:04 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:50:06 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:50:09 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:50:09 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:50:10 MST 2023]Logged in USER(1) from 10.0.0.253
-[Sat Feb 25 11:50:10 MST 2023]Logged in ADMIN(1) from 10.0.0.253
-[Sat Feb 25 11:50:34 MST 2023]Checking login, found uid1
-[Sat Feb 25 11:51:27 MST 2023]Checking login, found uid1
-[Sun Feb 26 17:57:43 MST 2023]Login attempt(admin) from 10.0.0.194
-[Sun Feb 26 17:57:43 MST 2023]Logged in USER(1) from 10.0.0.194
-[Sun Feb 26 17:57:43 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Sun Feb 26 17:58:11 MST 2023]Checking login, found uid1
-[Sun Feb 26 17:58:25 MST 2023]Checking login, found uid1
-[Sun Feb 26 17:58:29 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:00:54 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:00:56 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:01:00 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:01:00 MST 2023]Logged in USER(1) from 10.0.0.194
-[Sun Feb 26 18:01:00 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Sun Feb 26 18:01:26 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:06:46 MST 2023]Login attempt(admin) from 10.0.0.194
-[Sun Feb 26 18:06:46 MST 2023]Logged in USER(1) from 10.0.0.194
-[Sun Feb 26 18:06:46 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Sun Feb 26 18:07:40 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:07:40 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:07:43 MST 2023]Logged in USER(1) from 10.0.0.194
-[Sun Feb 26 18:07:43 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Sun Feb 26 18:07:59 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:08:30 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:08:35 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:09:21 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:09:25 MST 2023]Checking login, found uid1
-[Sun Feb 26 18:09:25 MST 2023]Logged in USER(1) from 10.0.0.194
-[Sun Feb 26 18:09:25 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Sun Feb 26 18:09:31 MST 2023]Login attempt(admin) from 10.0.0.194
-[Sun Feb 26 18:09:31 MST 2023]Logged in USER(1) from 10.0.0.194
-[Sun Feb 26 18:09:31 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 19:21:09 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:21:15 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:21:15 MST 2023]Logged in USER(1) from 10.0.0.194
-[Thu Mar  2 19:21:16 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 19:22:51 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:22:58 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:22:58 MST 2023]Logged in USER(1) from 10.0.0.194
-[Thu Mar  2 19:22:58 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 19:23:15 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:23:15 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:23:21 MST 2023]Logged in USER(1) from 10.0.0.194
-[Thu Mar  2 19:23:21 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 19:25:07 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:25:13 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:25:14 MST 2023]Logged in USER(1) from 10.0.0.194
-[Thu Mar  2 19:25:14 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 19:57:26 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:57:26 MST 2023]Checking login, found uid1
-[Thu Mar  2 19:57:32 MST 2023]Logged in USER(1) from 10.0.0.194
-[Thu Mar  2 19:57:32 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 20:21:02 MST 2023]Checking login, found uid1
-[Thu Mar  2 20:21:02 MST 2023]Checking login, found uid1
-[Thu Mar  2 20:21:09 MST 2023]Logged in USER(1) from 10.0.0.194
-[Thu Mar  2 20:21:09 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 20:26:04 MST 2023]Trying logout...
-[Thu Mar  2 20:26:04 MST 2023]Logout finished.
-[Thu Mar  2 20:33:37 MST 2023]Login attempt(admin) from 10.0.0.194
-[Thu Mar  2 20:33:37 MST 2023]Logged in USER(1) from 10.0.0.194
-[Thu Mar  2 20:33:37 MST 2023]Logged in ADMIN(1) from 10.0.0.194
-[Thu Mar  2 20:33:48 MST 2023]Checking login, found uid1
-[Thu Mar  2 20:33:48 MST 2023]Checking login, found uid1
-[Thu Mar  2 20:37:23 MST 2023]Switching pin 15 to on...
-[Thu Mar  2 20:37:23 MST 2023]Saving relay state to database: 2:on...
-[Thu Mar  2 20:37:26 MST 2023]Switching pin 15 to off...
-[Thu Mar  2 20:37:26 MST 2023]Saving relay state to database: 2:off...
-[Thu Mar  2 20:37:41 MST 2023]Checking login, found uid1
-[Thu Mar  2 20:37:52 MST 2023]Checking login, found uid1
-[Thu Mar  2 20:38:30 MST 2023]0 8 * * *,15,On,0,none
-[Thu Mar  2 20:38:30 MST 2023]Checking login, found uid1
-[Thu Mar  2 20:38:30 MST 2023]addJob: 0 8 * * * /srv/http/smartend/mod/relays/gpio-relay.sh 15 On 0 none >> /dev/null 2>&1
-[Thu Mar  2 20:38:52 MST 2023]Checking login, found uid1
-[Thu Mar  2 21:11:27 MST 2023]Checking login, found uid1
-[Thu Mar  2 21:11:32 MST 2023]Checking login, found uid1
+[Sun Jul 30 13:18:45 MDT 2023]Adding editPage form to content
+[Sun Jul 30 13:18:45 MDT 2023]Logged in USER(1) from 96.52.73.180
+[Sun Jul 30 13:18:45 MDT 2023]Logged in ADMIN(1) from 96.52.73.180
+[Sun Jul 30 13:32:22 MDT 2023]Adding editPage form to content
+[Sun Jul 30 13:32:51 MDT 2023]Logged in USER(1) from 96.52.73.180
+[Sun Jul 30 13:32:51 MDT 2023]Logged in ADMIN(1) from 96.52.73.180
+[Sun Jul 30 13:32:52 MDT 2023]Adding editPage form to content
+[Sun Jul 30 13:33:22 MDT 2023]Logged in USER(1) from 96.52.73.180
+[Sun Jul 30 13:33:22 MDT 2023]Logged in ADMIN(1) from 96.52.73.180
+[Sun Jul 30 13:35:08 MDT 2023]Adding editPage form to content
+[Sun Jul 30 13:35:38 MDT 2023]Logged in USER(1) from 96.52.73.180
+[Sun Jul 30 13:35:38 MDT 2023]Logged in ADMIN(1) from 96.52.73.180
+[Sun Jul 30 13:43:54 MDT 2023]Adding editPage form to content
+[Sun Jul 30 13:43:54 MDT 2023]Adding editPage form to content
+[Sun Jul 30 13:46:40 MDT 2023]Adding editPage form to content
+[Sun Jul 30 13:47:12 MDT 2023]Adding editPage form to content
+[Sun Jul 30 14:18:35 MDT 2023]Attempting to send alarm email to: 7802356747@msg.telus.com 
+
+[Sun Jul 30 14:18:37 MDT 2023]Alarm sent for Solar Battery!
+
+[Sun Aug  6 17:00:06 MDT 2023]Adding editPage form to content
+[Sun Aug  6 17:00:07 MDT 2023]Adding editPage form to content
+[Sun Aug  6 17:00:39 MDT 2023]Logged in USER(1) from 96.52.73.180
+[Sun Aug  6 17:00:39 MDT 2023]Logged in ADMIN(1) from 96.52.73.180
+[Sun Aug  6 17:02:03 MDT 2023]Adding editPage form to content
+[Sun Aug  6 17:02:04 MDT 2023]Adding editPage form to content
+[Sun Aug  6 17:02:36 MDT 2023]Logged in USER(1) from 96.52.73.180
+[Sun Aug  6 17:02:36 MDT 2023]Logged in ADMIN(1) from 96.52.73.180

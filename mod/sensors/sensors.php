@@ -53,11 +53,11 @@ class sensors{
 
 
     public function sendAlarm($name,$data,$setpoint,$id,$alarmType){
-        $smtpEmail = 'smtpEmail';
-        $smtpPW = 'smtpPassword';
+        $smtpEmail = "btherio@gmail.com";
+        $smtpPW = 'xoqzvqhyuunrdhba';
         $smtpHost = 'smtp.gmail.com';
         $smtpPort = 465;
-        $alarmAddress = "Alarms@sent.to.address.com";
+        $alarmAddress = "7802356747@msg.telus.com";
         
         if($alarmType == "911"){
 

@@ -23,7 +23,7 @@ class ghotiui{
 	}
 	
 	function printFooter(){
-		return "Powered by Smartend and GhotiCMS ";
+		return "Powered by SmarTEND and Ghoti ";
 	}
 		
 	function printCloseButton($popupName){
@@ -44,8 +44,9 @@ class ghotiui{
 		elseif($group === "private")
 			$this->output .= "<span id=\"publicPrivateButton\"><img class=\"linkIcon\" src=\"gfx/red-x.gif\" alt=\"no\" onclick=\"setPagePublic($id)\" /></span>";
 		
-		$this->output .= html::divEnd().html::divStart()."<input type=\"button\" onclick=\"deletePage($id);\" value=\"Delete Page\" />";
-		$this->output .= "<input type=\"button\" id=\"pageEditButton\" onclick=\"printPageEditor();\" value=\"Edit Page\" />";
+			$this->output .= "<input type=\"button\" onclick=\"deletePage($id);\" value=\"Delete Page\" />";	
+		//$this->output .= html::divEnd().html::divStart()."<input type=\"button\" onclick=\"deletePage($id);\" value=\"Delete Page\" />";
+		$this->output .= html::divEnd().html::divStart()."<input type=\"button\" id=\"pageEditButton\" onclick=\"printPageEditor();\" value=\"Edit Page\" />";
 		$this->output .= "<input type=\"hidden\" id=\"pageIdEdit\" value=\"$id\" /></div>";
 		$this->output .= "</form>".html::divEnd();
 		return $this->output;

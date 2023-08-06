@@ -9,10 +9,10 @@ function addRelay(){
 	var RelayPin = $("#RelayPin").val();
     var address = $("#address").val();
 	if(RelayName.length < 1 || RelayPin.length < 1 ){
-		popupFeedBack("Required field missing.");
+		pageFeedBack("Required field missing.");
 	}else{
 		x_addRelay(RelayName,RelayPin,address,getRelays);
-        popupFeedBack("Added Relay.");
+        pageFeedBack("Added Relay.");
 	}
 }
 function deleteRelay(id){
@@ -30,23 +30,23 @@ function saveRelay(){
 	if(!name || !pin ){
 		pageFeedBack("Required field missing, failed javascript check");
 	}else{
-        popupFeedBack("Saved Relay.");
+        pageFeedBack("Saved Relay.");
 		x_saveRelay(id,name,pin,address,getRelays);
     }
 }
  
 
 function addRelayForm(name="",pin="0"){
-    $("#popupTitle").html("Add a Relay");
-    $("#popup-content").html("<br />Relay Name:<input type=\"text\" id=\"RelayName\" size=\"10\" value=\""+name+"\" /><br />\n");
-	$("#popup-content").append("Relay GPIO pin (or WIFI):<select id=\"RelayPin\" ></select><br />\n");
-    $("#popup-content").append("<span id=\"ipAddress\">IP Address:<input type=\"text\" id=\"address\" size=\"10\" value=\"192.168.12.0\" /><br /></span>");
-    $("#popup-content").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"addRelay();\" >Add</a>&nbsp;\n");
-    $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"getRelays();\" >Cancel</a>\n");
+    $("#ghotiContent").html("<h1>Add a Relay</h1>");
+    $("#ghotiContent").append("<br />Relay Name:<input type=\"text\" id=\"RelayName\" size=\"10\" value=\""+name+"\" />\n");
+	$("#ghotiContent").append("<select id=\"RelayPin\" ></select><br />\n");
+    $("#ghotiContent").append("<span id=\"ipAddress\">IP Address:<input type=\"text\" id=\"address\" size=\"10\" value=\"192.168.12.0\" /><br /></span>");
+    $("#ghotiContent").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"addRelay();\" >Add</a>&nbsp;\n");
+    $("#ghotiContent").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"getRelays();\" >Cancel</a>\n");
     $("#ipAddress").hide();
     for(i = 0; i <= 27; i++){
         if(i == 0){
-            $("#RelayPin").append("<option value=\""+i+"\">Choose</option>");
+            $("#RelayPin").append("<option value=\""+i+"\">Relay GPIO or WIFI</option>");
         }else if(i == 1){
             $("#RelayPin").append("<option value=\""+i+"\">WIFI</option>");
         }else{
@@ -62,17 +62,17 @@ function addRelayForm(name="",pin="0"){
     });
 
 
-	showPopup();
+	//showPopup();
 }
 
 function modifyRelayForm(id=0,name="",pin=0,address){
-	$("#popupTitle").html("Modify Relay");
-    $("#popup-content").html("<br />Relay Name:<input type=\"text\" id=\"RelayName\" size=\"10\" value=\""+name+"\" /><br />\n");
-    $("#popup-content").append("<input type=\"hidden\" id=\"RelayID\" value=\""+id+"\" /><br />\n");
-    $("#popup-content").append("<span id=\"gpioInput\">Relay pin (BCM):<input type=\"text\" id=\"RelayPin\" size=\"3\" value=\""+pin+"\" /><br /></span>\n");
-    $("#popup-content").append("<span id=\"ipAddress\">IP Address:<input type=\"text\" id=\"address\" size=\"10\" value=\""+address+"\" /><br /></span>\n");
-    $("#popup-content").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"saveRelay();\" >Save</a>&nbsp;\n");
-    $("#popup-content").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"getRelays();\" >Cancel</a>\n");
+	$("#ghotiContent").html("<h1>Modify Relay</h1>");
+    $("#ghotiContent").append("<br />Relay Name:<input type=\"text\" id=\"RelayName\" size=\"10\" value=\""+name+"\" /><br />\n");
+    $("#ghotiContent").append("<input type=\"hidden\" id=\"RelayID\" value=\""+id+"\" /><br />\n");
+    $("#ghotiContent").append("<span id=\"gpioInput\">Relay pin (BCM):<input type=\"text\" id=\"RelayPin\" size=\"3\" value=\""+pin+"\" /><br /></span>\n");
+    $("#ghotiContent").append("<span id=\"ipAddress\">IP Address:<input type=\"text\" id=\"address\" size=\"10\" value=\""+address+"\" /><br /></span>\n");
+    $("#ghotiContent").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"saveRelay();\" >Save</a>&nbsp;\n");
+    $("#ghotiContent").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"getRelays();\" >Cancel</a>\n");
     if(pin == 1){ //pin1 indicates wifi relay, show and hide fields appropriately
         $("#ipAddress").show();
         $("#gpioInput").hide();
@@ -80,15 +80,15 @@ function modifyRelayForm(id=0,name="",pin=0,address){
         $("#ipAddress").hide();
         $("#gpioInput").show();
     }
-	showPopup();
+	//showPopup();
 }
 
 function printRelaysForm(result){
 	relaysArray = result[0];
-    $("#popupTitle").html("Relays");
-	$("#popup-content").html("<br /><form id=\"relaysForm\" action=\"#\"></form>");
-    $("#popup-content").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"addRelayForm();\">Add Relay</a>");
-    showPopup();
+    $("#ghotiContent").html("<h1>Relays</h1>");
+	$("#ghotiContent").append("<br /><form id=\"relaysForm\" action=\"#\"></form>");
+    $("#ghotiContent").append("<br /><a href=\"#\" class=\"ghotiMenu\" onclick=\"addRelayForm();\">Add Relay</a>");
+    //showPopup();
     
     for (x in relaysArray){
         $("#relaysForm").append("<input type=\"hidden\" id=\""+relaysArray[x]['id']+"-id\" value=\""+relaysArray[x]['id']+"\" />&emsp;");
@@ -100,15 +100,16 @@ function printRelaysForm(result){
         }
 
         //$("#relaysForm").append("<label id=\""+relaysArray[x]['id']+"-state\">"+stripslashes(relaysArray[x]['state'])+"</label>&emsp;&emsp;&emsp;");
+        $("#relaysForm").append("<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
         $("#relaysForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"modifyRelayForm("+relaysArray[x]['id']+",'"+stripslashes(relaysArray[x]['name'])+"','"+stripslashes(relaysArray[x]['pin'])+"','"+stripslashes(relaysArray[x]['address'])+"')\" >Edit</a>&emsp;");
         $("#relaysForm").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"deleteRelay("+relaysArray[x]['id']+")\" >Delete</a>&emsp;");
         if(stripslashes(relaysArray[x]['state']) == "off"){
-            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'on','"+stripslashes(relaysArray[x]['address'])+"',getRelays);\">Force On</a>&emsp;");
+            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'on','"+stripslashes(relaysArray[x]['address'])+"',getRelays);\"><img height=\"17\" width=\"30\" src=\"mod/relays/off.png\"></a>&emsp;");
         } else {
-            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'off','"+stripslashes(relaysArray[x]['address'])+"',getRelays);\">Force Off</a>&emsp;");
+            $("#relaysForm").append("<a class=\"ghotiMenu\" href=\"#\" onclick=\"x_switchRelay("+stripslashes(relaysArray[x]['id'])+","+stripslashes(relaysArray[x]['pin'])+",'off','"+stripslashes(relaysArray[x]['address'])+"',getRelays);\"><img height=\"17\" width=\"30\" src=\"mod/relays/on.png\"></a>&emsp;");
         }
         
-        $("#relaysForm").append("<br />");
+        $("#relaysForm").append("<br /><br /><br />");
         }
     
 }
@@ -127,9 +128,9 @@ function printRelaysOverview(result){
         liveContent += "<div class=\"box\"><input type=\"hidden\" id=\""+relaysArray[x]['id']+"-id\" value=\""+relaysArray[x]['id']+"\" />"; //id
         liveContent += "<label><b>"+stripslashes(relaysArray[x]['name'])+"</label></b>"; //name
         if(relaysArray[x]['state'] == 'on'){
-            liveContent += "<p><img height=\"36\" width=\"36\" src=\"mod/relays/on.png\"></p><p>"; //state
+            liveContent += "<p><img height=\"35\" width=\"61\" src=\"mod/relays/on.png\"></p><p>"; //state
         } else if(relaysArray[x]['state'] == 'off'){
-            liveContent += "<p><img height=\"36\" width=\"36\" src=\"mod/relays/off.png\"></p><p>"; //state
+            liveContent += "<p><img height=\"35\" width=\"61\" src=\"mod/relays/off.png\"></p><p>"; //state
         } else {
             liveContent += "<p>Unable to determine state</p><p>";
         }

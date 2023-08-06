@@ -130,7 +130,7 @@ function toggleAdmin($id){
 function checkLogin(){
     //if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == true && isset($_SESSION["userId"]) && $_SESSION["userId"] > 0){
     if($_SESSION["loggedIn"] == true && $_SESSION["userId"] > 0){
-		ghoti::log("Checking login, found uid" .$_SESSION["userId"]."");
+		//ghoti::log("Checking login, found uid" .$_SESSION["userId"]."");
 	    return $_SESSION["userId"];   
     }
 	else

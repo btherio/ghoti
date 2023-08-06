@@ -3,8 +3,8 @@
  * Created on Mar 1, 2009
  *
  */
-include_once('lib/adodb5/adodb.inc.php');
-include_once('lib/adodb5/adodb-exceptions.inc.php');
+include('lib/adodb5/adodb.inc.php');
+include('lib/adodb5/adodb-exceptions.inc.php');
 
 class ghotidb{
 	/*This is where you setup your database.

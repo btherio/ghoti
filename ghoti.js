@@ -7,7 +7,7 @@ $(document).ready(function(){
 	
 	x_getDefaultPage(printPage);
 	x_getLinks(getLinks_cb); //gets the links and starts the timed links updating cycle that I'm not fond of.
-    x_readSensors(printSensorsOverview); //so lets do the same thing with this one? ***SENSORS MODULE CODE***
+    readSensors(); //so lets do the same thing with this one? ***SENSORS MODULE CODE***
  	hideMenu();
     
 	$(".ghotiMenu").click(function(e){

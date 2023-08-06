@@ -24,7 +24,7 @@ public function getTypes(){
 function checkDupe($name,$address){
 	try{
 		$query = $this->adodb->Execute("select count(name) from sensors where name = ? or address = ?",array($name,$address));
-		if (!$query) mylogerr($this->adodb->ErrorMsg());
+		if (!$query) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
@@ -34,22 +34,22 @@ function checkDupe($name,$address){
 	}
 	return False; //if we made it this far, no dupes
 }
-function addSensor($name,$address,$type="dht"){
+function addSensor($name,$address,$type="dht",$units){
 	try{
-		$nonQuery = $this->adodb->Execute("insert into sensors(name,address,type) values(?,?,?)",array($name,$address,$type));
-		if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
+		$nonQuery = $this->adodb->Execute("insert into sensors(name,address,type,units) values(?,?,?,?)",array($name,$address,$type,$units));
+		if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
 	}
 	return True;
 }
-function addSensorData($sensorID,$date,$data){
+function addSensorData($sensorID,$date,$data,$auxData=false){
 	try{
-		$nonQuery = $this->adodb->Execute("insert into sensorData(id,date,data) values(?,?,?)",array($sensorID,$date,$data));
-		if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
+		$nonQuery = $this->adodb->Execute("insert into sensorData(id,date,data,auxData) values(?,now(),?,?);",array($sensorID,$data,$auxData));
+		if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
-		//ghoti::log("sensors.db.php $e");
+		ghoti::log("sensors.db.php $e");
 		echo $e;
 		return False;
 	}
@@ -58,51 +58,47 @@ function addSensorData($sensorID,$date,$data){
 function clearSensorData($sensorID){
 	try{
 		$nonQuery = $this->adodb->Execute("delete from sensorData where id=?;",array($sensorID));
-		if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
+		if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
 	}
 	return True;
-
 }
 function getSensorDataById($sensorID, $numRows=250){
 	try{
-		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? order by date desc limit ?;",array($sensorID,$numRows));
-		//if (!$Query) mylogerr($this->adodb->ErrorMsg());
+		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type,sensors.units from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? order by date desc limit ?;",array($sensorID,$numRows));
+		if (!$Query) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
 	}
 	return $Query;
-
 }
 function getSensorDataByIdToday($sensorID){
 	try{
-		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? and date(date) = curdate() order by date;",array($sensorID));
-		//if (!$Query) mylogerr($this->adodb->ErrorMsg());
+		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type,sensors.units from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? and date(date) = curdate() order by date;",array($sensorID));
+		if (!$Query) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
 	}
 	return $Query;
-
 }
 function getSensorDataByIdThisMonth($sensorID){
 	try{
-		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors where sensorData.id=sensors.id and sensorData.id=? and month(date) = month(curdate()) order by date;",array($sensorID));
-		//if (!$Query) mylogerr($this->adodb->ErrorMsg());
+		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type,sensors.units from sensorData,sensors where sensorData.id=sensors.id and sensorData.id=? and month(date) = month(curdate()) order by date;",array($sensorID));
+		if (!$Query) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
 	}
 	return $Query;
-
 }
 function getSensorDataByIdLastMonth($sensorID){
 	try{
-		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? and month(date) = (month(curdate())- 1) order by date;",array($sensorID));
-		//if (!$Query) mylogerr($this->adodb->ErrorMsg());
+		$Query = $this->adodb->GetArray("select sensorData.id,sensorData.date,sensorData.data,sensors.name,sensors.type,sensors.units from sensorData,sensors  where sensorData.id=sensors.id and sensorData.id=? and month(date) = (month(curdate())- 1) order by date;",array($sensorID));
+		if (!$Query) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
@@ -115,7 +111,7 @@ function deleteSensor($id){
 	$this->clearSetpoints($id);
 	try{
 		$nonQuery = $this->adodb->Execute("delete from sensors where id=?",array($id));
-		if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
+		if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
@@ -123,7 +119,7 @@ function deleteSensor($id){
 }
 public function getSensors(){
 	try{
-		$sensors = $this->adodb->GetArray("select id,name,address,type from sensors;");
+		$sensors = $this->adodb->GetArray("select id,name,address,type,units from sensors;");
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return $e->getMessage();
@@ -132,7 +128,7 @@ public function getSensors(){
 }
 public function getSensorsAndLatestData($id){
 	try{
-		$sensors = $this->adodb->GetArray("select sensors.id,sensors.name,sensors.address,sensors.type,sensorData.date,sensorData.data from sensors,sensorData where sensors.id=sensorData.id and sensors.id = ? order by id desc limit 1;",array($id));
+		$sensors = $this->adodb->GetArray("select sensors.id,sensors.name,sensors.address,sensors.type,sensorData.date,sensorData.data,sensors.units from sensors,sensorData where sensors.id=sensorData.id and sensors.id = ? order by id desc limit 1;",array($id));
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return $e->getMessage();
@@ -141,7 +137,7 @@ public function getSensorsAndLatestData($id){
 }
 public function getLatestData($id){
 	try{
-		$sensors = $this->adodb->GetArray("select data from sensorData where id = ? order by date desc limit 1;",array($id));
+		$sensors = $this->adodb->GetArray("select date,data from sensorData where id = ? order by date desc limit 1;",array($id));
 }catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return $e->getMessage();
@@ -162,7 +158,7 @@ public function getSetpoints($id){
 function addSetpoint($id,$setpoint,$type,$action){
 	try{
 		$nonQuery = $this->adodb->Execute("insert into sensorSetpoints(id,setpoint,type,action) values(?,?,?,?)",array($id,$setpoint,$type,$action));
-		if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
+		if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
@@ -171,7 +167,7 @@ function addSetpoint($id,$setpoint,$type,$action){
 function clearSetpoints($id){
 	try{
 		$nonQuery = $this->adodb->Execute("delete from sensorSetpoints where id=?",array($id));
-		if (!$nonQuery) mylogerr($this->adodb->ErrorMsg());
+		if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return False;
@@ -179,7 +175,7 @@ function clearSetpoints($id){
 }
 public function getSensorById($id){
 	try{
-		$sensor = $this->adodb->GetArray("select id,name,address,type from sensors where id=?",array($id));
+		$sensor = $this->adodb->GetArray("select id,name,address,type,units from sensors where id=?",array($id));
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return $e->getMessage();
@@ -188,7 +184,7 @@ public function getSensorById($id){
 }
 public function getSensorByAddress($address){
 	try{
-		$sensor = $this->adodb->GetArray("select id,name,address,type from sensors where address=?",array($address));
+		$sensor = $this->adodb->GetArray("select id,name,address,type,units from sensors where address=?",array($address));
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");
 		return $e->getMessage();
@@ -199,9 +195,9 @@ public function getSensorByAddress($address){
 		return $sensor;
 	}
 }
-function modifySensor($id,$name,$address,$type){
+function modifySensor($id,$name,$address,$type,$units){
 	try{
-		$nonQuery = $this->adodb->Execute("update sensors set name=?,address=?,type=? where id=?",array($name,$address,$type,$id));
+		$nonQuery = $this->adodb->Execute("update sensors set name=?,address=?,type=?,units=? where id=?",array($name,$address,$type,$units,$id));
 		if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg());
 	}catch (exception $e){
 		ghoti::log("sensors.db.php $e");

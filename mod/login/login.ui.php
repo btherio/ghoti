@@ -11,7 +11,7 @@ class loginui{
 		$this->output .= "<ul>\n";
 		$this->output .= "<li><a href=\"#\" class=\"ghotiMenu\" onclick=\"logout();\">Log Out</a></li>\n";
 		$this->output .= "<li><a href=\"#\" class=\"ghotiMenu\" onclick=\"printChangePasswordForm();\">Change Password</a></li>\n";
-		$this->output .= "<li><a href=\"#\" class=\"ghotiMenu\" onclick=\"printDeleteUserDialog();\">Delete Account</a></li>\n";
+		//$this->output .= "<li><a href=\"#\" class=\"ghotiMenu\" onclick=\"printDeleteUserDialog();\">Delete Account</a></li>\n";
 		$this->output .= "</ul>\n";
 		return $this->output;
 	}
@@ -33,7 +33,7 @@ class loginui{
 		$this->output .= "Password:<br /><input type=\"password\" name=\"password\" id=\"password\" size=\"10\" /><br />\n";
 		$this->output .= "<input type=\"submit\" value=\"Login\"/>\n";
 		if(ghoti::$allowRegister == true){
-						$this->output .= "<input type=\"button\" value=\"Register\" onclick=\"printRegisterForm();\" />\n";
+			$this->output .= "<input type=\"button\" value=\"Register\" onclick=\"printRegisterForm();\" />\n";
 		}
 		$this->output .= "</p></form><span id=\"loginFeedback\"></span></div>\n";
 		return $this->output;
@@ -46,7 +46,6 @@ class loginui{
 	function printManageUserForm($userList){
 		$this->output = "<table><th>Username</th><th>Email</th><th>Admin</th>\n";
 		foreach($userList as $records => $row){
-			$this->output .= "<tr>";
 			$this->output .= "<td><input type=\"text\" id=\"".$row[1]."\" value=\"".$row[1]."\" size=\"10\" /></td>\n";
 			$this->output .= "<td><input type=\"text\" id=\"".$row[1]."email\" value=\"".$row[2]."\" size=\"15\" /></td>\n";
 			if($row[3] == 1)	

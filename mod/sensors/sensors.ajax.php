@@ -3,7 +3,36 @@
  * Created on Dec 20, 2020
  * Sensors module sajax code
  */
-
+function getUnits($type){
+    $units = '';
+    switch($type){
+        case "dht":
+            $units = 'C';
+            break;
+        case "ds18b20":
+            $units = 'C';
+            break;
+        case "thermistor":
+            $units = 'C';
+            break;
+        case "tds":
+            $units = 'ppm';
+            break;
+        case "ph":
+            $units = 'ph';
+            break;
+        case "moisture":
+            $units = '%';
+            break;
+        case "refrig":
+            $units = 'psig';
+            break;
+        case "relay":
+            $units = 'powered';
+            break;
+    }
+    return $units;
+}
 function addSensor($name,$address,$type){
     $_SESSION["ghotiObj"] = new ghoti();
 	$_SESSION["ghotiObj"]->validate = new validate();
@@ -19,10 +48,12 @@ function addSensor($name,$address,$type){
 	}
 	$_SESSION["ghotiObj"]->log("Adding a new sensor $name of type $type at $address");
 	
+    $units = getUnits($type); //figure out correct units for the given type
+
 	if($_SESSION["sensorsObj"]->sensorsdb->checkDupe($name,$address)){ // returns true if this is a duplicate
         $_SESSION["ghotiObj"]->log("Blocked attempt to add duplicate $type sensor $name at $address");
 		return False;
-    } else if (!$_SESSION["sensorsObj"]->sensorsdb->addSensor($name,$address,$type)){ //if adding the sensor to the db fails
+    } else if (!$_SESSION["sensorsObj"]->sensorsdb->addSensor($name,$address,$type,$units)){ //if adding the sensor to the db fails
         $_SESSION["ghotiObj"]->log("Failed to add sensor.");		
         return False;
     } else {
@@ -72,18 +103,47 @@ function deleteSensor($id){
 sajax_export("deleteSensor");
 
 function saveSensor($id,$name,$address,$type){
-	try{
+    $units = '';
+    switch($type){
+        case "dht":
+            $units = 'C';
+            break;
+        case "ds18b20":
+            $units = 'C';
+            break;
+        case "thermistor":
+            $units = 'C';
+            break;
+        case "tds":
+            $units = 'ppm';
+            break;
+        case "ph":
+            $units = 'ph';
+            break;
+        case "moisture":
+            $units = '%';
+            break;
+        case "refrig":
+            $units = 'psig';
+            break;
+        case "relay":
+            $units = 'powered';
+            break;
+    }
+
+    try{
 		$_SESSION["ghotiObj"]->validate->checkNumber($id);
 		$_SESSION["ghotiObj"]->validate->checkExists($name);
 		$_SESSION["ghotiObj"]->validate->checkExists($address);
 		$_SESSION["ghotiObj"]->validate->checkExists($type);
+		$_SESSION["ghotiObj"]->validate->checkExists($units);
 	}catch(Exception $e){
 		ghoti::log("sensors.ajax.php: $e\n");
 		return False;
 	}
-	$_SESSION["ghotiObj"]->log("Saving sensor($id:$name:$address:$type)");
+	$_SESSION["ghotiObj"]->log("Saving sensor($id:$name:$address:$type:$units)");
 
-	return $_SESSION["sensorsObj"]->sensorsdb->modifySensor($id,$name,$address,$type);
+	return $_SESSION["sensorsObj"]->sensorsdb->modifySensor($id,$name,$address,$type,$units);
 }
 sajax_export("saveSensor");
 
@@ -121,6 +181,7 @@ function readSensors(){
         $sensorData[$k][1] = $x[1]; //name
         $sensorData[$k][2] = $x[2]; //address
         $sensorData[$k][3] = $x[3]; //type
+        $sensorData[$k][4] = $x[4]; //units
         $ch = curl_init(); //we're going to use this curlhandle to fetch the sensor information from each sensor
         // set URL and other appropriate options
         //curl_setopt($ch, CURLOPT_HTTP_CONTENT_DECODING, False);
@@ -146,8 +207,13 @@ function readSensors(){
 sajax_export("readSensors");
 
 function readSensorsFromDB(){
+    /**
+     * New function to replace above. Instead of reading sensor data direct from sensors. Read sensordata from database.
+     * This allows unreachable sensors to still display their last known data.
+     * We will *also* request curl data from the sensors to let us know if they're online or offline.
+     */
     $sensorData = array();
-    $curlData = "";
+    $curlD = '';
     $result = array();
     try{
         $result = array($_SESSION["sensorsObj"]->sensorsdb->getSensors()); //get a list of sensors from the database
@@ -158,6 +224,14 @@ function readSensorsFromDB(){
         $sensorData[$k][1] = $x[1]; //name
         $sensorData[$k][2] = $x[2]; //address
         $sensorData[$k][3] = $x[3]; //type
+        $sensorData[$k][4] = $x[4]; //units
+        $sensorData[$k][5] = ""; //data field for inside html div
+        $sensorData[$k][6] = $_SESSION["sensorsObj"]->sensorsdb->getLatestData($x[0]); //get laest sensor data from database by id
+
+        $htmlSensorData = $sensorData[$k][6][0][1]; //sensor data
+        $htmlDataDate = $sensorData[$k][6][0][0]; //sensor data date
+        $sensorData[$k][5] = "<sup>".$htmlDataDate."</sup><br /><span alt=\"\">".$htmlSensorData." ".$sensorData[$k][4]."</span>"; //tease out the sensors data. Primary data only for now, aux WIP
+        
         $ch = curl_init(); //we're going to use this curlhandle to fetch the sensor information from each sensor
         // set URL and other appropriate options
         //curl_setopt($ch, CURLOPT_HTTP_CONTENT_DECODING, False);
@@ -165,20 +239,15 @@ function readSensorsFromDB(){
         //curl_setopt($ch, CURLINFO_HEADER_OUT, True); //track handle's request string
         curl_setopt($ch, CURLOPT_URL, "http://".$x[2]."/HTML/");
         curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3); // was 3
-        curl_setopt($ch, CURLOPT_TIMEOUT, 3); //timeout in seconds
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // was 3 
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10); //timeout in seconds
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, True);
         // fetch that shit and save it into the array
-        if(!$curlData = curl_exec($ch)){ //fetch that shit
-            $sensorData[$k][4] = "<img src=\"mod/sensors/disconnect.png\" height=\"16\" width=\"16\" alt=\"Connection Error!\" />"; //if it doesnt fetch, it's a connection error
-            //$sensorData[$k][4] = $curlData; //write new data to array
+        if(!$curlD = curl_exec($ch)){ //fetch that shit
+            $sensorData[$k][7] = 0; //Return false, sensor is offline
         } else {
-            //$sensorData[$k][4] = $curlData; //write new data to array
-
-            $sensorData[$k][4] = "<h3><img src=\"mod/sensors/connect.png\" height=\"16\" width=\"16\" alt=\""+$x[0]+"\" />"+$x[1]+"</h3><p>"+$x[2]+"</p>";
+            $sensorData[$k][7] = 1; //Return true to indicate sensor is online
         }
-        // close cURL resource, and free up system resources
-        curl_close($ch);
     }
     } catch(Exception $e){
         ghoti::log("sensors.ajax.php: $e\n");
