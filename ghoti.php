@@ -21,7 +21,7 @@ class ghoti {
 	public static $sessionName = "ghoti"; 	//change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
 	public static $headerImg = "gfx/ghoti-5s.png"; //header image to use
 	public static $enableThemeChanger = True;      //enable theme changing dropdown
-	public static $enableDebug = True; //enable debug logging
+	public static $enableDebug = False; //enable debug logging
 
 ################################################################
 	public $ghotidb,$ghotiui,$pageList; //php typing practise.
