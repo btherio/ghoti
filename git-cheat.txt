@@ -1,7 +1,6 @@
 Add new files:
 
     git add -A
-
 Commit changes to local repo:
 
     git commit -a -m <message>
