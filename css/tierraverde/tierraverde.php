@@ -67,7 +67,7 @@
     </div>
 
     <div class="subFooter">   
-    	    <? print $_SESSION['ghotiObj']->ghotiui->printFooter();?>
+    	    <?php print $_SESSION['ghotiObj']->ghotiui->printFooter();?>
     </div>
   </body>
 </html>

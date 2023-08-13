@@ -16,10 +16,15 @@ function login(){
 		x_login(username,md5password,login_cb);			
 	}
 }
-
+function logout_cb(result){
+		if(result){
+			//x_logToFile('logout success');
+			location.href = "index.php";//refresh the page. 
+		}
+}
 function logout(){
-	x_logout();
-	location.href = "index.php";//refresh the page. 
+	//x_logToFile('logout trial...');
+	x_logout(logout_cb);
 }
 function register(){
 	var username = $("#registerForm-userName").val();
@@ -40,15 +45,15 @@ function register(){
 }
 
 function printRegisterForm(){
+	//Prints register form to a popup window
+	$("#popupTitle").html("Register");
 	$("#popup-content").html("<form id=\"registerForm\" action=\"javascript:register();\">\n");
 	$("#popup-content").append("Username:<br /><input type=\"text\" id=\"registerForm-userName\" size=\"10\" /><br />\n");
 	$("#popup-content").append("E-Mail:<br /><input type=\"text\" id=\"registerForm-email\" size=\"10\" /><br />\n");
 	$("#popup-content").append("Password:<br /><input type=\"password\" id=\"registerForm-password\" size=\"10\" /><br />\n");
 	$("#popup-content").append("Password(<i>again</i>):<br /><input type=\"password\" id=\"registerForm-password1\" size=\"10\" /><br />\n");
 	$("#popup-content").append("<input type=\"submit\" value=\"Register\" onclick=\"register();\" /></form>\n");
-	
-	$("#popupTitle").html("Register");
-	showPopup();
+	showPopup();	
 }
 function printManageUserForm(){
 	x_printManageUserForm(printPage);
@@ -105,22 +110,21 @@ function changePassword(){
 }
 function printChangePasswordForm(){
 	//first make the form
+	$("#popupTitle").html("Change Password");
 	$("#popup-content").append("<form action=\"#\">");
 	$("#popup-content").append("Old Password:<input type=\"password\" id=\"chpw-password\" size=\"10\" /><br />");
 	$("#popup-content").append("New Password:<input type=\"password\" id=\"chpw-newPassword1\" size=\"10\" /><br />");
-	$("#popup-content").append("New Password(<i>again</i>):<input type=\"password\" id=\"chpw-newPassword2\" size=\"10\" /><br />");
-	$("#popup-content").append("<input type=\"submit\" value=\"Change Password\" onclick=\"changePassword();\"/></form>");
-
-	//then show the popup
-	showPopup();
-	$("#popupTitle").html("Change Password");
+	$("#popup-content").append("New Password:<input type=\"password\" id=\"chpw-newPassword2\" size=\"10\" /><br />");
+	$("#popup-content").append("<input type=\"submit\" value=\"Change Password\" onclick=\"changePassword();\"/>");
+	$("#popup-content").append("<input type=\"button\" value=\"Remove Account\" =class=\"ghotiMenu\" onclick=\"printDeleteUserDialog();\" /></form>")
+	showPopup();//then show the popup
 }
 function printDeleteUserDialog(){
+	$("#popupTitle").html("Delete Account?");
 	$("#popup-content").append("This will delete your account and everything associated with it.<br />");
 	$("#popup-content").append("Delete Account?<br />");
 	$("#popup-content").append("<input type=\"button\" value=\"Delete!\" onclick=\"deleteUser(0);\"><br />");
 	showPopup();
-	$("#popupTitle").html("Delete Account?");
 }
 function checkLogin(){
   /* This is totally unsecure IMO. Basically we are trusting 
@@ -135,6 +139,7 @@ function checkLogin_cb(result){
 	/*At first glance, this seems useless, but it avoids unneccesary login attempts*/
 	if(result > 0){
 		//success
+		//x_logToFile(result);
 		login_cb(result);
 	}else{
 		//fail
@@ -142,14 +147,14 @@ function checkLogin_cb(result){
 	}
 }
 function login_cb(id){
-	if(id > 0){
+	if(id > 0){ //assume if ID is above 0 then it's set, so we are successfully logging in
+		//alert(id);
 		x_setSessionVars(id,doNothing_cb);
 		x_printSystemMenu(systemMenu_cb);
 		x_refreshPrivateMenu(privateMenu_cb);
 		x_isAdmin(id,adminMenu_cb);
 		cancelPopup('popup-bg');
-		getDefaultPage();
-		
+		x_getDefaultPage(printPage);
 	}else if(id == 0){
 		$("#loginFeedback").html("Bad username or password!");
 		window.setTimeout('$("#loginFeedback").html("");',3000);

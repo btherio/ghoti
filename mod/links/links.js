@@ -19,10 +19,9 @@ function editLinkForm(){
 	x_getLinks("all",editLinkForm_cb);
 }
 function editLinkForm_cb(result){
-	linksArray = result[1];
+	linksArray = result;
 	$("#ghotiContent").html("<form id=\"editLinkForm\" action=\"#\"></form>");
 	for(x in linksArray){
-		
 		$("#editLinkForm").append("<input type=\"hidden\" id=\""+linksArray[x]['id']+"-id\" value=\""+linksArray[x]['id']+"\" />");
 		$("#editLinkForm").append("<label>Name</label><input type=\"text\" size=\"12\" id=\""+linksArray[x]['id']+"-name\" value=\""+stripslashes(linksArray[x]['name'])+"\" />");
 		$("#editLinkForm").append("<label>URL</label><input type=\"text\" size=\"30\" id=\""+linksArray[x]['id']+"-url\" value=\""+stripslashes(linksArray[x]['url'])+"\" />");
@@ -34,7 +33,6 @@ function editLinkForm_cb(result){
 		$("#editLinkForm").append("<hr width=\"100%\" />");
 	}
 	$("#ghotiContent").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addLinkForm();\">Add Links</a>");
-		
 }
 function addLink(){
 	var linkName = $("#linkName").val();

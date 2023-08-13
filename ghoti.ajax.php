@@ -16,10 +16,14 @@ function getPage($content){
 	$content.= $_SESSION["commentsObj"]->commentsui->displayComments($pageComments,true);
 	
 	if(checkLogin()){//print the comment button if we're logged in
-		//$content .= $_SESSION["commentsObj"]->commentsui->addCommentButton();
+		$content .= $_SESSION["commentsObj"]->commentsui->addCommentButton();
 	}
+	ghoti::debug("ghoti.ajax.php:getPage: Checking for session userId");
 	if(isSet($_SESSION['userId'])){
+		ghoti::debug("ghoti.ajax.php:getPage: Found userId".$_SESSION['userId']);
+		ghoti::debug("ghoti.ajax.php:getPage: Checking user for admin priv");
 		if(isAdmin($_SESSION['userId'])){
+			ghoti::debug("ghoti.ajax.php:getPage: admin checked positive");
 			$content .= editPage($_SESSION['pageId']);
 		}	
 	}

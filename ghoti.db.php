@@ -12,7 +12,7 @@ class ghotidb{
 	 *You could probably hook this up to another type of database
 	 *but I've only tested ghoti with mysql.
 	 */	
-    private $dsn = 'mysqli://ghoti:ghoti@10.0.0.198/ghoti';	
+    private $dsn = 'mysqli://ghoti:ghoti@10.0.0.178/ghoti';
 
 	//declarations. for typing practice.
 	public $adodb,$m_id,$m_title,$m_content,$m_pageList,$m_group;
@@ -44,7 +44,11 @@ class ghotidb{
             } 
         }
 	}
-	function loadModuleSql($moduleName){
+	function loadModuleSql($moduleName="default"){
+        if($moduleName == "default"){
+                ghoti::log("ghoti.db.php Can't load module 'default'");
+				return false;
+        }
         if(!$this->adodb){
             try{
                 if($this->adodb = NewADOConnection($this->dsn)){
@@ -75,14 +79,14 @@ class ghotidb{
 					throw new Exception('Failed to open table sql file.');
 				}
             //File is loaded. Now we want to put it into the database
-			try{
-				if (!$this->adodb->Execute($this->tablesql)) 
-					ghoti::log($this->adodb->ErrorMsg());
-			}catch (exception $e){
-				ghoti::log("ghoti.db.php $e");
-				return false;
-			}
-			 //check for insert file
+                try{
+                    if (!$this->adodb->Execute($this->tablesql)) 
+                        ghoti::log($this->adodb->ErrorMsg());
+                }catch (exception $e){
+                    ghoti::log("ghoti.db.php $e");
+                    return false;
+                }
+                //check for insert file
                 if($file = fopen("mod/$moduleName/insert.sql", "r")){
                         while(!feof($file)) { 
                             //read file line by line into variable 
@@ -95,7 +99,7 @@ class ghotidb{
                         fclose ($file);
                     } else {
                         throw new Exception('Failed to open insert sql file.');
-                    }	
+                    }
 			}catch (exception $e){
 				ghoti::log("ghoti.db.php $e");
 				return false;
@@ -106,7 +110,7 @@ class ghotidb{
 	function addPage($m_title,$m_content="Under Construction"){
 		try{
 			$query = $this->adodb->Execute("insert into pages (title, content) values(?,?)",array($m_title,$m_content));
-			if (!$query) ghoti::log($this->adodb->ErrorMsg());	
+			if (!$query) throw new Exception($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("ghoti.db.php $e");
 			return false;
@@ -116,9 +120,9 @@ class ghotidb{
 	function deletePage($m_id){
 		try{
 			$nonquery1 = $this->adodb->Execute("delete from pages where id=?",array($m_id));
-			if (!$nonquery1) ghoti::log($this->adodb->ErrorMsg());	
+			if (!$nonquery1) throw new Exception($this->adodb->ErrorMsg());	
 			$nonquery2 = $this->adodb->Execute("delete from comments where pageId=?",array($m_id));
-			if (!$nonquery2) ghoti::log($this->adodb->ErrorMsg());	
+			if (!$nonquery2) throw new Exception($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("ghoti.db.php $e");
 			return false;
@@ -128,7 +132,8 @@ class ghotidb{
 	function getPageList($group="public"){
 		try{
 			$m_pageList = $this->adodb->Execute("select id,title from pages where groupName=?",array($group));
-			if (!$m_pageList) ghoti::log($this->adodb->ErrorMsg());	
+			if (!$m_pageList) throw new Exception($this->adodb->ErrorMsg());	
+			//ghoti::log(var_dump($m_pageList));
 		}catch (exception $e){
 			ghoti::log("ghoti.db.php $e");
 			return false;
@@ -138,9 +143,9 @@ class ghotidb{
 	function getDefaultPage(){
 		try{
 			//$m_content = $this->adodb->GetArray("select content,min(id),groupName as id,title,groupName from pages where groupName = 'public';");
-			$m_content = $this->adodb->GetArray("select content,id from pages where groupName ='public' limit 1;");
+			$m_content = $this->adodb->GetArray("select content,id from pages where groupName ='public' limit 1;",array());
 			
-			if(!$m_content) ghoti::log($this->adodb->ErrorMsg());
+			if(!$m_content) throw new Exception($this->adodb->ErrorMsg());
 		}catch (exception $e){
 			ghoti::log("ghoti.db.php $e");
 			return false;
@@ -150,7 +155,7 @@ class ghotidb{
 	function savePage($m_id,$m_content,$m_title){
 		try{
 			$nonquery = $this->adodb->Execute("update pages set content=?,title=? where id=?",array($m_content,$m_title,$m_id));
-			if (!$nonquery) ghoti::log($this->adodb->ErrorMsg());	
+			if (!$nonquery) throw new Exception($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("ghoti.db.php $e");
 			return false;
@@ -197,7 +202,7 @@ class ghotidb{
 	function setPageGroup($m_id,$m_group){
 		try{
 			if (!$this->adodb->Execute("update pages set groupName=? where id=?",array($m_group,$m_id)))
-				ghoti::log($this->adodb->ErrorMsg());	
+				throw new Exception($this->adodb->ErrorMsg());	
 		}catch (exception $e){
 			ghoti::log("ghoti.db.php $e");
 			return false;
@@ -205,5 +210,4 @@ class ghotidb{
 		return true;
 	}
 }
-
-?>
+?> 

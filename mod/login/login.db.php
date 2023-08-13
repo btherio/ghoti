@@ -71,10 +71,14 @@ class logindb extends ghotidb{
 		foreach ($records as $records=>$row){
 			$this->result[0] .= $row[0];
 		}
-		if($this->result[0] === '1')
-		  return true;
-		else
+		if($this->result[0] === '1'){
+			ghoti::debug("isAdmin == true");
+			return true;
+		}else{
+			ghoti::debug("isAdmin == false");
 			return false;
+		}
+
 		
 	}
 	
@@ -87,6 +91,7 @@ class logindb extends ghotidb{
 			ghoti::log("login.db.php $e");
 			return false;
 		}
+		//ghoti::debug("login.db.php.authenticate: ".$auth);
 		foreach ($auth as $records=>$row){
 			$result[0] .= $row[0];
 		}

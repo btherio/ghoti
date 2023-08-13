@@ -1,4 +1,4 @@
-<!--//
+//<!--//
 //jquery stuff
 $(document).ready(function(){
 	//this runs these functions when the page is finished loading
@@ -46,6 +46,32 @@ function cancelPopup(name) {
 	$("#popup-content").html("");
 	$("#"+name).slideUp("slow");
 }
+function hideMenu() {
+    if(menuHide == false){
+        $("#main-copy").css("margin","0 0 0 0");
+        $("#side-bar").css("width", "0");
+        $("#side-bar").css("visibility","hidden");
+        $("#sideBarText").css("visibility","hidden");
+        $("#sideBarTitle").css("visibility","hidden");
+        $("#ghotiPrivateMenu").css("visibility","hidden");
+        $("#ghotiAdminMenu").css("visibility","hidden");
+        $("#ghotiPrivateMenuTitle").css("visibility","hidden");
+        $("#ghotiAdminMenuTitle").css("visibility","hidden")
+        menuHide = true;
+    }else{
+        $("#main-copy").css("margin","0 0 0 15em");
+        $("#side-bar").css("width", "15em");
+        $("#side-bar").css("visibility","visible");
+        $("#sideBarText").css("visibility","visible");
+        $("#sideBarTitle").css("visibility","visible");
+        $("#ghotiPrivateMenu").css("visibility","visible");
+        $("#ghotiAdminMenu").css("visibility","visible");
+        $("#ghotiPrivateMenuTitle").css("visibility","visible");
+        $("#ghotiAdminMenuTitle").css("visibility","visible")
+        menuHide = false;
+    }
+}
+
 function pageFeedBack(text){
 	$("#popupTitle").html("Ghoti CMS");
 	$("#popup-content").html(text);
@@ -143,6 +169,7 @@ function printPage(content) {
 	}
 	
 	$("#ghotiContent").html(content);
+
 	$("#managePageForm").slideUp(0);//workaround to hide ugly space at the bottom.
 }
 function popup_cb(contents){

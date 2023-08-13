@@ -32,7 +32,7 @@ class linksdb extends ghotidb{
 			ghoti::log("links.db.php $e");
 			return $e->getMessage();
 		}
-		return $links; //return the fields here for a simpler array?
+		return $links[0]; //return the fields here for a simpler array?
 	}
 	function addLink($userId,$name,$url,$group="default"){
 		try{

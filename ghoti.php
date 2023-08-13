@@ -13,15 +13,16 @@ class ghoti {
 ### Configure things here...
 #################################################################	
 
-	public static $siteTitle = "Ghoti";	        //title of the website
+	public static $siteTitle = "ghoti";	        //title of the website
 	public static $defaultPageTitle = "Home"; 		//this page must exist
-	public static $defaultTheme = "prosimii";		//default theme
+	public static $defaultTheme = "sleek";		//default theme
 	public static $allowRegister = True; 			//allow or disallow new registrations
  	public static $ghotiLog = "ghoti.log";      	//log file to use. Should be writable by apache
 	public static $sessionName = "ghoti"; 	//change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
-	public static $headerImg = "gfx/ghoti.png"; //header image to use
+	public static $headerImg = "gfx/ghoti-5s.png"; //header image to use
 	public static $enableThemeChanger = True;      //enable theme changing dropdown
-	
+	public static $enableDebug = True; //enable debug logging
+
 ################################################################
 	public $ghotidb,$ghotiui,$pageList; //php typing practise.
 
@@ -61,6 +62,19 @@ class ghoti {
 	    }catch (Exception $e){
 	      return $e->getMessage();
 	    }
+    	return True;
+	}
+	public static function debug($line){
+		#logs a  debug line to a logfile if enabled
+		if(ghoti::$enableDebug == True){
+			try{
+				$fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
+				fwrite($fh,"[".chop(`date`)."]DEBUG:".$line."\n");
+				fclose($fh);  
+			  }catch (Exception $e){
+				return $e->getMessage();
+			  }
+		}
     	return True;
 	}
 	function themeChanger(){

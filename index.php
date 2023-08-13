@@ -30,7 +30,7 @@ $_SESSION['commentsObj'] = new comments();
 $_SESSION['ghotidb'] = new ghotidb();
 
 if($_SESSION['ghotiObj']){
-    $_SESSION['ghotiObj']->log("Loaded objects into session variables");
+   // $_SESSION['ghotiObj']->log("Loaded objects into session variables");
 }
 //inititalize sajax
 sajax_init();

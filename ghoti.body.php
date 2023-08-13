@@ -13,4 +13,3 @@
 		<span id="popupFeedback"></span>
 	</div>
 </div>
-

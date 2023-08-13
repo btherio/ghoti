@@ -64,7 +64,7 @@ include_once "ghoti.header.php"; ?>
 	<p class="sideBarTitle"><span id="ghotiLoginTitle">Login</span></p>
 	<div class="sideBarText">
 		<?php
-		/* Here we actually print the login form. This could also be a login button
+		/* Here we print the login form. This could also be a login button
 		* print $_SESSION['loginObj']->loginui->printPopupLogin();
 		*/
 		print $_SESSION['loginObj']->loginui->printLoginForm();

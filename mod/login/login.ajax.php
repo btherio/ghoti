@@ -6,11 +6,12 @@ function checkGetLogin(){
 //  if($_GET && isset($_GET['login'])){
 //		//return True;
 //	} else { return false; }
-	return false;
-}
+	return false; //we dont allow this anymore
+} 
 function login($username,$password){
  	ghoti::log("Login attempt($username) from ".$_SERVER['REMOTE_ADDR']."");
 	$id = $_SESSION["loginObj"]->logindb->authenticate($username,$password);
+	ghoti::debug("login.ajax.php.login got ".$id );
 	return $id;
 }
 
@@ -53,20 +54,28 @@ function deleteUser($id){
 }
 
 function setSessionVars($id){
-	ghoti::log("Logged in USER($id) from ".$_SERVER['REMOTE_ADDR']."");
-	try{
-		$_SESSION["loggedIn"] = true;
-		$_SESSION["userId"] = $id;
-		if(isAdmin($id)){
-			ghoti::log("Logged in ADMIN($id) from ".$_SERVER['REMOTE_ADDR']."");
-			$_SESSION["admin"] = true;	
+	ghoti::debug("login.ajax.php.setSessionVars got ".$id);
+	if(!$id){
+		ghoti::debug("login.ajax.php.setSessionVars was passed bad ID ".$id);
+		return false;
+	}else{
+		ghoti::log("Logged in USER($id) from ".$_SERVER['REMOTE_ADDR']."");
+		try{
+			$_SESSION["loggedIn"] = true;
+			$_SESSION["userId"] = $id;
+			if(isAdmin($id)){
+				ghoti::log("Logged in ADMIN($id) from ".$_SERVER['REMOTE_ADDR']."");
+				$_SESSION["admin"] = true;
+			}else{
+				$_SESSION["admin"] = false;
+			}
+		}catch (exception $e){
+				ghoti::log("[Exception] $e");
+				return false;
 		}
-	}catch (exception $e){
-			ghoti::log("[Exception] $e");
-			return false;
+		//session_write_close();
+		return true;
 	}
-	//session_write_close();
-	return true;	
 }
 function changePassword($password,$newPassword){
 	$userName = $_SESSION["loginObj"]->logindb->getUserNameById($_SESSION["userId"]);
@@ -87,25 +96,30 @@ function changePassword($password,$newPassword){
 		return False;
 	}
 }
-function logout(){
+function logout(){ 
 	try{
+		ghoti::log("Trying logout...");
+		unset($_SESSION['loggedIn']);
+		unset($_SESSION['userId']);
+		unset($_SESSION['admin']);
 	    $_SESSION["userId"] = 0;
-	    $_SESSION["loggedIn"] = false;
+	    $_SESSION["loggedIn"] = 0;
+		$_SESSION["admin"] = 0;
 		unset($_SESSION['loggedIn']);
 		unset($_SESSION['userId']);
 		unset($_SESSION['admin']);
 		
-		session_unset();
-		unset($_GET["login"]);
 		session_destroy();
 		session_unset();
-		unset($_COOKIE[ghoti::$sessionName]);
+		//unset($_COOKIE[ghoti::$sessionName]);
 		//setcookie(ghoti::$sessionName, FALSE, time() - 3600);
 		
 		
 	 }catch (Exception $e) {
-    return $e->getMessage();
+		ghoti::log($e->getMessage());
+		return $e->getMessage();
   	}
+  	ghoti::log("Logout finished.");
 	return true;
 }
 function isAdmin($id){
@@ -126,16 +140,20 @@ function toggleAdmin($id){
 	return $_SESSION["loginObj"]->logindb->toggleAdmin($id);
 }	
 function checkLogin(){
-    //if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == true && isset($_SESSION["userId"]) && $_SESSION["userId"] > 0){
-    if($_SESSION["loggedIn"] == true && $_SESSION["userId"] > 0){
+	if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == true && isset($_SESSION["userId"]) && $_SESSION["userId"] > 0){
+    //if($_SESSION["loggedIn"] == True && $_SESSION["userId"] > 0){
 		ghoti::log("Checking login, found uid" .$_SESSION["userId"]."");
 	    return $_SESSION["userId"];   
     }
 	else
+	{
+		ghoti::debug("login.ajax.php.checklogin failed");
 		return false;
+	}
+
 }
 function getLoggedInId(){
-	return $_SESSION['userId'];			
+	return $_SESSION['userId'];
 }
 function printSystemMenu(){
 	return $_SESSION["loginObj"]->loginui->printSystemMenu();

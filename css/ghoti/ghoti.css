@@ -1,7 +1,7 @@
 #ghotiPageMenu ul {
 	margin: 0px;
 	padding: 0px;
-	list-style: none;
+	//list-style: none;
 }
 #ghotiPageMenu li {
 	display: inline;
@@ -25,7 +25,7 @@
 	background: #ADADAD;
 	border: solid;
 	border-width: 2px;
-	border-color: #578EFA;
+	border-color: #474a52;
 	display: block;
 	float: none;
 	left:0;

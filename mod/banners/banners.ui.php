@@ -25,10 +25,10 @@ class bannersui{
 		$manageBanners = "<table border=\"0\">\n";
 		foreach($dbresult as $x => $y){
 			$manageBanners .= "<tr><td colspan=\"3\"><a href=\"".$y[3]."\"><img src=\"".$y[2]."\" alt=\"".$y[1]."\" border=\"0\" /></a></td></tr>";
-			$manageBanners .= "<tr><td><a href=\"#\" onclick=\"saveBanner(".$y[0].");\" value=\"Save\" >Save</a></td>\n";
+			$manageBanners .= "<tr><td><a href=\"#\" onclick=\"saveBanner(".$y[0].");\" value=\"Save\" ><img src=\"gfx/save.png\" width=\"25pt\" height=\"25pt\" /></a></td>\n";
 			$manageBanners .= "<td>Description:<input type=\"text\" id=\"alt-".$y[0]."\" size=\"15\" value =\"".$y[1]."\" /></td>";
 			$manageBanners .= "<td>Image URL:<input type=\"text\" id=\"imgUrl-".$y[0]."\" size=\"20\" value =\"".$y[2]."\" /></td></tr>\n";
-			$manageBanners .= "<td><a href=\"#\" onclick=\"deleteBanner(".$y[0].");\">Delete</a></td>";
+			$manageBanners .= "<td><a href=\"#\" onclick=\"deleteBanner(".$y[0].");\"><img src=\"gfx/delete.png\" width=\"25pt\" height=\"25pt\" /></a></td>";
 			if($y[4] == 1)	
 				$manageBanners .= "<td>Small:<img id=\"smallBannerIcon-".$y[0]."\" class=\"adminIcon\" src=\"gfx/green-check.gif\" alt=\"yes\" onclick=\"toggleSmallBanner(".$y[0].");\" />\n";
 			else
