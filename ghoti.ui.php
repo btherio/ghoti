@@ -11,16 +11,18 @@ class ghotiui{
 		$showGhotiLog = "<h1>Log</h1>\n";
 		$showGhotiLog .= "<h7><i>Log file appears reverse chronologically</i></h7>\n";
 		//$showGhotiLog .= "<textarea rows=\"30\" cols=\"80\">".`cat ghoti.log`."</textarea><br />\n";
-		$showGhotiLog .= "<br /><pre>".`tail -r ghoti.log`."</pre><br />\n";
+		$showGhotiLog .= "<br /><pre>".`tac ghoti.log`."</pre><br />\n";
 		$showGhotiLog .= "<a href=\"#\"  onclick=\"clearGhotiLog();\" >Clear log</a>\n";
 		return $showGhotiLog;
 	}
+
+
 	function printPageList($pageList){
-		$this->output = "<ul class=\"navbar-nav text-light\" id=\"accordionSidebar\">\n";
+		//$this->output = "<ul class=\"navbar-nav text-light\" id=\"accordionSidebar\">\n";
 		foreach($pageList as $records => $row){
 			$this->output .= "<li class=\"nav-item\"><a class=\"nav-link\" href=\"#\" class=\"ghotiMenu\" onclick=\"getPage(".$row[0].")\"><i class=\"fas fa-tachometer-alt\"></i><span>".stripslashes($row[1])."</span></a></li>\n";
 		}
-		$this->output .= "</ul>\n";
+		//$this->output .= "</ul>\n";
 		return $this->output;
 	}
 	

@@ -27,7 +27,7 @@
       </div>
 
       <div class="midHeader">
-        <img src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
+         <img  width="140pt" height="40pt" src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
         <div class="headerSubTitle">
         </div>
 
@@ -68,9 +68,12 @@
         <div class="quarter noBorderOnLeft"></div>
 
         <div class="quarter">
-        	<h1>Open Source</h1><br />
-	       	<div class="alignRight"><?php print $_SESSION['bannersObj']->displayBanner(True); ?></div>
-        </div>
+
+          <div id="liveRelays">
+          <h1>Relays</h1>
+          <p><img alt="Loading..." height="24" src="mod/sensors/loading.gif" width="24" /></p>
+          </div>
+       </div>
 
         <div class="quarter">
         	<h1>Standards Compliant</h1><br />

@@ -20,7 +20,7 @@
     <!-- ##### Header ##### -->
 
     <div id="header">
-      <img src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
+       <img  width="140pt" height="40pt" src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
 
       <div class="headerLinks">
         <span class="doNotDisplay">Menu: </span> 
@@ -67,7 +67,7 @@
     </div>
 
     <div class="subFooter">   
-    	    <?php print $_SESSION['ghotiObj']->ghotiui->printFooter();?>
+    <?php print $_SESSION['ghotiObj']->ghotiui->printFooter();?>
     </div>
   </body>
 </html>

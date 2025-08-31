@@ -32,7 +32,7 @@
       </div>
 
       <div class="midHeader">
-       <img src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
+     <img  width="140pt" height="40pt" src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
       </div>
 
       <div class="subHeader">

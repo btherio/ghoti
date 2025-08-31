@@ -7,14 +7,16 @@ $(document).ready(function(){
 	
 	x_getDefaultPage(printPage);
 	x_getLinks(getLinks_cb); //gets the links and starts the timed links updating cycle that I'm not fond of.
-	
+	readSensors(); //so lets do the same thing with this one? ***SENSORS MODULE CODE***
+ 	//hideMenu(); //autohides menubar on load
+
 	$(".ghotiMenu").click(function(e){
 		e.preventDefault();// stop normal link click on ghotiMenu links
 	});
 });
 
 //regular javascript
-
+var menuHide = false;
 /*These are some nice strip/add slashes functions google found for me @ about.com
 * an alternative to this could have been shooting the slashed data back to php ala
 * sajax.
@@ -141,7 +143,8 @@ function clearGhotiLog(){
 	var confirmation = confirm ('Clearing is permanent! \nAre you sure?');
 	if(confirmation){
 		x_clearGhotiLog();
-		window.setTimeout('x_showGhotiLog(printPage)',1000);
+		//window.setTimeout('x_showGhotiLog(printPage)',1000);
+		x_showGhotiLog(printPage);
 	}
 }
 function setPagePublic(id){

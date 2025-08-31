@@ -23,10 +23,7 @@ class commentsdb extends ghotidb{
 			ghoti::log("comments.db.php $e");
 			return false;
 		}
-		//ghoti::debug("comments.db.php.addComment result: ".$dbresult->fields[0]);
-		//return $dbresult->fields[0]; //should return newly created commentId
-		return true;
-
+		return $dbresult->fields[0]; //should return newly created commentId
 	}
 	
 	function getPageComments($pageId){

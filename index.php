@@ -1,6 +1,7 @@
 <?php 
 //load the system
 require_once 'lib/Sajax.php';
+
 require_once 'ghoti.php';
 require_once 'ghoti.ajax.php';
 $ghoti = new ghoti();
@@ -17,7 +18,7 @@ $sajax_debug_mode = 0; 			//0 = off 1 = on
 $_SESSION['ghotiObj'] = new ghoti();
 
 //load the modules add module name into array like "module1","module2"
-$modules = array("links","login","banners","comments");
+$modules = array("links","login","banners","comments","sensors","relays","schedules");
 $_SESSION['ghotiObj']->loadModules($modules);
 
 //Initialize each module you want active
@@ -27,11 +28,10 @@ $_SESSION['linksObj'] = new links();
 $_SESSION['loginObj'] = new login();
 $_SESSION['bannersObj'] = new banners();
 $_SESSION['commentsObj'] = new comments();
-$_SESSION['ghotidb'] = new ghotidb();
+$_SESSION['sensorsObj'] = new sensors();
+$_SESSION['relaysObj'] = new relays();
+$_SESSION['schedulesObj'] = new schedules();
 
-if($_SESSION['ghotiObj']){
-   // $_SESSION['ghotiObj']->log("Loaded objects into session variables");
-}
 //inititalize sajax
 sajax_init();
 sajax_handle_client_request();
@@ -54,7 +54,6 @@ if($_GET){
 	}
 
 }
-
 //load the default theme
 include_once "css/".ghoti::$defaultTheme."/".ghoti::$defaultTheme.".php";
 ?>

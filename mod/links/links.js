@@ -19,9 +19,10 @@ function editLinkForm(){
 	x_getLinks("all",editLinkForm_cb);
 }
 function editLinkForm_cb(result){
-	linksArray = result;
+	linksArray = result[1];
 	$("#ghotiContent").html("<form id=\"editLinkForm\" action=\"#\"></form>");
 	for(x in linksArray){
+		
 		$("#editLinkForm").append("<input type=\"hidden\" id=\""+linksArray[x]['id']+"-id\" value=\""+linksArray[x]['id']+"\" />");
 		$("#editLinkForm").append("<label>Name</label><input type=\"text\" size=\"12\" id=\""+linksArray[x]['id']+"-name\" value=\""+stripslashes(linksArray[x]['name'])+"\" />");
 		$("#editLinkForm").append("<label>URL</label><input type=\"text\" size=\"30\" id=\""+linksArray[x]['id']+"-url\" value=\""+stripslashes(linksArray[x]['url'])+"\" />");
@@ -33,6 +34,7 @@ function editLinkForm_cb(result){
 		$("#editLinkForm").append("<hr width=\"100%\" />");
 	}
 	$("#ghotiContent").append("<a href=\"#\" class=\"ghotiMenu\" onclick=\"addLinkForm();\">Add Links</a>");
+		
 }
 function addLink(){
 	var linkName = $("#linkName").val();
@@ -91,17 +93,17 @@ function getLinks_cb(links){
 	//clear the links pane first
 	var linksArray = links[1];
 	if(links[0] == 'default'){
-		$("#ghotiLinks").html("<ul id=\"ghotiLinksList\"></ul>"); //use .html() to clear the div
+		$("#ghotiLinks").html("<ul class=\"navbar-nav text-light\" id=\"ghotiLinksList\"></ul>"); //use .html() to clear the div
 		for(x in linksArray){
-				$("#ghotiLinksList").append("<li><a href=\""+stripslashes(linksArray[x]['url'].toString())+"\">"+stripslashes(linksArray[x]['name'].toString())+"</a></li>");
+				$("#ghotiLinksList").append("<li class=\"nav-item navbar-nav text-light\"><a href=\""+stripslashes(linksArray[x]['url'].toString())+"\">"+stripslashes(linksArray[x]['name'].toString())+"</a></li>");
 		}	
-		window.setTimeout('x_getLinks(getLinks_cb)',3000); //wait, then repeat the whole thing.
+		//window.setTimeout('x_getLinks(getLinks_cb)',3000); //wait, then repeat the whole thing.
 	}else{
 		//do it all over again, with a twist.
 		$("#ghotiLinks"+links[0]).html("<ul id=\"ghotiLinks"+links[0]+"List\"></ul>");
 		for(x in linksArray){
-				$("#ghotiLinks"+links[0]+"List").append("<li><a href=\""+stripslashes(linksArray[x]['url'].toString())+"\">"+stripslashes(linksArray[x]['name'].toString())+"</a></li>");
+				$("#ghotiLinks"+links[0]+"List").append("<li class=\"nav-item navbar-nav text-light\"><a href=\""+stripslashes(linksArray[x]['url'].toString())+"\">"+stripslashes(linksArray[x]['name'].toString())+"</a></li>");
 		}	
-		window.setTimeout('x_getLinks("'+links[0]+'",getLinks_cb)',3000);
+		//window.setTimeout('x_getLinks("'+links[0]+'",getLinks_cb)',3000);
 	}
 }

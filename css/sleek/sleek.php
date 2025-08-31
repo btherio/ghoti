@@ -22,10 +22,10 @@
             <div class="container-fluid d-flex flex-column p-0"><a class="navbar-brand d-flex justify-content-center align-items-center sidebar-brand m-0" href="#">
                     <div class="sidebar-brand-icon">
                     <!--image here?-->
-                    <img  width="140pt" height="62pt" src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
+                    <img  width="140pt" height="40pt" src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
                     </div>
                 </a>
-                <hr class="sidebar-divider my-0" />
+                 <hr class="sidebar-divider my-0" />
                 
                 <div class="text-center d-none d-md-inline">
                 <p></p>
@@ -44,13 +44,20 @@
             <div id="content">
                 <nav class="navbar navbar-light navbar-expand bg-white shadow mb-4 topbar static-top">
                     <div class="container-fluid">
-                    <button class="btn btn-link d-md-none rounded-circle me-3" id="sidebarToggleTop" type="button" onclick="hideMenu();">
-                        <i class="fas fa-bars"></i>
+
+
+                    <button class="btn btn-link rounded-circle me-3" id="sidebarToggleTop" type="button" onclick="hideMenu();">
+                    <i class="fas fa-bars"></i>
                     </button>
 
-                        <ul class="navbar-nav flex-nowrap ms-auto">
 
-                            <div class="d-none d-sm-block topbar-divider"></div>
+
+                         <ul class="navbar-nav flex-nowrap ms-auto">
+
+
+
+
+                         <div class="d-none d-sm-block topbar-divider"></div>
 
                             <li class="nav-item dropdown no-arrow">
                                 <div class="nav-item dropdown no-arrow">
@@ -60,7 +67,7 @@
 
                                     <div class="dropdown-menu shadow dropdown-menu-end animated--grow-in">
 
-                                        <?php print $_SESSION['loginObj']->loginui->printPopupLogin();?>
+                                        <p><?php print $_SESSION['loginObj']->loginui->printLoginForm();?></p>
                                         <div class="dropdown-divider"></div>
                                         <div id="ghotiAdminMenu"></div>
                                         <a class="dropdown-item">&nbsp;<?php print $_SESSION['ghotiObj']->themeChanger(); ?></a>
@@ -72,19 +79,7 @@
                         </ul>
                     </div>
                 </nav>
-
-                <div class="container-fluid">
-                    <div class="card shadow">
-                        <div class="card-header py-3">
-                            <?php //print $_SESSION["commentsObj"]->commentsui->addCommentButton(); ?>
-                        </div>
-                        <div class="card-body">
-                              <?php include "ghoti.body.php";?>
-
-                        </div>
-
-                    </div>
-                </div>
+                <?php include "ghoti.body.php";?>
 
 
             </div>

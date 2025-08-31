@@ -25,7 +25,7 @@ include_once "ghoti.header.php"; ?>
 <div id="top"><a href="#main-copy" class="doNotDisplay doNotPrint">Skip to main content.</a></div>
 
 <div id="header">
-<img src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
+ <img  width="140pt" height="40pt" src="<?php print ghoti::$headerImg;?>" alt="<?php print ghoti::$siteTitle;?>" />
 <div class="subHeader">
 	<?php
 	/*Third: This is a nice spot for our page menu.
@@ -64,7 +64,7 @@ include_once "ghoti.header.php"; ?>
 	<p class="sideBarTitle"><span id="ghotiLoginTitle">Login</span></p>
 	<div class="sideBarText">
 		<?php
-		/* Here we print the login form. This could also be a login button
+		/* Here we actually print the login form. This could also be a login button
 		* print $_SESSION['loginObj']->loginui->printPopupLogin();
 		*/
 		print $_SESSION['loginObj']->loginui->printLoginForm();

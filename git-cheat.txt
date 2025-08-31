@@ -1,0 +1,29 @@
+Add new files:
+
+    git add -A
+Commit changes to local repo:
+
+    git commit -a -m <message>
+
+Push changes to remote master:
+
+    git push origin master
+
+Push changes to remote branch:
+
+    git push origin <branchname>
+    
+Stash changes
+
+    git stash
+    
+Pull changes into working dir
+
+    git pull
+    
+Fetch changes to master and rebase into branch
+
+    git fetch
+    git rebase origin/<branchname>
+
+

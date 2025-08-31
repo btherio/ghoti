@@ -79,8 +79,10 @@ acronym, .titleTip {
 }
 
 .midHeader {
-  color: rgb(39,78,144);
-  background-color: rgb(140,170,230);
+  /*color: rgb(39,78,144);
+  ba/ckground-color: rgb(140,170,230);*/
+  color: rgb(255,255,255);
+  background-color: rgb(255,255,255;
 }
 
 .headerTitle {

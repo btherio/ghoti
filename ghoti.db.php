@@ -3,8 +3,8 @@
  * Created on Mar 1, 2009
  *
  */
-include_once('lib/adodb5/adodb.inc.php');
-include_once('lib/adodb5/adodb-exceptions.inc.php');
+include('lib/adodb5/adodb.inc.php');
+include('lib/adodb5/adodb-exceptions.inc.php');
 
 class ghotidb{
 	/*This is where you setup your database.
@@ -12,7 +12,8 @@ class ghotidb{
 	 *You could probably hook this up to another type of database
 	 *but I've only tested ghoti with mysql.
 	 */	
-    private $dsn = 'mysqli://ghoti:ghoti@10.0.0.178/ghoti';
+	private $dsn = 'mysqli://smartend:garibaldi.tornado.1A4@127.0.0.1/smartend';
+	
 
 	//declarations. for typing practice.
 	public $adodb,$m_id,$m_title,$m_content,$m_pageList,$m_group;
@@ -27,7 +28,6 @@ class ghotidb{
             }catch (exception $e){
                 ghoti::log("**DB Connection Error!**");
                 ghoti::log("ghoti.db.php $e");
-				return false;
             }
 	}
 
@@ -40,7 +40,6 @@ class ghotidb{
             }catch (exception $e){
                 ghoti::log("**DB Disconnection Error!**");
                 ghoti::log("ghoti.db.php $e");
-				return false;
             } 
         }
 	}
@@ -62,7 +61,7 @@ class ghotidb{
         
         //Check to see if our table exists in the database, if it doesn't add it.
 		try{
-			$query = $this->adodb->Execute("select * from $moduleName;");
+			$query = $this->adodb->Execute("select * from $moduleName LIMIT 1;");
 		}catch (exception $e){
 			//If there's an exception, it's probably because the table doesn't exist.
 			//Loads the sql file, should contain 'create table if not exists' statements only
@@ -210,4 +209,5 @@ class ghotidb{
 		return true;
 	}
 }
-?> 
+
+?>
