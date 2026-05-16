@@ -4,6 +4,11 @@
  */
  
 class logindb extends ghotidb{
+	/**
+	 * Storage for method results used across the class.
+	 * Declared to avoid dynamic property issues on newer PHP versions.
+	 */
+	protected $result = array();
 	public function __construct(){
 		parent::__construct();
 		parent::loadModuleSql("login");
@@ -16,8 +21,9 @@ class logindb extends ghotidb{
 		$newId = array();
 		if(!$this->checkDuplicate($userName,$email)){
 			try{
+				$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 				//execute the sql
-				$nonQuery = $this->adodb->Execute("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$password,$email,false));
+				$nonQuery = $this->adodb->Execute("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$hashedPassword,$email,false));
 				if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg()); //log any mysql errors
 				
 				$query = $this->adodb->Execute("select count(userId) from users;");//select the usercount to see if we should make them admin
@@ -85,17 +91,26 @@ class logindb extends ghotidb{
 	public function authenticate($userName,$password){
 		$result = array("");
 		try{
-			$auth = $this->adodb->Execute("select userId from users where userName = ? and password = ?",array($userName,$password));
-			if (!$auth) ghoti::log($this->adodb->ErrorMsg());	
+			$auth = $this->adodb->Execute("select userId,password from users where userName = ?",array($userName));
+			if (!$auth) ghoti::log($this->adodb->ErrorMsg());
 		}catch (exception $e){
 			ghoti::log("login.db.php $e");
 			return false;
 		}
-		//ghoti::debug("login.db.php.authenticate: ".$auth);
 		foreach ($auth as $records=>$row){
-			$result[0] .= $row[0];
+			$storedHash = $row[1];
+			if (password_verify($password, $storedHash)) {
+				$result[0] .= $row[0];
+				break;
+			}
+			// support legacy plaintext passwords during migration
+			if ($storedHash === $password) {
+				$result[0] .= $row[0];
+				$updateHash = password_hash($password, PASSWORD_DEFAULT);
+				$this->adodb->Execute("update users set password = ? where userId = ?", array($updateHash, $row[0]));
+				break;
+			}
 		}
-		//returns authenticated userid
 		return $result[0];
 	}
 	
@@ -167,7 +182,8 @@ class logindb extends ghotidb{
 	}
 	public function changePassword($userId,$password){
 		try{
-			$sql = $this->adodb->Execute("update users set password = ? where userId = ?",array($password,$userId));
+			$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+			$sql = $this->adodb->Execute("update users set password = ? where userId = ?",array($hashedPassword,$userId));
 		}catch (exception $e){
 			ghoti::log("login.db.php $e");
 			return false;		

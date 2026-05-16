@@ -1,1 +1,1247 @@
 
+[Sun Aug 17 09:14:30 PM MDT 2025]Login attempt(admin) from 89.149.52.50
+[Sun Aug 17 09:14:30 PM MDT 2025]Logged in USER(1) from 89.149.52.50
+[Sun Aug 17 09:14:30 PM MDT 2025]Logged in ADMIN(1) from 89.149.52.50
+[Sun Nov 23 02:52:00 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:00 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 02:52:03 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:03 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 02:52:06 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:06 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 02:52:09 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 02:52:12 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:12 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 02:52:16 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 02:52:19 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:19 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 02:52:22 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 02:52:25 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:25 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 02:52:28 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 02:52:31 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:31 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Sun Nov 23 02:52:34 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:34 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Sun Nov 23 02:52:37 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:38 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 02:52:41 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:41 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 02:52:44 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:44 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 02:52:47 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 02:52:50 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:50 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 02:52:53 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 02:52:56 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:52:56 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 02:52:59 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 02:53:02 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:53:02 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 02:53:06 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 02:53:09 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:53:09 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Sun Nov 23 02:53:12 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 02:53:12 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Sun Nov 23 08:27:34 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:27:34 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 08:27:37 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:27:37 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 08:27:40 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:27:40 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 08:27:43 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 08:27:46 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:27:46 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 08:27:49 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 08:27:52 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:27:52 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 08:27:55 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 08:27:58 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:27:58 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 08:28:02 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 08:28:05 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:28:05 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Sun Nov 23 08:28:08 AM MST 2025]**DB Connection Error!**
+[Sun Nov 23 08:28:08 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Sun Nov 23 05:02:31 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:02:31 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 05:02:34 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:02:34 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Sun Nov 23 05:02:37 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:02:38 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 05:02:41 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sun Nov 23 05:02:44 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:02:44 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 05:02:47 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sun Nov 23 05:02:50 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:02:50 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 05:02:53 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sun Nov 23 05:02:56 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:02:56 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 05:02:59 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sun Nov 23 05:03:02 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:03:02 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Sun Nov 23 05:03:05 PM MST 2025]**DB Connection Error!**
+[Sun Nov 23 05:03:05 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Mon Nov 24 05:52:12 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:12 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Mon Nov 24 05:52:15 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:15 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Mon Nov 24 05:52:18 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:18 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Mon Nov 24 05:52:22 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Mon Nov 24 05:52:25 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:25 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Mon Nov 24 05:52:28 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Mon Nov 24 05:52:31 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:31 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Mon Nov 24 05:52:34 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Mon Nov 24 05:52:37 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:37 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Mon Nov 24 05:52:40 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Mon Nov 24 05:52:43 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:43 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Mon Nov 24 05:52:46 AM MST 2025]**DB Connection Error!**
+[Mon Nov 24 05:52:46 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Tue Nov 25 04:56:33 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:56:33 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Tue Nov 25 04:56:37 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:56:37 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Tue Nov 25 04:56:40 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:56:40 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Tue Nov 25 04:56:43 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Tue Nov 25 04:56:46 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:56:46 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Tue Nov 25 04:56:49 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Tue Nov 25 04:56:52 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:56:52 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Tue Nov 25 04:56:55 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Tue Nov 25 04:56:58 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:56:58 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Tue Nov 25 04:57:01 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Tue Nov 25 04:57:04 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:57:04 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Tue Nov 25 04:57:07 AM MST 2025]**DB Connection Error!**
+[Tue Nov 25 04:57:07 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Sat Nov 29 07:10:04 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:04 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Sat Nov 29 07:10:07 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:07 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Sat Nov 29 07:10:10 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:10 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sat Nov 29 07:10:13 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Sat Nov 29 07:10:16 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:16 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sat Nov 29 07:10:19 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Sat Nov 29 07:10:22 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:22 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sat Nov 29 07:10:25 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Sat Nov 29 07:10:28 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:28 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sat Nov 29 07:10:32 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Sat Nov 29 07:10:35 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:35 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Sat Nov 29 07:10:38 PM MST 2025]**DB Connection Error!**
+[Sat Nov 29 07:10:38 PM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Wed Dec 17 09:17:40 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:17:40 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(6): ghoti->__construct()
+#7 {main}
+[Wed Dec 17 09:17:43 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:17:43 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(31): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/index.php(17): ghoti->__construct()
+#7 {main}
+[Wed Dec 17 09:17:46 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:17:46 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Wed Dec 17 09:17:50 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/links/links.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/links/links.php(10): linksdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(26): links->__construct()
+#8 {main}
+[Wed Dec 17 09:17:53 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:17:53 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Wed Dec 17 09:17:56 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/login/login.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/login/login.php(9): logindb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(27): login->__construct()
+#8 {main}
+[Wed Dec 17 09:17:59 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:17:59 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Wed Dec 17 09:18:02 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/banners/banners.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/banners/banners.php(10): bannersdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(28): banners->__construct()
+#8 {main}
+[Wed Dec 17 09:18:05 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:18:05 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(8): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Wed Dec 17 09:18:08 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(54): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/mod/comments/comments.db.php(9): ghotidb->loadModuleSql()
+#6 /etc/httpd/docs/ghoti/mod/comments/comments.php(14): commentsdb->__construct()
+#7 /etc/httpd/docs/ghoti/index.php(29): comments->__construct()
+#8 {main}
+[Wed Dec 17 09:18:11 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:18:11 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/index.php(30): ghotidb->__construct()
+#6 {main}
+[Wed Dec 17 09:18:14 AM MST 2025]**DB Connection Error!**
+[Wed Dec 17 09:18:14 AM MST 2025]ghoti.db.php mysqli_sql_exception: No route to host in /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php:116
+Stack trace:
+#0 /etc/httpd/docs/ghoti/lib/adodb5/drivers/adodb-mysqli.inc.php(116): mysqli_real_connect()
+#1 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(683): ADODB_mysqli->_connect()
+#2 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4954): ADOConnection->Connect()
+#3 /etc/httpd/docs/ghoti/lib/adodb5/adodb.inc.php(4768): ADONewConnection()
+#4 /etc/httpd/docs/ghoti/ghoti.db.php(24): NewADOConnection()
+#5 /etc/httpd/docs/ghoti/ghoti.php(47): ghotidb->__construct()
+#6 /etc/httpd/docs/ghoti/css/prosimii/prosimii.php(43): ghoti->printPageMenu()
+#7 /etc/httpd/docs/ghoti/index.php(59): include_once('...')
+#8 {main}
+[Fri May 15 09:39:18 PM MDT 2026]Login attempt(admin) from 181.214.153.110
+[Fri May 15 09:39:19 PM MDT 2026]Logged in USER(1) from 181.214.153.110
+[Fri May 15 09:39:19 PM MDT 2026]Logged in ADMIN(1) from 181.214.153.110
+[Fri May 15 09:39:25 PM MDT 2026]Checking login, found uid1
+[Fri May 15 09:39:32 PM MDT 2026]Checking login, found uid1
+[Fri May 15 09:39:40 PM MDT 2026]Checking login, found uid1
+[Fri May 15 09:39:46 PM MDT 2026]Checking login, found uid1
+[Fri May 15 09:40:09 PM MDT 2026]Change password for admin from 181.214.153.110.
+[Fri May 15 09:40:15 PM MDT 2026]Trying logout...
+[Fri May 15 09:40:15 PM MDT 2026]Logout finished.
+[Fri May 15 09:40:26 PM MDT 2026]Login attempt(admin) from 181.214.153.110
+[Fri May 15 09:40:27 PM MDT 2026]Logged in USER(1) from 181.214.153.110
+[Fri May 15 09:40:27 PM MDT 2026]Logged in ADMIN(1) from 181.214.153.110
+[Fri May 15 09:40:45 PM MDT 2026]Change password for admin from 181.214.153.110.
+[Fri May 15 09:40:50 PM MDT 2026]Trying logout...
+[Fri May 15 09:40:50 PM MDT 2026]Logout finished.
+[Fri May 15 10:12:34 PM MDT 2026]Login attempt(admin) from 66.56.81.198
+[Fri May 15 10:12:35 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:12:35 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:12:39 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:12:39 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:12:40 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:12:40 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:12:44 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:12:44 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:12:44 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:12:44 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:13:16 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:15:27 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:15:27 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:15:28 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:15:28 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:15:54 PM MDT 2026]Login attempt(admin) from 66.56.81.198
+[Fri May 15 10:15:55 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:15:55 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:16:38 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:16:38 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:16:39 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:16:39 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:16:48 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:16:48 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:16:48 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:16:48 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:16:50 PM MDT 2026]Trying logout...
+[Fri May 15 10:16:50 PM MDT 2026]Logout finished.
+[Fri May 15 10:16:59 PM MDT 2026]Login attempt(admin) from 66.56.81.198
+[Fri May 15 10:17:00 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:17:00 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:17:17 PM MDT 2026]Login attempt(admin) from 66.56.81.198
+[Fri May 15 10:17:18 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:17:18 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:17:24 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:17:24 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:17:24 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:17:24 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:44:23 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:44:23 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:44:23 PM MDT 2026]Logged in USER(1) from 66.56.81.198
+[Fri May 15 10:44:23 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.198
+[Fri May 15 10:46:15 PM MDT 2026]Login attempt(bryan) from 66.56.81.218
+[Fri May 15 10:46:22 PM MDT 2026]Login attempt(admin) from 66.56.81.218
+[Fri May 15 10:46:22 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 10:46:22 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 10:46:58 PM MDT 2026]Toggling admin status for userID: 1 from 66.56.81.218
+[Fri May 15 10:46:58 PM MDT 2026]login.db.php Can't revoke admin rights from only admin.
+[Fri May 15 10:49:54 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:49:54 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:49:54 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 10:49:54 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 10:50:16 PM MDT 2026]Login attempt(admin) from 66.56.81.218
+[Fri May 15 10:50:17 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 10:50:17 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 10:52:14 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:52:17 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:55:24 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:56:59 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:57:00 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:58:57 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:59:16 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:59:20 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:59:20 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:59:20 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 10:59:20 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 10:59:25 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:59:25 PM MDT 2026]Checking login, found uid1
+[Fri May 15 10:59:26 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 10:59:26 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 10:59:29 PM MDT 2026]Trying logout...
+[Fri May 15 10:59:29 PM MDT 2026]Logout finished.
+[Fri May 15 11:00:23 PM MDT 2026]Login attempt(admin) from 66.56.81.218
+[Fri May 15 11:00:24 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 11:00:24 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 11:01:11 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:01:12 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:01:12 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 11:01:12 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 11:01:27 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:01:33 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:12 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:12 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:13 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:13 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:26 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:26 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:26 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:29 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:29 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:29 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 11:02:29 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 11:02:52 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:52 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:02:52 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 11:02:52 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 11:03:47 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:03:48 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:03:48 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:03:48 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 11:03:48 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 11:04:06 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:04:10 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:04:11 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:04:13 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:04:24 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:05:17 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:05:21 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:05:22 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:05:22 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 11:05:22 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 11:05:24 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:05:26 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:05:34 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:37:41 PM MDT 2026]Login attempt(admin) from 66.56.81.218
+[Fri May 15 11:37:42 PM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Fri May 15 11:37:42 PM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Fri May 15 11:38:09 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:38:20 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:38:31 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:38:34 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:39:11 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:39:14 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:39:16 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:39:38 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:39:41 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:39:42 PM MDT 2026]Checking login, found uid1
+[Fri May 15 11:39:45 PM MDT 2026]Checking login, found uid1
+[Sat May 16 11:51:43 AM MDT 2026]Login attempt(admin) from 66.56.81.218
+[Sat May 16 11:51:44 AM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Sat May 16 11:51:44 AM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Sat May 16 11:51:57 AM MDT 2026]Trying logout...
+[Sat May 16 11:51:57 AM MDT 2026]Logout finished.
+[Sat May 16 11:53:20 AM MDT 2026]Login attempt(admin) from 66.56.81.218
+[Sat May 16 11:53:21 AM MDT 2026]Logged in USER(1) from 66.56.81.218
+[Sat May 16 11:53:21 AM MDT 2026]Logged in ADMIN(1) from 66.56.81.218
+[Sat May 16 11:53:23 AM MDT 2026]Checking login, found uid1
+[Sat May 16 11:53:25 AM MDT 2026]Checking login, found uid1

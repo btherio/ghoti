@@ -15,7 +15,7 @@ class ghoti {
 
 	public static $siteTitle = "ghoti";	        //title of the website
 	public static $defaultPageTitle = "Home"; 		//this page must exist
-	public static $defaultTheme = "sleek";		//default theme
+	public static $defaultTheme = "prosimii";		//default theme
 	public static $allowRegister = True; 			//allow or disallow new registrations
  	public static $ghotiLog = "ghoti.log";      	//log file to use. Should be writable by apache
 	public static $sessionName = "ghoti"; 	//change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies

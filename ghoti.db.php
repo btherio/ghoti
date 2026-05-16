@@ -12,7 +12,7 @@ class ghotidb{
 	 *You could probably hook this up to another type of database
 	 *but I've only tested ghoti with mysql.
 	 */	
-    private $dsn = 'mysqli://ghoti:ghoti@10.0.0.178/ghoti';
+    private $dsn = 'mysqli://ghoti:gvxH!KD1Zw5RCv8o@10.0.0.17/ghoti';
 
 	//declarations. for typing practice.
 	public $adodb,$m_id,$m_title,$m_content,$m_pageList,$m_group;

@@ -11,6 +11,19 @@ $(document).ready(function(){
 	$(".ghotiMenu").click(function(e){
 		e.preventDefault();// stop normal link click on ghotiMenu links
 	});
+
+	// inject lightweight SVG icons for any .linkIcon elements missing an image
+	function injectIcons(){
+		$(".linkIcon").each(function(){
+			var $this = $(this);
+			if($this.find('img,svg').length === 0){
+				var svg = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="ghoti-icon" xmlns="http://www.w3.org/2000/svg"><path d="M3 12a9 9 0 0115.9-5.1l-1.4 1.4A7 7 0 104 12H2l3 3 3-3H6a5 5 0 118.6-3.6l1.4 1.4A7 7 0 006 18l-3 3-1-1V12z" fill="currentColor"/></svg>';
+				$this.prepend(svg);
+			}
+		});
+	}
+
+	injectIcons();
 });
 
 //regular javascript
@@ -35,49 +48,52 @@ function stripslashes(str) {
 }
 
 function showPopup() {
- $("#popup-bg").slideDown("slow");;
+	var $bg = $("#popup-bg");
+	var $popup = $("#popup");
+	$bg.css('display','flex');
+	// ensure popup has 'show' class to trigger CSS transition
+	setTimeout(function(){
+		$popup.addClass('show');
+	}, 10);
 }
 
 function popupFeedBack(text){
 	$("#popupFeedback").html(text);
-	window.setTimeout('$("#popupFeedback").html("")',3000);
+	window.setTimeout(function(){ $("#popupFeedback").html(""); },3000);
 }
 function cancelPopup(name) {
-	$("#popup-content").html("");
-	$("#"+name).slideUp("slow");
+	var $popup = $("#popup");
+	$popup.removeClass('show');
+	// delay hiding overlay until transition finishes
+	setTimeout(function(){
+		$("#popup-bg").hide();
+		$("#popup-content").html("");
+	}, 300);
 }
 function hideMenu() {
-    if(menuHide == false){
-        $("#main-copy").css("margin","0 0 0 0");
-        $("#side-bar").css("width", "0");
-        $("#side-bar").css("visibility","hidden");
-        $("#sideBarText").css("visibility","hidden");
-        $("#sideBarTitle").css("visibility","hidden");
-        $("#ghotiPrivateMenu").css("visibility","hidden");
-        $("#ghotiAdminMenu").css("visibility","hidden");
-        $("#ghotiPrivateMenuTitle").css("visibility","hidden");
-        $("#ghotiAdminMenuTitle").css("visibility","hidden")
-        menuHide = true;
-    }else{
-        $("#main-copy").css("margin","0 0 0 15em");
-        $("#side-bar").css("width", "15em");
-        $("#side-bar").css("visibility","visible");
-        $("#sideBarText").css("visibility","visible");
-        $("#sideBarTitle").css("visibility","visible");
-        $("#ghotiPrivateMenu").css("visibility","visible");
-        $("#ghotiAdminMenu").css("visibility","visible");
-        $("#ghotiPrivateMenuTitle").css("visibility","visible");
-        $("#ghotiAdminMenuTitle").css("visibility","visible")
-        menuHide = false;
-    }
+	var $side = $("#side-bar");
+	var $main = $("#main-copy");
+	if(menuHide == false){
+		$side.animate({ width: 0 }, 250, function(){ $side.css('visibility','hidden'); });
+		$main.animate({ marginRight: 0 }, 250);
+		$("#sideBarText, #sideBarTitle, #ghotiPrivateMenu, #ghotiAdminMenu, #ghotiPrivateMenuTitle, #ghotiAdminMenuTitle").css('visibility','hidden');
+		menuHide = true;
+	}else{
+		$side.css('visibility','visible').animate({ width: '15em' }, 250);
+		$main.animate({ marginRight: '15em' }, 250);
+		$("#sideBarText, #sideBarTitle, #ghotiPrivateMenu, #ghotiAdminMenu, #ghotiPrivateMenuTitle, #ghotiAdminMenuTitle").css('visibility','visible');
+		menuHide = false;
+	}
 }
 
 function pageFeedBack(text){
 	$("#popupTitle").html("Ghoti CMS");
 	$("#popup-content").html(text);
 	showPopup();
-	window.setTimeout('$("#popup-content").html("")',3000);
-	window.setTimeout('cancelPopup("popup-bg")',3000);
+	setTimeout(function(){
+		$("#popup-content").html("");
+		cancelPopup('popup-bg');
+	}, 3000);
 }
 
 function changeTheme(form){
@@ -168,7 +184,12 @@ function printPage(content) {
 		}
 	}
 	
-	$("#ghotiContent").html(content);
+	var $target = $("#ghotiContent");
+	$target.html(content);
+	// add fade-in animation to updated content
+	$target.find('*').addBack().addClass('fade-in');
+	// remove animation class after it completes
+	setTimeout(function(){ $target.find('.fade-in').removeClass('fade-in'); }, 400);
 
 	$("#managePageForm").slideUp(0);//workaround to hide ugly space at the bottom.
 }
@@ -179,7 +200,9 @@ function popup_cb(contents){
 		}
 	}
 	$("#popup-content").html(contents);
-	showPopup();
+	// show overlay and animated popup
+	$("#popup-bg").css('display','flex');
+	setTimeout(function(){ $("#popup").addClass('show'); }, 10);
 }
 function savePage_cb(result){
 	if(result == true){

@@ -10,8 +10,35 @@ $ghoti = new ghoti();
 $sajax_debug_mode = 0; 			//0 = off 1 = on
 
 //initialize session 
+$secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+@ini_set('session.cookie_httponly', 1);
+@ini_set('session.cookie_secure', $secure ? 1 : 0);
+if (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70300) {
+    @ini_set('session.cookie_samesite', 'Strict');
+}
 @session_name($ghoti->sessionName);
+@session_set_cookie_params(0, '/', '', $secure, true);
 @session_start();
+
+$timeout = 1800; // 30 minutes inactivity timeout
+if (!isset($_SESSION['created'])) {
+    $_SESSION['created'] = time();
+}
+if (!isset($_SESSION['user_agent'])) {
+    $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
+}
+if (!isset($_SESSION['ip_address'])) {
+    $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'] ?? '';
+}
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout
+    || ($_SERVER['REMOTE_ADDR'] ?? '') !== $_SESSION['ip_address']
+    || ($_SERVER['HTTP_USER_AGENT'] ?? '') !== $_SESSION['user_agent'])) {
+    session_unset();
+    session_destroy();
+    @session_start();
+    $_SESSION = array();
+}
+$_SESSION['last_activity'] = time();
 
 //Im going to a load the ghoti object instance into a session variable here
 $_SESSION['ghotiObj'] = new ghoti();

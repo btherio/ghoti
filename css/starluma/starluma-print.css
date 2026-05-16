@@ -1,0 +1,44 @@
+/* Starluma print stylesheet */
+
+body,
+#header,
+#main-copy,
+#footer,
+.superHeader,
+.midHeader,
+.subHeader,
+.twoThirds,
+.oneThird,
+.quarter {
+  background: transparent !important;
+  color: #000 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+body {
+  font-family: Georgia, serif;
+  font-size: 12pt;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+a,
+a:visited {
+  color: #000;
+  text-decoration: underline;
+}
+
+img,
+.headerLinks,
+.doNotDisplay,
+.doNotPrint {
+  display: none !important;
+}
+
+#main-copy {
+  margin: 0;
+  padding: 1rem;
+}

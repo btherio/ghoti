@@ -61,6 +61,7 @@ function setSessionVars($id){
 	}else{
 		ghoti::log("Logged in USER($id) from ".$_SERVER['REMOTE_ADDR']."");
 		try{
+			session_regenerate_id(true);
 			$_SESSION["loggedIn"] = true;
 			$_SESSION["userId"] = $id;
 			if(isAdmin($id)){
@@ -99,22 +100,16 @@ function changePassword($password,$newPassword){
 function logout(){ 
 	try{
 		ghoti::log("Trying logout...");
-		unset($_SESSION['loggedIn']);
-		unset($_SESSION['userId']);
-		unset($_SESSION['admin']);
-	    $_SESSION["userId"] = 0;
-	    $_SESSION["loggedIn"] = 0;
-		$_SESSION["admin"] = 0;
-		unset($_SESSION['loggedIn']);
-		unset($_SESSION['userId']);
-		unset($_SESSION['admin']);
-		
-		session_destroy();
+		$_SESSION = array();
+		if (ini_get('session.use_cookies')) {
+			$params = session_get_cookie_params();
+			setcookie(session_name(), '', time() - 42000,
+				$params['path'], $params['domain'],
+				$params['secure'], $params['httponly']
+			);
+		}
 		session_unset();
-		//unset($_COOKIE[ghoti::$sessionName]);
-		//setcookie(ghoti::$sessionName, FALSE, time() - 3600);
-		
-		
+		session_destroy();
 	 }catch (Exception $e) {
 		ghoti::log($e->getMessage());
 		return $e->getMessage();

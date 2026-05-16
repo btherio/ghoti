@@ -1,119 +1,198 @@
+#root{
+    --ghoti-bg: #ffffff;
+    --ghoti-surface: #ffffff;
+    --ghoti-accent: #2b8cff;
+    --ghoti-muted: #6b7280;
+    --ghoti-border: rgba(15,23,42,0.06);
+    --ghoti-radius: 12px;
+    --ghoti-shadow: 0 8px 28px rgba(2,6,23,0.08);
+}
+
+/* Core lists */
 #ghotiPageMenu ul {
-	margin: 0px;
-	padding: 0px;
-	//list-style: none;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display:flex;
+    gap: .5rem;
+    align-items: center;
 }
 #ghotiPageMenu li {
-	display: inline;
+    display: inline-flex;
 }
+
+/* Forms and panels */
 #managePageForm{
-	border-top-color: #000000; 
-	border-top: thin;
+    border-top: 1px solid var(--ghoti-border);
+    background: var(--ghoti-surface);
+    border-radius: var(--ghoti-radius);
+    box-shadow: var(--ghoti-shadow);
 }
+
+/* Popup overlay */
 #popup-bg{
-	background: url(../../gfx/transparent-gray.png);
-	display: none;
-	float: none;
-	height: 100%;
-	left:0px;
-	position: fixed;
-	top:0px;
-	width: 100%;
-	z-index: 1;
+    background: rgba(8,12,20,0.45);
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
 }
+@media (max-width: 800px) {
+  /* CSS that should be displayed if width is equal to or less than 800px goes here */
 #popup{
-	background: #ADADAD;
-	border: solid;
-	border-width: 2px;
-	border-color: #474a52;
-	display: block;
-	float: none;
-	left:0;
-	margin-left: 33%;
-	margin-right: 33%;
-	margin-top: 7%;
-	min-height: 15ex;
-	min-width: 33%;
-	position: absolute;
-	text-align: center;
-	top:0;
-	vertical-align: middle;
-	z-index: 1;
-}
-#popup-content{
-	display:block;
-    text-align: center;
-    vertical-align: middle;
-	max-height:50ex;
-	min-height:10ex;
-	min-width: 33%;
-    overflow: auto;
-    padding: 0.5em 0.5em 0.5em 0.5em;
+    background: var(--ghoti-surface);
+    border: 1px solid var(--ghoti-border);
+    border-radius: 14px;
+    display: block;
+    min-height: 12rem;
+    min-width: 80%;
+    max-width: 720px;
+    margin: 1rem auto;
     position: relative;
-    float: none;
-    z-index: 1;
+    text-align: left;
+    padding: 0.5rem;
+    box-shadow: var(--ghoti-shadow);
+    transform: translateY(8px);
+    opacity: 0;
+    transition: transform .28s ease, opacity .28s ease;
+}
+
+#popup.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+#popup-content{
+    display:block;
+    max-height: 65vh;
+    overflow: auto;
+    padding: 1rem;
+    position: relative;
+}
+}
+@media (min-width: 801px){
+    #popup{
+        background: #ADADAD;
+        border: solid;
+        border-width: 2px;
+        border-color:  #474a52;
+        display: block;
+        float: none;
+        left:0;
+        margin-left: 33%;
+        /*margin-right: 33%;*/
+        margin-top: 7%;
+        min-height: 15ex;
+        min-width: 33%;
+        position: absolute;
+        text-align: center;
+        top:0;
+        vertical-align: middle;
+        z-index: 1;
+    }
+    #popup-content{
+        display:block;
+        text-align: center;
+        vertical-align: middle;
+        max-height:50ex;
+        min-height:10ex;
+        min-width: 33%;
+        overflow: auto;
+        padding: 0.5em 0.5em 0.5em 0.5em;
+        position: relative;
+        float: none;
+        z-index: 1;
+    }
+
 }
 
 #popup-title{
-	    margin: 0 0 0 0;
-    padding: 0 0 0 0;
-    background: url(../../gfx/transparent-blue.png);
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--ghoti-border);
 }
+
 #popup-title h2{
-	color: #ADADAD;
-	font-family: verdana;
-	font-size: 1.2em;	
-	
+    color: #1f2937;
+    font-family: Inter, Verdana, sans-serif;
+    font-size: 1.05rem;
+    margin: 0;
 }
 
 #popupTitle{
     margin: 0;
-    padding: 0;
-    color: #ADADAD;
-     background: url(../../gfx/transparent-blue.png);
+    padding: 0.5rem 1rem;
+    color: var(--ghoti-muted);
 }
 
 .popup-close{
     text-align: right;
     position: absolute;
-    right: 0px;
-    top: 0px;
+    right: 8px;
+    top: 8px;
 }
-.popup-close img{
-    width: 20px;
-    height: 20px;
-    border: 0px;
+.popup-close button{
+    border: 0;
+    background: transparent;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .12s ease, background .12s ease;
 }
-.popup-close img:hover{
-    width: 24px;
-    height: 24px;
-    border: 0px;
+.popup-close button:hover{
+    transform: rotate(90deg) scale(1.05);
+    background: rgba(0,0,0,0.04);
 }
+.popup-close svg{ width:18px; height:18px; fill:var(--ghoti-muted); }
 
 .linkIcon{
-    cursor:pointer;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
 }
-.boldText{
- font-weight: bold;	
+.linkIcon::before{
+    content: '';
+    display:inline-block;
+    width: 18px;
+    height: 18px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: .95;
 }
-.alignRight{
-	text-align: right;
-}
-.alignCentre{
-	text-align: center;
-}
-.ghotiBanner{
-	border:0px;
-}
-#managePageForm{
-	position:relative;
-	visibility: hidden;
-}
-#managePagePanel{
- position: relative;
+.boldText{ font-weight: 700; }
+.alignRight{ text-align: right; }
+.alignCentre{ text-align: center; }
+#ghotiBanner{ border:0; }
+#managePageForm{ position:relative; visibility:hidden; }
+#managePagePanel{ position: relative; }
+
+/* show/hide helpers */
+#ghotiPrivateMenuTitle, #ghotiAdminMenuTitle{ visibility:hidden; }
+#ghotiPrivateMenu, #ghotiAdminMenu{ visibility:hidden; }
+
+.flex-container { display:flex; gap:.5rem; }
+.flex-container .box{
+    background: #fff;
+    border-radius: 10px;
+    padding: .75rem;
+    box-shadow: 0 6px 18px rgba(12,24,54,0.06);
+    flex: 1 1 0;
+    min-width: 0;
 }
 
-#ghotiPrivateMenuTitle{ visibility:hidden; }
-#ghotiAdminMenuTitle{ visibility:hidden; }
-#ghotiPrivateMenu{ visibility:hidden; }
-#ghotiAdminMenu{ visibility:hidden; }
+/* Minor animations */
+.fade-in{ animation: fadeIn .28s ease both; }
+@keyframes fadeIn{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform:none; } }
+
+.btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .8rem; border-radius:10px; border:1px solid var(--ghoti-border); background: #fff; cursor:pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.btn:hover{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,20,40,0.06); }
+
+.card{ border-radius: 14px; box-shadow: var(--ghoti-shadow); background: var(--ghoti-surface); padding: 1rem; }

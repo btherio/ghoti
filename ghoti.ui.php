@@ -44,7 +44,7 @@ class ghotiui{
 		if($group === "public"){
 			$this->output .= "<span id=\"publicPrivateButton\"><img class=\"linkIcon\" src=\"gfx/green-check.gif\" alt=\"yes\" onclick=\"setPagePrivate($id);\" /></span>";
 		}elseif($group === "private"){
-			$this->output .= "<br /><span id=\"publicPrivateButton\"><img class=\"linkIcon\" src=\"gfx/red-x.gif\" alt=\"no\" onclick=\"setPagePublic($id)\" /></span>";
+			$this->output .= "<span id=\"publicPrivateButton\"><img class=\"linkIcon\" src=\"gfx/red-x.gif\" alt=\"no\" onclick=\"setPagePublic($id)\" /></span>";
 		}
 
 		$this->output .= "<a href=\"#\" onclick=\"deletePage($id);\"><img width=\"25px\" height=\"25px\" src=\"gfx/delete.png\" alt=\"Delete\" /></a>\n";
