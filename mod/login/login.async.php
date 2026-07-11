@@ -403,7 +403,7 @@ class loginui{
 
 	public function printAdminMenu(){
 		$this->output = "<ul>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"addPage();\">Add Page</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"showPageManager();\">Pages</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"manageBanners();\">Banners</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"editLinkForm();\">Links</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"showGhotiLog();\">Log</a></li>\n";
@@ -464,12 +464,12 @@ class loginui{
 			$nameField = "user-".$userId."-name";
 			$emailField = "user-".$userId."-email";
 			$this->output .= "<tr>";
-			$this->output .= "<td><input type=\"text\" id=\"".$nameField."\" value=\"".$userName."\" size=\"18\" /></td>\n";
-			$this->output .= "<td><input type=\"text\" id=\"".$emailField."\" value=\"".$userEmail."\" size=\"24\" /></td>\n";
+			$this->output .= "<td data-label=\"Username\"><input type=\"text\" id=\"".$nameField."\" value=\"".$userName."\" size=\"18\" /></td>\n";
+			$this->output .= "<td data-label=\"Email\"><input type=\"text\" id=\"".$emailField."\" value=\"".$userEmail."\" size=\"24\" /></td>\n";
 			if($row[3] == 1)
-				$this->output .= "<td><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/green-check.gif\" alt=\"\" />Admin</button></td>\n<td>";
+				$this->output .= "<td data-label=\"Role\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/green-check.gif\" alt=\"\" />Admin</button></td>\n<td data-label=\"Actions\">";
 			else
-				$this->output .= "<td><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/red-x.gif\" alt=\"\" />User</button></td>\n<td>";
+				$this->output .= "<td data-label=\"Role\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/red-x.gif\" alt=\"\" />User</button></td>\n<td data-label=\"Actions\">";
 			$this->output .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"saveUser('".$nameField."','".$emailField."','".$userId."');\"><img src=\"gfx/save.png\" alt=\"\" />Save</button>\n";
 			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"deleteUser('".$userId."');\"><img src=\"gfx/delete.png\" alt=\"\" />Delete</button></div></td>\n";
 			$this->output .= "</tr>\n";

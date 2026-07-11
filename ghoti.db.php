@@ -50,6 +50,8 @@ class ghotidb{
     /* Module names allowed to be auto-provisioned via loadModuleSql(). */
     private static $validModules = array('pages','banners','comments','links','login','analytics');
     private static $moduleInitState = array();
+    private static $pageSchemaReady = false;
+    const PAGE_SCHEMA_VERSION = 1;
 
     /*
      * Persistent "this module's table already exists" cache. Without it every
@@ -70,6 +72,7 @@ class ghotidb{
         try{
             $this->connect();
             $this->loadModuleSql("pages");
+            $this->ensurePageSchema();
         }catch (Throwable $e){
             ghoti::log("**DB Connection Error!**");
             ghoti::log("ghoti.db.php ".$e->getMessage());
@@ -103,12 +106,26 @@ class ghotidb{
         $this->disconnect();
     }
 
-    private function connect(){
-        if (self::$pdo instanceof PDO){
-            return self::$pdo;
-        }
-        $config = require __DIR__.'/db.config.php';
-        $dsn = "{$config['driver']}:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}";
+    /* Load the connection config array (db.config.php + optional local override).
+     * Uses require (not require_once) so a db.config.local.php written by the
+     * setup screen mid-run is picked up on the next call. */
+    public static function loadConfig(){
+        return require __DIR__.'/db.config.php';
+    }
+
+    /* Build the PDO DSN string from a config array. */
+    private static function buildDsn($config){
+        $driver   = isset($config['driver'])   ? $config['driver']   : 'mysql';
+        $host     = isset($config['host'])      ? $config['host']     : '';
+        $port     = isset($config['port'])      ? $config['port']     : '3306';
+        $database = isset($config['database'])  ? $config['database'] : '';
+        $charset  = isset($config['charset'])   ? $config['charset']  : 'utf8mb4';
+        return "{$driver}:host={$host};port={$port};dbname={$database};charset={$charset}";
+    }
+
+    /* The PDO options this app requires. Shared by connect() and the config
+     * probe so a connection opened by either behaves identically. */
+    private static function pdoOptions($driver){
         $pdoOptions = array(
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_NUM,
@@ -122,16 +139,61 @@ class ghotidb{
             PDO::ATTR_PERSISTENT         => false,
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET sql_mode=''"
         );
-        if ($config['driver'] === 'mysql' && defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
+        if ($driver === 'mysql' && defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
             $pdoOptions[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = true;
         }
+        return $pdoOptions;
+    }
+
+    private function connect(){
+        if (self::$pdo instanceof PDO){
+            return self::$pdo;
+        }
+        $config = self::loadConfig();
         try {
-            self::$pdo = new PDO($dsn, $config['username'], $config['password'], $pdoOptions);
+            self::$pdo = new PDO(
+                self::buildDsn($config),
+                isset($config['username']) ? $config['username'] : '',
+                isset($config['password']) ? $config['password'] : '',
+                self::pdoOptions(isset($config['driver']) ? $config['driver'] : 'mysql')
+            );
         } catch (Throwable $e) {
             self::$pdo = null;
             throw $e;
         }
         return self::$pdo;
+    }
+
+    /*
+     * Non-fatal probe: can we actually reach the database with the current
+     * config? Returns true (and keeps the live connection for the rest of the
+     * request) or false. Used by index.php to decide whether to divert to the
+     * setup screen (see ghoti.setup.php). A short connect timeout keeps the
+     * setup page snappy when the configured host is dead/unroutable.
+     */
+    public static function isConfigured(){
+        if (self::$pdo instanceof PDO){
+            return true;
+        }
+        try {
+            $config = self::loadConfig();
+            if (!is_array($config) || empty($config['host']) || empty($config['database'])){
+                return false;
+            }
+            $options = self::pdoOptions(isset($config['driver']) ? $config['driver'] : 'mysql');
+            $options[PDO::ATTR_TIMEOUT] = 4; // don't hang the page on an unreachable host
+            self::$pdo = new PDO(
+                self::buildDsn($config),
+                isset($config['username']) ? $config['username'] : '',
+                isset($config['password']) ? $config['password'] : '',
+                $options
+            );
+            return true;
+        } catch (Throwable $e) {
+            self::$pdo = null;
+            ghoti::log("ghoti.db.php isConfigured probe failed: ".$e->getMessage());
+            return false;
+        }
     }
 
     protected function db(){
@@ -231,6 +293,62 @@ class ghotidb{
         }
     }
 
+    /* Add page-management columns once for databases created before v1. */
+    private function ensurePageSchema(){
+        if(self::$pageSchemaReady){ return true; }
+
+        $this->loadProvisioned();
+        if(isset(self::$provisioned['pagesSchemaVersion'])
+            && (int)self::$provisioned['pagesSchemaVersion'] >= self::PAGE_SCHEMA_VERSION){
+            try{
+                $this->query("select sortOrder,isDefault from pages limit 1");
+                self::$pageSchemaReady = true;
+                return true;
+            }catch(Throwable $e){
+                //The marker is only a cache. Repair stale markers instead of
+                //letting every page query fail because a column is absent.
+                unset(self::$provisioned['pagesSchemaVersion']);
+            }
+        }
+
+        try{
+            $columns = $this->queryArray("SHOW COLUMNS FROM pages");
+            $columnNames = array();
+            foreach($columns as $column){
+                if(isset($column[0])){ $columnNames[(string)$column[0]] = true; }
+            }
+            if(!isset($columnNames['sortOrder'])){
+                $this->db()->exec("ALTER TABLE pages ADD COLUMN sortOrder int(11) NOT NULL DEFAULT 0");
+            }
+            if(!isset($columnNames['isDefault'])){
+                $this->db()->exec("ALTER TABLE pages ADD COLUMN isDefault bool NOT NULL DEFAULT false");
+            }
+
+            $this->query("update pages set sortOrder=id where sortOrder <= 0");
+            $defaultRows = $this->queryArray("select id from pages where isDefault=1 order by sortOrder,id limit 1");
+            if(empty($defaultRows)){
+                $candidate = $this->queryArray(
+                    "select id from pages where title=? and groupName='public' order by sortOrder,id limit 1",
+                    array(ghoti::$defaultPageTitle)
+                );
+                if(empty($candidate)){
+                    $candidate = $this->queryArray("select id from pages where groupName='public' order by sortOrder,id limit 1");
+                }
+                if(!empty($candidate)){
+                    $this->query("update pages set isDefault=case when id=? then 1 else 0 end",array((int)$candidate[0][0]));
+                }
+            }
+
+            self::$provisioned['pagesSchemaVersion'] = self::PAGE_SCHEMA_VERSION;
+            @file_put_contents($this->provisionedMarkerFile(), json_encode(self::$provisioned), LOCK_EX);
+            self::$pageSchemaReady = true;
+            return true;
+        }catch(Throwable $e){
+            ghoti::log("ghoti.db.php page schema upgrade failed: ".$e->getMessage());
+            return false;
+        }
+    }
+
     function loadModuleSql($moduleName="default"){
         if(!in_array($moduleName, self::$validModules, true)){
             ghoti::log("ghoti.db.php Can't load module '$moduleName'");
@@ -304,7 +422,9 @@ class ghotidb{
     }
     function addPage($m_title,$m_content="Under Construction"){
         try{
-            $this->query("insert into pages (title, content) values(?,?)",array($m_title,$m_content));
+            $orderRows = $this->queryArray("select coalesce(max(sortOrder),0)+1 from pages");
+            $sortOrder = isset($orderRows[0][0]) ? (int)$orderRows[0][0] : 1;
+            $this->query("insert into pages (title,content,sortOrder) values(?,?,?)",array($m_title,$m_content,$sortOrder));
         }catch (Throwable $e){
             ghoti::log("ghoti.db.php ".$e->getMessage());
             return false;
@@ -323,7 +443,7 @@ class ghotidb{
     }
     function getPageList($group="public"){
         try{
-            $m_pageList = $this->query("select id,title from pages where groupName=?",array($group));
+            $m_pageList = $this->query("select id,title from pages where groupName=? order by sortOrder,id",array($group));
         }catch (Throwable $e){
             ghoti::log("ghoti.db.php ".$e->getMessage());
             return false;
@@ -332,7 +452,10 @@ class ghotidb{
     }
     function getDefaultPage(){
         try{
-            $m_content = $this->queryArray("select content,id from pages where groupName ='public' limit 1;",array());
+            $m_content = $this->queryArray("select content,id from pages where isDefault=1 and groupName='public' order by sortOrder,id limit 1",array());
+            if(!$m_content){
+                $m_content = $this->queryArray("select content,id from pages where groupName='public' order by sortOrder,id limit 1",array());
+            }
             if(!$m_content) throw new Exception($this->errorInfo());
         }catch (Throwable $e){
             ghoti::log("ghoti.db.php ".$e->getMessage());
@@ -369,7 +492,7 @@ class ghotidb{
     }
     function getPageByTitle($m_title){
         try{
-            $m_content = $this->queryArray("select content,id,title from pages where title=?",array($m_title));
+            $m_content = $this->queryArray("select content,id,title,groupName from pages where title=? order by sortOrder,id limit 1",array($m_title));
         }catch (Throwable $e){
             ghoti::log("ghoti.db.php ".$e->getMessage());
             return false;
@@ -393,6 +516,62 @@ class ghotidb{
             return false;
         }
         return true;
+    }
+
+    function getPageManagementList(){
+        try{
+            return $this->queryArray("select id,title,groupName,sortOrder,isDefault from pages order by sortOrder,id");
+        }catch(Throwable $e){
+            ghoti::log("ghoti.db.php ".$e->getMessage());
+            return false;
+        }
+    }
+
+    function savePageManagement($pages,$defaultPageId){
+        if(!is_array($pages) || empty($pages)){ return false; }
+        try{
+            $sortCases = array();
+            $groupCases = array();
+            $ids = array();
+            $params = array();
+            foreach($pages as $page){
+                $sortCases[] = "when ? then ?";
+                $params[] = (int)$page['id'];
+                $params[] = (int)$page['sortOrder'];
+            }
+            foreach($pages as $page){
+                $groupCases[] = "when ? then ?";
+                $params[] = (int)$page['id'];
+                $params[] = (string)$page['groupName'];
+            }
+            $params[] = (int)$defaultPageId;
+            foreach($pages as $page){
+                $ids[] = "?";
+                $params[] = (int)$page['id'];
+            }
+            $sql = "update pages set "
+                ."sortOrder=case id ".implode(' ',$sortCases)." else sortOrder end, "
+                ."groupName=case id ".implode(' ',$groupCases)." else groupName end, "
+                ."isDefault=case when id=? then 1 else 0 end "
+                ."where id in (".implode(',',$ids).")";
+            $this->query($sql,$params);
+            return true;
+        }catch(Throwable $e){
+            ghoti::log("ghoti.db.php ".$e->getMessage());
+            return false;
+        }
+    }
+
+    function setDefaultPageByTitle($title){
+        try{
+            $rows = $this->queryArray("select id from pages where title=? and groupName='public' order by sortOrder,id limit 1",array($title));
+            if(empty($rows)){ return false; }
+            $this->query("update pages set isDefault=case when id=? then 1 else 0 end",array((int)$rows[0][0]));
+            return true;
+        }catch(Throwable $e){
+            ghoti::log("ghoti.db.php ".$e->getMessage());
+            return false;
+        }
     }
 }
 ?>

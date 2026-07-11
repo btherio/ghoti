@@ -156,6 +156,134 @@ function editPage(id){
 function addPage(){ 
 	x_addPage("New Page",addPage_cb);
 }
+function showPageManager(){
+	x_printPageManagementPanel(function(content){
+		printPage(content);
+		initPageManager();
+	});
+}
+function initPageManager(){
+	var $rows = $("#ghotiPageManagerRows .ghotiPageManagerRow");
+	var draggedRow = null;
+	$("#ghotiPageManagerRows .ghotiPagePermission select")
+		.off("change.ghotiPageManager")
+		.on("change.ghotiPageManager", updatePageDefaultChoices);
+	$rows.off(".ghotiPageManager")
+		.on("dragstart.ghotiPageManager", function(event){
+			draggedRow = this;
+			$(this).addClass("is-dragging");
+			if(event.originalEvent && event.originalEvent.dataTransfer){
+				event.originalEvent.dataTransfer.effectAllowed = "move";
+				event.originalEvent.dataTransfer.setData("text/plain", $(this).attr("data-page-id"));
+			}
+		})
+		.on("dragover.ghotiPageManager", function(event){
+			event.preventDefault();
+			if(!draggedRow || draggedRow === this){ return; }
+			var rect = this.getBoundingClientRect();
+			if(event.originalEvent.clientY < rect.top + rect.height / 2){
+				this.parentNode.insertBefore(draggedRow,this);
+			}else{
+				this.parentNode.insertBefore(draggedRow,this.nextSibling);
+			}
+		})
+		.on("dragend.ghotiPageManager", function(){
+			$rows.removeClass("is-dragging");
+			draggedRow = null;
+			updatePageOrderControls();
+		});
+	updatePageOrderControls();
+	updatePageDefaultChoices();
+}
+function updatePageDefaultChoices(){
+	var $firstPublicChoice = $();
+	var checkedChoiceIsPublic = false;
+	$("#ghotiPageManagerRows .ghotiPageManagerRow").each(function(){
+		var isPublic = $(this).find(".ghotiPagePermission select").val() === "public";
+		var $choice = $(this).find(".ghotiDefaultChoice");
+		$choice.prop("hidden", !isPublic);
+		if(isPublic && !$firstPublicChoice.length){ $firstPublicChoice = $choice; }
+		if(isPublic && $choice.find("input").is(":checked")){ checkedChoiceIsPublic = true; }
+	});
+	if(!checkedChoiceIsPublic && $firstPublicChoice.length){
+		$firstPublicChoice.find("input").prop("checked",true);
+	}
+}
+function updatePageOrderControls(){
+	var $rows = $("#ghotiPageManagerRows .ghotiPageManagerRow");
+	$rows.each(function(index){
+		var $buttons = $(this).find(".ghotiPageOrderControls button");
+		$buttons.eq(0).prop("disabled",index === 0);
+		$buttons.eq(1).prop("disabled",index === $rows.length - 1);
+	});
+}
+function moveManagedPage(button,direction){
+	var $row = $(button).closest(".ghotiPageManagerRow");
+	if(direction < 0){
+		var $previous = $row.prev(".ghotiPageManagerRow");
+		if($previous.length){ $row.insertBefore($previous); }
+	}else{
+		var $next = $row.next(".ghotiPageManagerRow");
+		if($next.length){ $row.insertAfter($next); }
+	}
+	updatePageOrderControls();
+}
+function addManagedPage(){
+	var title = ghotiString($("#ghotiNewPageTitle").val()).trim();
+	if(!title){ pageFeedBack("Enter a page title."); return; }
+	x_addPage(title,function(result){
+		if(result === true){
+			showPageManager();
+			x_refreshPageMenu(refreshPageMenu_cb);
+		}else{
+			pageFeedBack(result || "Could not add the page.");
+		}
+	});
+}
+function editManagedPage(id){
+	x_getPageById(id,function(content){
+		printPage(content);
+		printPageEditor();
+	});
+}
+function deleteManagedPage(id){
+	if(!confirm("Delete this page permanently?")){ return; }
+	x_deletePage(id,function(result){
+		if(result === true){
+			showPageManager();
+			x_refreshPageMenu(refreshPageMenu_cb);
+			x_refreshPrivateMenu(refreshPrivateMenu_cb);
+		}else{
+			pageFeedBack(result || "Could not delete the page.");
+		}
+	});
+}
+function savePageManagement(){
+	var pages = [];
+	$("#ghotiPageManagerRows .ghotiPageManagerRow").each(function(){
+		pages.push({
+			id: $(this).attr("data-page-id"),
+			groupName: $(this).find(".ghotiPagePermission select").val()
+		});
+	});
+	var defaultPageId = $("input[name=ghotiDefaultPage]:checked").val();
+	if(!defaultPageId){ pageFeedBack("Choose a default page."); return; }
+	var defaultPage = pages.filter(function(page){ return String(page.id) === String(defaultPageId); })[0];
+	if(defaultPage && defaultPage.groupName !== "public"){
+		pageFeedBack("The default page must be visible to everyone.");
+		return;
+	}
+	x_savePageManagement(pages,defaultPageId,function(result){
+		if(result === true){
+			pageFeedBack("Page settings saved.");
+			x_refreshPageMenu(refreshPageMenu_cb);
+			x_refreshPrivateMenu(refreshPrivateMenu_cb);
+			showPageManager();
+		}else{
+			pageFeedBack(result || "Could not save page settings.");
+		}
+	});
+}
 function deletePage(id){
 	var confirmation = confirm ('Delete is permanent! \nAre you sure?');
 	if(confirmation){
@@ -223,9 +351,13 @@ function doNothing_cb(){
 	//not doing anything.
 }
 function changePageGroup_cb(id) {
-  getPage(id);
-  x_refreshPageMenu(refreshPageMenu_cb);
-  x_refreshPrivateMenu(refreshPrivateMenu_cb);
+	if(/^\d+$/.test(String(id))){
+		getPage(id);
+		x_refreshPageMenu(refreshPageMenu_cb);
+		x_refreshPrivateMenu(refreshPrivateMenu_cb);
+	}else{
+		pageFeedBack(id || "Could not change page permission.");
+	}
 }
 function printPage(content) {
 	var $target = $("#ghotiContent");
@@ -263,9 +395,13 @@ function addPage_cb(result){
 	x_refreshPageMenu(refreshPageMenu_cb);
 }
 function deletePage_cb(result){
-	x_getDefaultPage(printPage);	
-	x_refreshPageMenu(refreshPageMenu_cb);
-	x_refreshPrivateMenu(refreshPrivateMenu_cb);
+	if(result === true){
+		x_getDefaultPage(printPage);	
+		x_refreshPageMenu(refreshPageMenu_cb);
+		x_refreshPrivateMenu(refreshPrivateMenu_cb);
+	}else{
+		pageFeedBack(result || "Could not delete the page.");
+	}
 }
 function refreshPageMenu_cb(content){
 	$("#ghotiPageMenu").html(content);

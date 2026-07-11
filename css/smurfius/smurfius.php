@@ -30,23 +30,14 @@
 
       <nav class="menu-cluster menu-cluster--primary" aria-label="Public navigation">
         <?php print $_SESSION['ghotiObj']->printPageMenu(); ?>
-        
       </nav>
-
       <div class="header-actions">
         <div class="telemetry-readout" aria-hidden="true">
           <span class="telemetry-item" data-telemetry="fps">fps —</span>
           <span class="telemetry-item" data-telemetry="time">00:00:00</span>
         </div>
-        
       </div>
-
-      <nav class="menu-cluster menu-cluster--secondary" aria-label="Authenticated navigation">
-        
-        
-      </nav>
     </div>
-
     <div class="scroll-progress" aria-hidden="true"><span class="scroll-progress__bar"></span></div>
   </header>
 <main class="site-main">
@@ -60,10 +51,13 @@
 
       
     </section>
-    <section class="capabilities content-panel" data-animate="section">
+          
+    <nav class="menu-cluster menu-cluster--secondary" aria-label="Authenticated navigation">        
+     <section class="capabilities content-panel" data-animate="section">
       <div id="ghotiPrivateMenu"></div>
       <div id="ghotiAdminMenu">Admin</div>
-    </section>
+     </section>
+    </nav>
   </main>
   
   <section class="capabilities content-panel" data-animate="section">

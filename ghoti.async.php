@@ -273,6 +273,11 @@ function getPageByTitle($title){
 	$_SESSION["ghotiObj"]->ghotidb = new ghotidb();
 	$content = $_SESSION['ghotiObj']->ghotidb->getPageByTitle($title);
 	if(!isset($content[0])){ return ""; }
+	$group = isset($content[0][3]) ? $content[0][3] : 'public';
+	if($group === 'private' && !ghoti_require_login()){
+		ghoti::log("ghoti.async.php denied private page title to anon from ".ghoti_remote_addr());
+		return "<p>You must be logged in to view this page.</p>";
+	}
 	//set the session page id so we can pull it up any time
 	$_SESSION["pageId"] = $content[0][1];
 	return getPage($content[0][0]);
@@ -298,6 +303,7 @@ function getDefaultPage(){
 
 	$_SESSION["ghotiObj"]->ghotidb = new ghotidb();
 	$content = $_SESSION['ghotiObj']->ghotidb->getDefaultPage();
+	if(!isset($content[0])){ return "<p>No public page is available.</p>"; }
 	$_SESSION["pageId"] = $content[0][1];
 	return getPage($content[0][0]);
 }
@@ -312,7 +318,19 @@ function savePage($id,$title,$content){
 		return $e->getMessage();
 	}
 	$_SESSION["ghotiObj"] = new ghoti();
-	return $_SESSION['ghotiObj']->ghotidb->savePage($id,$content,$title);
+	$isDefault = false;
+	$pages = $_SESSION['ghotiObj']->ghotidb->getPageManagementList();
+	if(is_array($pages)){
+		foreach($pages as $page){
+			if((int)$page[0] === $id && (int)$page[4] === 1){ $isDefault = true; break; }
+		}
+	}
+	$result = $_SESSION['ghotiObj']->ghotidb->savePage($id,$content,$title);
+	if($result === true && $isDefault){
+		$settingsResult = ghoti::saveSettings(array('defaultPageTitle'=>$title));
+		if($settingsResult !== true){ return "Page saved, but the default-page setting file could not be updated."; }
+	}
+	return $result;
 }
 function savePageByTitle($title,$content){
 	if(!ghoti_require_admin()){ return false; }
@@ -344,7 +362,84 @@ function deletePage($id){
 		return false;
 	}
 	$_SESSION["ghotiObj"] = new ghoti();
+	$pages = $_SESSION['ghotiObj']->ghotidb->getPageManagementList();
+	if(!is_array($pages)){ return "Could not load the page list."; }
+	if(count($pages) <= 1){ return "The only page cannot be deleted."; }
+	$found = false;
+	foreach($pages as $page){
+		if((int)$page[0] !== $id){ continue; }
+		$found = true;
+		if((int)$page[4] === 1){ return "Choose another default page before deleting this page."; }
+		break;
+	}
+	if(!$found){ return "Page not found."; }
 	return $_SESSION['ghotiObj']->ghotidb->deletePage($id);
+}
+
+function printPageManagementPanel(){
+	if(!ghoti_require_admin()){ return "<h1>Manage Pages</h1><p>Admin access required.</p>"; }
+	$ghoti = new ghoti();
+	$pages = $ghoti->ghotidb->getPageManagementList();
+	if(!is_array($pages)){ return "<h1>Manage Pages</h1><p>Could not load pages.</p>"; }
+	return $ghoti->ghotiui->printPageManagementPanel($pages);
+}
+
+function savePageManagement($pages,$defaultPageId){
+	if(!ghoti_require_admin()){ return "Admin access required."; }
+	if(!is_array($pages) || count($pages) < 1 || count($pages) > 500){
+		return "Invalid page list.";
+	}
+
+	try{
+		$defaultPageId = ghoti_validate()->id($defaultPageId,"default page id");
+	}catch(Exception $e){
+		return "Choose a default page.";
+	}
+
+	$ghoti = new ghoti();
+	$storedPages = $ghoti->ghotidb->getPageManagementList();
+	if(!is_array($storedPages) || count($storedPages) !== count($pages)){
+		return "The page list changed. Reload it and try again.";
+	}
+
+	$storedById = array();
+	foreach($storedPages as $storedPage){
+		$storedById[(int)$storedPage[0]] = $storedPage;
+	}
+
+	$cleanPages = array();
+	$seen = array();
+	$defaultTitle = null;
+	foreach(array_values($pages) as $index => $page){
+		if(!is_array($page)){ return "Invalid page data."; }
+		try{
+			$id = ghoti_validate()->id(isset($page['id']) ? $page['id'] : 0,"page id");
+			$group = ghoti_validate()->pageGroup(isset($page['groupName']) ? $page['groupName'] : '');
+		}catch(Exception $e){
+			return $e->getMessage();
+		}
+		if(isset($seen[$id]) || !isset($storedById[$id])){
+			return "The page list contains an invalid or duplicate page.";
+		}
+		$seen[$id] = true;
+		if($id === $defaultPageId){
+			if($group !== 'public'){ return "The default page must be visible to everyone."; }
+			$defaultTitle = (string)$storedById[$id][1];
+		}
+		$cleanPages[] = array('id'=>$id,'sortOrder'=>$index + 1,'groupName'=>$group);
+	}
+	if(count($seen) !== count($storedById)){ return "The page list is incomplete."; }
+	if($defaultTitle === null){ return "Choose a default page."; }
+
+	if(!$ghoti->ghotidb->savePageManagement($cleanPages,$defaultPageId)){
+		return "Could not save page management changes.";
+	}
+	$settingsResult = ghoti::saveSettings(array('defaultPageTitle'=>$defaultTitle));
+	if($settingsResult !== true){
+		ghoti::log("ghoti.async.php page management saved but default title setting failed");
+		return "Pages were saved, but the default-page setting file could not be updated.";
+	}
+	return true;
 }
 
 function refreshPageMenu(){
@@ -407,6 +502,14 @@ function setPagePrivate($id){
 		return false;
 	}
 	$_SESSION["ghotiObj"] = new ghoti();
+	$pages = $_SESSION['ghotiObj']->ghotidb->getPageManagementList();
+	if(is_array($pages)){
+		foreach($pages as $page){
+			if((int)$page[0] === $id && (int)$page[4] === 1){
+				return "The default page must remain public.";
+			}
+		}
+	}
   if($_SESSION['ghotiObj']->ghotidb->setPageGroup($id,"private"))
 	 return $id;
   else
@@ -424,7 +527,33 @@ function printSiteSettingsForm(){
 //client sends. Returns true, or an error message string.
 function saveSiteSettings($settings){
 	if(!ghoti_require_admin()){ return "Admin access required."; }
-	return ghoti::saveSettings($settings);
+	if(!is_array($settings)){ return "Invalid settings."; }
+	$db = null;
+	$defaultTitle = null;
+	if(array_key_exists('defaultPageTitle',$settings)){
+		try{
+			$defaultTitle = ghoti_validate()->text($settings['defaultPageTitle'],validate::MAX_PAGE_TITLE,false,"default page title");
+		}catch(Exception $e){
+			return $e->getMessage();
+		}
+		$db = new ghotidb();
+		$pages = $db->getPageManagementList();
+		$found = false;
+		if(is_array($pages)){
+			foreach($pages as $page){
+				if((string)$page[1] === $defaultTitle && $page[2] === 'public'){ $found = true; break; }
+			}
+		}
+		if(!$found){
+			return "The default page must exist and be visible to everyone.";
+		}
+	}
+	$result = ghoti::saveSettings($settings);
+	if($result !== true){ return $result; }
+	if($defaultTitle !== null && !$db->setDefaultPageByTitle($defaultTitle)){
+		return "Settings were saved, but the default page could not be activated.";
+	}
+	return true;
 }
 
 ghoti_async_register(
@@ -435,6 +564,8 @@ ghoti_async_register(
 	"logToFile",
 	"printSiteSettingsForm",
 	"saveSiteSettings",
+	"printPageManagementPanel",
+	"savePageManagement",
 	"getPage",
 	"getDefaultPage",
 	"getPageByTitle",
@@ -477,6 +608,31 @@ class ghotiui{
 		}
 		$this->output .= "</ul>\n";
 		return $this->output;
+	}
+
+	function printPageManagementPanel($pages){
+		$esc = function($value){ return htmlspecialchars((string)$value,ENT_QUOTES); };
+		$o  = "<section id=\"ghotiPageManager\" class=\"ghotiAdminPanel\">\n";
+		$o .= "<div class=\"ghotiCrudHeader\"><div><h1>Manage Pages</h1><p class=\"ghotiHelpText\">Set navigation order, the home page, and who can view each page.</p></div>";
+		$o .= "<form id=\"ghotiAddPageForm\" class=\"ghotiPageAddForm\" action=\"javascript:addManagedPage();\"><input id=\"ghotiNewPageTitle\" type=\"text\" maxlength=\"24\" placeholder=\"Page title\" aria-label=\"New page title\" /><button type=\"submit\" class=\"ghotiButton\">Add page</button></form></div>\n";
+		$o .= "<div class=\"ghotiPageManagerLabels\" aria-hidden=\"true\"><span>Order</span><span>Page</span><span>Default</span><span>Permission</span><span>Actions</span></div>\n";
+		$o .= "<div id=\"ghotiPageManagerRows\" class=\"ghotiPageManagerRows\">\n";
+		foreach($pages as $page){
+			$id = (int)$page[0];
+			$title = $esc($page[1]);
+			$group = $page[2] === 'private' ? 'private' : 'public';
+			$isDefault = (int)$page[4] === 1;
+			$o .= "<div class=\"ghotiPageManagerRow\" data-page-id=\"$id\" draggable=\"true\">\n";
+			$o .= "<div class=\"ghotiPageOrderControls\"><span class=\"ghotiDragHandle\" title=\"Drag to reorder\" aria-hidden=\"true\">&#8942;&#8942;</span><button type=\"button\" title=\"Move up\" aria-label=\"Move ".$title." up\" onclick=\"moveManagedPage(this,-1);\">&#8593;</button><button type=\"button\" title=\"Move down\" aria-label=\"Move ".$title." down\" onclick=\"moveManagedPage(this,1);\">&#8595;</button></div>\n";
+			$o .= "<button type=\"button\" class=\"ghotiPageManagerTitle\" onclick=\"editManagedPage($id);\"><span>".$title."</span><small>Page #$id</small></button>\n";
+			$o .= "<label class=\"ghotiDefaultChoice\"".($group === 'private' ? " hidden=\"hidden\"" : "")."><input type=\"radio\" name=\"ghotiDefaultPage\" value=\"$id\"".($isDefault ? " checked=\"checked\"" : "")." /><span>Home</span></label>\n";
+			$o .= "<label class=\"ghotiPagePermission\"><span class=\"ghotiMobileLabel\">Permission</span><select aria-label=\"Permission for ".$title."\"><option value=\"public\"".($group === 'public' ? " selected=\"selected\"" : "").">Everyone</option><option value=\"private\"".($group === 'private' ? " selected=\"selected\"" : "").">Signed-in users</option></select></label>\n";
+			$o .= "<div class=\"ghotiPageManagerActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"editManagedPage($id);\">Edit</button><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"deleteManagedPage($id);\">Delete</button></div>\n";
+			$o .= "</div>\n";
+		}
+		$o .= "</div>\n<div class=\"ghotiPageManagerFooter\"><p class=\"ghotiHelpText\">Private pages appear in the signed-in menu.</p><button type=\"button\" class=\"ghotiButton\" onclick=\"savePageManagement();\"><img src=\"gfx/save.png\" alt=\"\" />Save changes</button></div>\n";
+		$o .= "</section>\n";
+		return $o;
 	}
 
 	function printFooter(){

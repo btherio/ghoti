@@ -7,6 +7,7 @@ include_once('ghoti.html.php');
 include_once('ghoti.async.php'); //async RPC layer + core endpoints + class ghotiui
 include_once('ghoti.db.php');
 include_once('ghoti.validate.php');
+include_once('ghoti.setup.php'); //DB-unreachable fallback: setup screen + saveDbConfig
 
 class ghoti {
 #################################################################
