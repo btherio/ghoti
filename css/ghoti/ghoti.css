@@ -1,198 +1,772 @@
-#root{
-    --ghoti-bg: #ffffff;
-    --ghoti-surface: #ffffff;
-    --ghoti-accent: #2b8cff;
-    --ghoti-muted: #6b7280;
-    --ghoti-border: rgba(15,23,42,0.06);
-    --ghoti-radius: 12px;
-    --ghoti-shadow: 0 8px 28px rgba(2,6,23,0.08);
+/* ============================================================================
+   ghoti.css — site-wide design system
+   ----------------------------------------------------------------------------
+   Loads on every page AFTER the active theme and BEFORE analytics.css, so it
+   rejuvenates the whole app (overriding the dated theme skeleton) while the
+   analytics dashboard keeps its own scoped styling. Palette + light/dark are
+   harmonized with mod/analytics/analytics.css.
+   ============================================================================ */
+
+:root{
+  color-scheme: light dark;
+
+  /* surfaces */
+  --bg:            #efeeea;
+  --bg-tint:       radial-gradient(1100px 620px at 100% -12%, rgba(42,120,214,.07), transparent 60%);
+  --surface:       #ffffff;
+  --surface-2:     #f6f6f3;
+  --surface-3:     #eceae4;
+
+  /* text */
+  --text:          #17160f;
+  --text-2:        #52514b;
+  --muted:         #8b887f;
+
+  /* lines */
+  --border:        rgba(17,16,12,.10);
+  --border-strong: rgba(17,16,12,.17);
+
+  /* accent (matches analytics --series-1) */
+  --accent:        #2a78d6;
+  --accent-2:      #1c5cab;
+  --accent-soft:   rgba(42,120,214,.10);
+  --on-accent:     #ffffff;
+
+  --good:          #1f9d57;
+  --bad:           #e0483f;
+
+  --radius:        16px;
+  --radius-sm:     10px;
+  --radius-pill:   999px;
+
+  --shadow-sm:     0 1px 2px rgba(16,24,40,.06);
+  --shadow:        0 1px 2px rgba(16,24,40,.05), 0 16px 38px -18px rgba(16,24,40,.30);
+  --shadow-lg:     0 34px 80px -28px rgba(16,24,40,.46);
+  --ring:          0 0 0 3px rgba(42,120,214,.32);
+
+  --font:          system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:          ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* centres content inside full-width header/footer bars */
+  --gutter:        max(1.15rem, calc((100% - 1200px) / 2));
 }
 
-/* Core lists */
-#ghotiPageMenu ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display:flex;
-    gap: .5rem;
-    align-items: center;
-}
-#ghotiPageMenu li {
-    display: inline-flex;
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:            #0b0b0c;
+    --bg-tint:       radial-gradient(1100px 620px at 100% -12%, rgba(74,147,234,.12), transparent 60%);
+    --surface:       #161619;
+    --surface-2:     #1e1e22;
+    --surface-3:     #26262b;
+
+    --text:          #f4f4f2;
+    --text-2:        #c8c6bd;
+    --muted:         #908d85;
+
+    --border:        rgba(255,255,255,.10);
+    --border-strong: rgba(255,255,255,.17);
+
+    --accent:        #4a93ea;
+    --accent-2:      #83b6f3;
+    --accent-soft:   rgba(74,147,234,.16);
+    --on-accent:     #061220;
+
+    --shadow-sm:     0 1px 2px rgba(0,0,0,.55);
+    --shadow:        0 1px 2px rgba(0,0,0,.55), 0 20px 44px -20px rgba(0,0,0,.8);
+    --shadow-lg:     0 44px 96px -32px rgba(0,0,0,.9);
+    --ring:          0 0 0 3px rgba(74,147,234,.4);
+  }
 }
 
-/* Forms and panels */
-#managePageForm{
-    border-top: 1px solid var(--ghoti-border);
-    background: var(--ghoti-surface);
-    border-radius: var(--ghoti-radius);
-    box-shadow: var(--ghoti-shadow);
+/* ===== Base ================================================================ */
+*, *::before, *::after{ box-sizing: border-box; }
+
+html{ scroll-behavior: smooth; }
+
+body,
+html > body{                       /* html > body beats prosimii's 9pt rule */
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image: var(--bg-tint);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Popup overlay */
+::selection{ background: var(--accent-soft); color: var(--text); }
+
+a{ color: var(--accent); text-decoration: none; padding: 0; }
+a:hover{ color: var(--accent-2); text-decoration: underline; text-underline-offset: 2px; }
+
+img{ max-width: 100%; }
+
+h1,h2,h3,h4,h5,h6{ line-height: 1.2; letter-spacing: -.012em; color: var(--text); }
+
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible{
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 8px;
+}
+
+/* thin, quiet scrollbars */
+*{ scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+*::-webkit-scrollbar{ width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb{
+  background: var(--border-strong); border-radius: 999px;
+  border: 2px solid transparent; background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover{ background: var(--muted); background-clip: padding-box; }
+
+/* ===== Header ============================================================== */
+#header{
+  position: relative;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.superHeader{
+  background: transparent;
+  color: var(--muted);
+  text-align: right;
+  padding: .45rem var(--gutter);
+  border-bottom: 1px solid var(--border);
+  font-size: .85rem;
+}
+.superHeader span{
+  color: var(--muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em; font-size: .72rem;
+}
+
+#ghotiLogin{ display: inline-block; }
+#ghotiLogin ul{ margin: 0; padding: 0; list-style: none; display: inline-flex; gap: .4rem; }
+#ghotiLogin li{ display: inline-flex; margin: 0; }
+#ghotiLogin a{
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .38rem .85rem; border-radius: var(--radius-pill);
+  background: var(--accent-soft); color: var(--accent-2);
+  font-weight: 600; font-size: .84rem; text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+}
+#ghotiLogin a:hover{ background: var(--accent); color: var(--on-accent); text-decoration: none; }
+
+.midHeader{
+  background: transparent;
+  color: var(--text);
+  padding: .9rem var(--gutter);
+  display: flex; align-items: center; gap: 1rem;
+}
+.midHeader img{ height: 52px; width: auto; display: block; }
+.headerSubTitle{ color: var(--muted); font-style: normal; font-weight: 400; font-size: .95rem; margin: 0; }
+.headerLinks{ position: static; margin-left: auto; padding: 0; }
+
+.subHeader{
+  position: sticky; top: 0; z-index: 60;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: .5rem var(--gutter);
+  color: var(--text);
+}
+
+/* ===== Primary page navigation (pills) ==================================== */
+#ghotiPageMenu ul{
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: .3rem; align-items: center;
+}
+#ghotiPageMenu li{ display: inline-flex; margin: 0; }
+#ghotiPageMenu a,
+.subHeader a{
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .45rem .9rem; border-radius: var(--radius-pill);
+  color: var(--text-2); font-weight: 600; font-size: .9rem;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+}
+#ghotiPageMenu a:hover,
+.subHeader a:hover{ background: var(--surface-3); color: var(--text); text-decoration: none; }
+#ghotiPageMenu a i{ display: none; }   /* FontAwesome isn't loaded */
+
+/* ===== Layout ============================================================== */
+#main-copy{
+  max-width: 1200px;
+  margin: 1.6rem auto 0;
+  padding: 0 1.15rem 2rem;
+  clear: left;
+}
+.rowOfBoxes{
+  clear: both; border: 0;
+  display: flex; flex-wrap: wrap; gap: 1.25rem;
+  margin: 0 0 1.25rem;
+}
+.rowOfBoxes.dividingBorderAbove{ border-top: 0; margin-top: .25rem; }
+.rowOfBoxes > div:empty{ display: none; }   /* drop the empty prosimii spacer column */
+
+/* turn the old float columns into flex children */
+.quarter, .oneThird, .half, .twoThirds, .fullWidth{
+  float: none; border-left: 0; margin: 0; padding: 0; min-width: 0; width: auto;
+}
+.twoThirds{ flex: 1 1 60%; text-align: left; }
+.oneThird{ flex: 1 1 262px; }
+.quarter{ flex: 1 1 220px; }
+
+/* ===== Main content card =================================================== */
+#pageFeedback{ display: block; color: var(--accent-2); font-weight: 600; }
+
+#ghotiContent{
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.85rem 2.1rem 4.85rem;
+  min-height: 320px;
+  overflow-wrap: anywhere;
+}
+#ghotiContent h1{ font-size: 1.95rem; font-weight: 750; margin: .2rem 0 .8rem; color: var(--text); }
+#ghotiContent h2{ font-size: 1.4rem; font-weight: 700; margin: 1.5rem 0 .6rem; color: var(--text); }
+#ghotiContent h3{ font-size: 1.15rem; font-weight: 700; margin: 1.2rem 0 .5rem; color: var(--text); }
+#ghotiContent h4, #ghotiContent h5, #ghotiContent h6{ color: var(--text); margin: 1rem 0 .4rem; }
+#ghotiContent p{ margin: 0 0 1rem; color: var(--text-2); line-height: 1.75; }
+#ghotiContent ul, #ghotiContent ol{ margin: 0 0 1rem 1.3rem; padding: 0; }
+#ghotiContent li{ margin: .35rem 0; line-height: 1.6; }
+#ghotiContent img{ border-radius: var(--radius-sm); height: auto; }
+#ghotiContent hr{ border: 0; border-top: 1px solid var(--border); margin: 1.6rem 0; }
+#ghotiContent blockquote{
+  margin: 1rem 0; padding: .65rem 1.1rem;
+  border-left: 3px solid var(--accent); background: var(--surface-2);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text-2);
+}
+#ghotiContent code{ font-family: var(--mono); font-size: .9em; background: var(--surface-2); padding: .1em .35em; border-radius: 6px; }
+#ghotiContent pre{ background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; overflow: auto; font-size: .82rem; }
+#ghotiContent pre code{ background: none; padding: 0; }
+#ghotiContent table{ border-collapse: collapse; width: 100%; margin: 1rem 0; }
+#ghotiContent th, #ghotiContent td{ border: 1px solid var(--border); padding: .55rem .7rem; text-align: left; }
+#ghotiContent th{ background: var(--surface-2); font-weight: 600; }
+#ghotiContent tr:hover td{ background: var(--surface-2); }
+#ghotiPageDisplay{ display: block; }
+
+/* ===== Sidebar (private / admin menus, theme changer) ===================== */
+#main-copy .oneThird h1{
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); font-weight: 700; margin: .3rem .3rem .4rem;
+}
+#ghotiPrivateMenu, #ghotiAdminMenu{
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: .4rem; margin: 0 0 1.1rem;
+}
+#ghotiPrivateMenu ul, #ghotiAdminMenu ul{ list-style: none; margin: 0; padding: 0; }
+#ghotiPrivateMenu li, #ghotiAdminMenu li{ margin: 0; }
+#ghotiPrivateMenu a, #ghotiAdminMenu a{
+  display: block; padding: .5rem .7rem; border-radius: var(--radius-sm);
+  color: var(--text-2); font-weight: 500; text-decoration: none;
+  transition: background .12s ease, color .12s ease;
+}
+#ghotiPrivateMenu a:hover, #ghotiAdminMenu a:hover{
+  background: var(--accent-soft); color: var(--accent-2); text-decoration: none;
+}
+
+#changeTheme{
+  margin: .45rem 0 0;
+  display: inline-flex;
+  max-width: 100%;
+}
+#changeTheme p{
+  margin: 0;
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+#changeTheme p::after{
+  content: "";
+  position: absolute;
+  right: .85rem;
+  top: 50%;
+  width: .48rem;
+  height: .48rem;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  pointer-events: none;
+  transform: translateY(-65%) rotate(45deg);
+}
+#changeTheme select{
+  min-width: 10.75rem;
+  width: 100%;
+  padding: .56rem 2.25rem .56rem .85rem;
+  border-radius: 8px;
+  border-color: var(--border-strong);
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: .92rem;
+  font-weight: 650;
+  line-height: 1.25;
+  box-shadow: var(--shadow-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+#changeTheme select:hover{
+  border-color: var(--accent);
+  background-color: var(--surface-2);
+}
+#changeTheme select:focus{
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+
+/* ===== Feature cards (banners / standards / links row) ==================== */
+.rowOfBoxes.dividingBorderAbove .quarter{
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: 1.15rem 1.25rem;
+}
+#main-copy .quarter h1{
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); font-weight: 700; margin: 0 0 .7rem;
+}
+.ghotiBanner, #footer img{ border: 0; border-radius: var(--radius-sm); height: auto; }
+
+#ghotiLinks ul, #ghotiLinksList{ list-style: none; margin: 0; padding: 0; }
+#ghotiLinks li{ margin: 0; }
+#ghotiLinks li a{
+  display: block; padding: .38rem .55rem; border-radius: var(--radius-sm);
+  color: var(--text-2); text-decoration: none; font-size: .92rem;
+  transition: background .12s ease, color .12s ease;
+}
+#ghotiLinks li a:hover{ background: var(--accent-soft); color: var(--accent-2); text-decoration: none; }
+
+/* ===== Footer ============================================================== */
+#footer{
+  color: var(--muted); background: transparent;
+  border-top: 1px solid var(--border);
+  text-align: center; font-size: .85rem; line-height: 1.6;
+  margin: 2.5rem 0 0; padding: 1.6rem var(--gutter); clear: left;
+}
+#footer a{ color: var(--accent); text-decoration: none; }
+#footer a:hover{ text-decoration: underline; }
+
+/* ===== Forms & buttons ===================================================== */
+input[type=text], input[type=email], input[type=password], input[type=search],
+input[type=url], select, textarea{
+  font: inherit; color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: .55rem .7rem;
+  max-width: 100%;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:focus, select:focus, textarea:focus{
+  outline: none; border-color: var(--accent); box-shadow: var(--ring);
+}
+select{ cursor: pointer; }
+textarea{ line-height: 1.6; }
+label{ color: var(--text-2); font-size: .92rem; }
+input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); vertical-align: middle; }
+
+.ghotiAdminPanel{
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.ghotiCrudHeader{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .85rem;
+  flex-wrap: wrap;
+}
+.ghotiCrudHeader h1{ margin: 0; }
+.ghotiForm{
+  display: flex;
+  flex-direction: column;
+  gap: .95rem;
+}
+.ghotiForm p{ margin: 0; }
+.ghotiFormGrid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: .85rem;
+  align-items: end;
+}
+.ghotiField{
+  display: flex;
+  flex-direction: column;
+  gap: .32rem;
+  color: var(--text-2);
+  font-size: .9rem;
+  font-weight: 650;
+}
+.ghotiField span{
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.ghotiField input,
+.ghotiField select,
+.ghotiField textarea{ width: 100%; }
+.ghotiFieldWide{ grid-column: span 2; }
+.ghotiFormActions{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .55rem;
+  flex-wrap: wrap;
+}
+.ghotiInlineChoice{
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--text-2);
+  font-weight: 600;
+}
+.ghotiHelpText,
+.ghotiEmptyState{
+  color: var(--muted);
+  font-size: .9rem;
+}
+.ghotiCrudList{
+  gap: .85rem;
+}
+.ghotiCrudRow{
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  padding: .95rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+.ghotiCrudActions{
+  justify-content: flex-end;
+}
+.ghotiCrudMeta{
+  margin-right: auto;
+  color: var(--muted);
+  font-size: .86rem;
+}
+.ghotiCrudMeta b{ color: var(--text-2); }
+.ghotiPreviewImage{
+  display: block;
+  max-height: 140px;
+  width: auto;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.ghotiManageTable{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 .65rem;
+}
+.ghotiManageTable th{
+  padding: 0 .7rem .25rem;
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  text-align: left;
+}
+.ghotiManageTable td{
+  padding: .7rem;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.ghotiManageTable td:first-child{
+  border-left: 1px solid var(--border);
+  border-radius: 8px 0 0 8px;
+}
+.ghotiManageTable td:last-child{
+  border-right: 1px solid var(--border);
+  border-radius: 0 8px 8px 0;
+}
+
+.captchaBlock{
+  margin: .75rem 0 .85rem;
+  padding: .7rem .8rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.captchaQuestion{
+  display: inline-block;
+  margin: .18rem 0 .35rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.ghotiButton,
+input[type=button], input[type=submit], button{
+  font: inherit; font-weight: 600;
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .55rem 1.05rem; border-radius: var(--radius-sm);
+  border: 1px solid transparent; cursor: pointer;
+  background: var(--accent); color: var(--on-accent);
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease, filter .15s ease;
+  text-decoration: none;
+}
+.ghotiButton:hover,
+input[type=button]:hover, input[type=submit]:hover, button:hover{
+  transform: translateY(-1px); box-shadow: var(--shadow); filter: saturate(1.05); text-decoration: none;
+}
+.ghotiButton:active,
+input[type=button]:active, input[type=submit]:active, button:active{ transform: translateY(0); }
+.ghotiButton img,
+button img{
+  width: 16px;
+  height: 16px;
+  display: block;
+  object-fit: contain;
+}
+.ghotiButtonSecondary,
+input[type=button].ghotiButtonSecondary,
+input[type=submit].ghotiButtonSecondary,
+button.ghotiButtonSecondary{
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.ghotiButtonSecondary:hover,
+input[type=button].ghotiButtonSecondary:hover,
+input[type=submit].ghotiButtonSecondary:hover,
+button.ghotiButtonSecondary:hover{
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.ghotiButtonDanger,
+input[type=button].ghotiButtonDanger,
+input[type=submit].ghotiButtonDanger,
+button.ghotiButtonDanger{
+  background: var(--bad);
+  color: #fff;
+}
+.ghotiButtonDanger:hover,
+input[type=button].ghotiButtonDanger:hover,
+input[type=submit].ghotiButtonDanger:hover,
+button.ghotiButtonDanger:hover{
+  background: color-mix(in srgb, var(--bad) 86%, #000 14%);
+}
+.ghotiButtonCompact{
+  padding: .42rem .7rem;
+  font-size: .9rem;
+}
+
+/* secondary / ghost button (also used by analytics "Download CSV") */
+.btn{
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .5rem .85rem; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+  cursor: pointer; font-weight: 600;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .15s ease;
+}
+.btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--accent); text-decoration: none; }
+
+/* ===== Modal =============================================================== */
 #popup-bg{
-    background: rgba(8,12,20,0.45);
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    backdrop-filter: blur(4px);
-    align-items: center;
-    justify-content: center;
+  display: none;                         /* JS sets display:flex to open */
+  position: fixed; inset: 0; z-index: 9999;
+  align-items: flex-start; justify-content: center;
+  padding: 1.5rem;
+  background: rgba(8,12,20,.5);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
-@media (max-width: 800px) {
-  /* CSS that should be displayed if width is equal to or less than 800px goes here */
 #popup{
-    background: var(--ghoti-surface);
-    border: 1px solid var(--ghoti-border);
-    border-radius: 14px;
-    display: block;
-    min-height: 12rem;
-    min-width: 80%;
-    max-width: 720px;
-    margin: 1rem auto;
-    position: relative;
-    text-align: left;
-    padding: 0.5rem;
-    box-shadow: var(--ghoti-shadow);
-    transform: translateY(8px);
-    opacity: 0;
-    transition: transform .28s ease, opacity .28s ease;
+  width: 100%; max-width: 520px; margin: 6vh auto 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  text-align: left; overflow: hidden; position: relative;
+  opacity: 0; transform: translateY(10px) scale(.985);
+  transition: opacity .25s ease, transform .25s ease;
 }
+#popup.show{ opacity: 1; transform: none; }
+#popup-title{ margin: 0; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+#popup-title h2, #popupTitle{ margin: 0; padding: 0; font-size: 1.1rem; font-weight: 700; color: var(--text); }
+#popup-content{ display: block; padding: 1.25rem; max-height: 70vh; overflow: auto; }
+#popup-content input[type=text], #popup-content input[type=email],
+#popup-content input[type=password], #popup-content textarea, #popup-content select{ width: 100%; margin: .15rem 0 .6rem; }
+#popup-content input[type=button], #popup-content input[type=submit]{ margin-top: .3rem; margin-right: .4rem; }
+#popupFeedback{ display: block; margin-top: .5rem; color: var(--accent-2); font-weight: 600; }
 
-#popup.show {
-    transform: translateY(0);
-    opacity: 1;
+.popup-close{ position: absolute; right: .55rem; top: .55rem; }
+.popup-close a{
+  display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center;
+  border-radius: 8px; color: var(--muted);
+  transition: background .12s ease, transform .12s ease;
 }
+.popup-close a:hover{ background: var(--surface-3); color: var(--text); transform: rotate(90deg); }
+.popup-close img{ width: 13px; height: 13px; opacity: .7; }
 
-#popup-content{
-    display:block;
-    max-height: 65vh;
-    overflow: auto;
-    padding: 1rem;
-    position: relative;
+/* ===== Page editor ========================================================= */
+#managePagePanel{ position: static; }
+.ghotiPageActions{
+  position: absolute;
+  bottom: 1.15rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  margin: 0;
 }
+.ghotiCommentActions{
+  left: 1.25rem;
+  justify-content: flex-start;
 }
-@media (min-width: 801px){
-    #popup{
-        background: #ADADAD;
-        border: solid;
-        border-width: 2px;
-        border-color:  #474a52;
-        display: block;
-        float: none;
-        left:0;
-        margin-left: 33%;
-        /*margin-right: 33%;*/
-        margin-top: 7%;
-        min-height: 15ex;
-        min-width: 33%;
-        position: absolute;
-        text-align: center;
-        top:0;
-        vertical-align: middle;
-        z-index: 1;
-    }
-    #popup-content{
-        display:block;
-        text-align: center;
-        vertical-align: middle;
-        max-height:50ex;
-        min-height:10ex;
-        min-width: 33%;
-        overflow: auto;
-        padding: 0.5em 0.5em 0.5em 0.5em;
-        position: relative;
-        float: none;
-        z-index: 1;
-    }
+.ghotiEditActions{
+  right: 1.25rem;
+  justify-content: flex-end;
+}
+.ghotiIconButton{
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  border: 1px solid color-mix(in srgb, var(--accent) 44%, #ffffff 56%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 70%, #ffffff 30%);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px rgba(255,255,255,.28);
+  opacity: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .12s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.ghotiIconButton:hover{
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, #ffffff 82%);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+}
+.ghotiIconButton:focus-visible{
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, #ffffff 82%);
+}
+.ghotiIconButton:active{ transform: translateY(0); }
+.ghotiIconButton img,
+.ghotiIconButtonImage{
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+  border-radius: 4px;
+  opacity: .88;
+  transition: opacity .12s ease;
+}
+#ghotiContent .ghotiIconButton img{
+  width: 18px;
+  height: 18px;
+}
+.ghotiIconButton:hover img,
+.ghotiIconButton:focus-visible img{ opacity: 1; }
+.ghotiDangerButton:hover{
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+}
+.managePageActions{
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  flex-wrap: wrap;
+  margin-top: .85rem;
+}
+.managePageVisibilityLabel{
+  margin-left: .45rem;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+#managePagePanel .managePageVisibilityLabel{ color: var(--muted); }
+#publicPrivateButton{
+  display: inline-flex;
+  align-items: center;
+}
+#managePageForm{
+  position: relative; visibility: hidden;   /* JS reveals + slides down */
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 1.25rem; margin-top: .6rem;
+}
+#pageTitleEdit{ font-weight: 600; }
+.pageEditArea, #pageContentEdit{
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--text); margin-top: .7rem;
+}
+.pageEditArea:focus, #pageContentEdit:focus{ outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+#managePageForm span, #managePagePanel span{ color: var(--text-2); }
+#managePageForm img, #managePagePanel a img{ vertical-align: middle; cursor: pointer; }
+#publicPrivateButton img{ cursor: pointer; }
 
-}
+/* ===== Site Settings panel ================================================= */
+#ghotiSiteSettings{ max-width: 640px; }
+#ghotiSiteSettings h1{ font-size: 1.55rem; margin: 0 0 .3rem; }
+#ghotiSiteSettings form{ display: flex; flex-direction: column; gap: .2rem; }
+#ghotiSiteSettings p{ margin: .55rem 0; }
+#ghotiSiteSettings > p:first-of-type,
+#ghotiSiteSettings > p:last-child{ color: var(--muted); font-size: .88rem; }
+#ghotiSiteSettings label{ font-weight: 600; color: var(--text); }
+#ghotiSiteSettings input[type=text], #ghotiSiteSettings select{ width: 100%; margin-top: .3rem; }
+#ghotiSiteSettings input[type=checkbox]{ margin-right: .55rem; }
+#ghotiSiteSettings input[type=button]{ margin-top: .4rem; }
 
-#popup-title{
-    margin: 0;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--ghoti-border);
-}
+/* ===== Icons & small imagery =============================================== */
+.linkIcon{ cursor: pointer; vertical-align: middle; }
+img.linkIcon{ width: 20px; height: 20px; border-radius: 5px; transition: transform .12s ease; }
+img.linkIcon:hover{ transform: scale(1.15); }
+.adminIcon{ width: 20px; height: 20px; vertical-align: middle; cursor: pointer; }
+.ghoti-icon{ width: 20px; height: 20px; color: var(--accent); vertical-align: middle; }
 
-#popup-title h2{
-    color: #1f2937;
-    font-family: Inter, Verdana, sans-serif;
-    font-size: 1.05rem;
-    margin: 0;
-}
-
-#popupTitle{
-    margin: 0;
-    padding: 0.5rem 1rem;
-    color: var(--ghoti-muted);
-}
-
-.popup-close{
-    text-align: right;
-    position: absolute;
-    right: 8px;
-    top: 8px;
-}
-.popup-close button{
-    border: 0;
-    background: transparent;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform .12s ease, background .12s ease;
-}
-.popup-close button:hover{
-    transform: rotate(90deg) scale(1.05);
-    background: rgba(0,0,0,0.04);
-}
-.popup-close svg{ width:18px; height:18px; fill:var(--ghoti-muted); }
-
-.linkIcon{
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-}
-.linkIcon::before{
-    content: '';
-    display:inline-block;
-    width: 18px;
-    height: 18px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: .95;
-}
-.boldText{ font-weight: 700; }
+/* ===== Utilities & motion ================================================== */
+.doNotDisplay{ display: none !important; }
 .alignRight{ text-align: right; }
 .alignCentre{ text-align: center; }
-#ghotiBanner{ border:0; }
-#managePageForm{ position:relative; visibility:hidden; }
-#managePagePanel{ position: relative; }
+.boldText{ font-weight: 700; }
 
-/* show/hide helpers */
-#ghotiPrivateMenuTitle, #ghotiAdminMenuTitle{ visibility:hidden; }
-#ghotiPrivateMenu, #ghotiAdminMenu{ visibility:hidden; }
+/* toggled visible by JS on login */
+#ghotiPrivateMenuTitle, #ghotiAdminMenuTitle,
+#ghotiPrivateMenu, #ghotiAdminMenu{ visibility: hidden; }
 
-.flex-container { display:flex; gap:.5rem; }
-.flex-container .box{
-    background: #fff;
-    border-radius: 10px;
-    padding: .75rem;
-    box-shadow: 0 6px 18px rgba(12,24,54,0.06);
-    flex: 1 1 0;
-    min-width: 0;
+.card{
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem;
 }
 
-/* Minor animations */
-.fade-in{ animation: fadeIn .28s ease both; }
-@keyframes fadeIn{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform:none; } }
+.fade-in{ animation: ghotiFadeIn .3s ease both; }
+@keyframes ghotiFadeIn{ from{ opacity: 0; transform: translateY(6px); } to{ opacity: 1; transform: none; } }
 
-.btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .8rem; border-radius:10px; border:1px solid var(--ghoti-border); background: #fff; cursor:pointer; transition: transform .12s ease, box-shadow .12s ease; }
-.btn:hover{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,20,40,0.06); }
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{ animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
 
-.card{ border-radius: 14px; box-shadow: var(--ghoti-shadow); background: var(--ghoti-surface); padding: 1rem; }
+/* ===== Responsive ========================================================== */
+@media (max-width: 820px){
+  .rowOfBoxes{ flex-direction: column; }
+  .twoThirds, .oneThird, .quarter{ flex: 1 1 auto; }
+  #ghotiContent{ padding: 1.3rem 1.15rem 4.5rem; }
+  .ghotiFieldWide{ grid-column: span 1; }
+  .ghotiCrudActions{ justify-content: flex-start; }
+  .ghotiManageTable{ display: block; overflow-x: auto; }
+  .midHeader{ padding: .8rem var(--gutter); }
+  .midHeader img{ height: 42px; }
+  #popup{ max-width: 100%; margin-top: 2vh; }
+}

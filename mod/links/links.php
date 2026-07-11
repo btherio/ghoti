@@ -3,7 +3,7 @@
  * Created on Apr 2, 2009
  */
 include_once('links.db.php');
-include_once('links.ui.php');
+include_once('links.async.php'); //endpoints + class linksui
 class links{
 	public $linksdb,$linksui;
 	public function __construct(){

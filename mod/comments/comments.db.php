@@ -13,14 +13,9 @@ class commentsdb extends ghotidb{
 	}
 	function addComment($comment){
 		try{
-			$dbresult = $this->adodb->Execute("insert into comments(userId,pageId,comment) values(?,?,?)",array($comment->m_userId,$comment->m_pageId,$comment->m_comment));
-			if (!$dbresult){
-				mylogerr($this->adodb->ErrorMsg());	
-				ghoti::log("comments.db.php: $this->adodb->ErrorMsg()");
-				throw new Exception ('Database error. Check ghoti logs.');
-			}
-		}catch (exception $e){
-			ghoti::log("comments.db.php $e");
+			$dbresult = $this->query("insert into comments(userId,pageId,comment) values(?,?,?)",array($comment->m_userId,$comment->m_pageId,$comment->m_comment));
+		}catch (Throwable $e){
+			ghoti::log("comments.db.php ".$e->getMessage());
 			return false;
 		}
 		//ghoti::debug("comments.db.php.addComment result: ".$dbresult->fields[0]);
@@ -28,37 +23,39 @@ class commentsdb extends ghotidb{
 		return true;
 
 	}
-	
+
 	function getPageComments($pageId){
-		try{	
-			$dbresult = $this->adodb->Execute("SELECT comments.commentId,users.userName,comments.comment,comments.userId FROM `comments`,`users` where users.userId = comments.userId AND pageId = ? order by commentId;",array($pageId));
-			if (!$dbresult){
-				mylogerr($this->adodb->ErrorMsg());	
-				ghoti::log("comments.db.php: $this->adodb->ErrorMsg()");
-				throw new Exception ('Database error. Check ghoti logs.');
-			}
-		}catch (exception $e){
-			ghoti::log("comments.db.php $e");
+		try{
+			$dbresult = $this->query("SELECT comments.commentId,users.userName,comments.comment,comments.userId FROM `comments`,`users` where users.userId = comments.userId AND pageId = ? order by commentId;",array($pageId));
+		}catch (Throwable $e){
+			ghoti::log("comments.db.php ".$e->getMessage());
 			return false;
 		}
 		return $dbresult;
 	}
-	
+
 	function deleteComment($commentId){
-		try{	
-			$dbresult = $this->adodb->Execute("delete from comments where commentId = ?",array($commentId));
-			if (!$dbresult){
-				mylogerr($this->adodb->ErrorMsg());	
-				ghoti::log("comments.db.php: $this->adodb->ErrorMsg()");
-				throw new Exception ('Database error. Check ghoti logs.');
-			}
-		}catch (exception $e){
-			ghoti::log("comments.db.php $e");
+		try{
+			$dbresult = $this->query("delete from comments where commentId = ?",array($commentId));
+		}catch (Throwable $e){
+			ghoti::log("comments.db.php ".$e->getMessage());
 			return false;
 		}
 		return $dbresult;
 	}
-	
-	
+
+	//Returns the userId that owns a comment, or false if not found / on error.
+	//Used to enforce "author or admin" deletion server-side.
+	function getCommentOwner($commentId){
+		try{
+			$dbresult = $this->queryArray("select userId from comments where commentId = ?",array((int)$commentId));
+		}catch (Throwable $e){
+			ghoti::log("comments.db.php ".$e->getMessage());
+			return false;
+		}
+		return isset($dbresult[0][0]) ? (int)$dbresult[0][0] : false;
+	}
+
+
 }
 ?>

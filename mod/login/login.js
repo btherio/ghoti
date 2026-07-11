@@ -1,21 +1,20 @@
 $(document).ready(function(){
-	//this runs these functions when the page is finished loading
-	checkLogin();//checks if we're logged in
-	x_checkGetLogin(getLogin_cb); //checks if the ?login is set, and displays a popupLogin
+	checkLogin();
+	x_checkGetLogin(getLogin_cb);
 });
-//ajax functions
+
 function login(){
-	var username = $("#userName").val();
+	var username = $("#userName").val().trim();
 	var password = $("#password").val();
-	
+
 	if(!username || !password){
-		$("#loginFeedback").html("Required field missing")
-		window.setTimeout('$("#loginFeedback").html("")',3000);
+		$("#loginFeedback").html("Required field missing");
+		window.setTimeout(function(){ $("#loginFeedback").html(""); },3000);
 	}else{
-		var md5password = hex_md5(password);	
-		x_login(username,md5password,login_cb);			
+		x_login(username,password,login_cb);
 	}
 }
+
 function logout_cb(result){
 		if(result){
 			//x_logToFile('logout success');
@@ -27,33 +26,26 @@ function logout(){
 	x_logout(logout_cb);
 }
 function register(){
-	var username = $("#registerForm-userName").val();
-	var email = $("#registerForm-email").val();
+	var username = $("#registerForm-userName").val().trim();
+	var email = $("#registerForm-email").val().trim();
 	var password = $("#registerForm-password").val();
 	var password1 = $("#registerForm-password1").val();
-	
-	if(!username || !password || !password1 || !email){
+	var captchaAnswer = $("#registerForm-captcha").val();
+
+	if(!username || !password || !password1 || !email || !captchaAnswer){
 		popupFeedBack("Required field missing.");
-	}else	if(password != password1){
+	}else if(password != password1){
 		popupFeedBack("New passwords don't match.");
-	}else if(password.length < 6){
+	}else if(password.length < 8){
 		popupFeedBack("New password is too short.");
 	}else{
-		var md5password = hex_md5(password);	
-		x_addUser(username,email,md5password,register_cb);	
+		x_addUser(username,email,password,captchaAnswer,register_cb);
 	}
 }
 
 function printRegisterForm(){
-	//Prints register form to a popup window
 	$("#popupTitle").html("Register");
-	$("#popup-content").html("<form id=\"registerForm\" action=\"javascript:register();\">\n");
-	$("#popup-content").append("Username:<br /><input type=\"text\" id=\"registerForm-userName\" size=\"10\" /><br />\n");
-	$("#popup-content").append("E-Mail:<br /><input type=\"text\" id=\"registerForm-email\" size=\"10\" /><br />\n");
-	$("#popup-content").append("Password:<br /><input type=\"password\" id=\"registerForm-password\" size=\"10\" /><br />\n");
-	$("#popup-content").append("Password(<i>again</i>):<br /><input type=\"password\" id=\"registerForm-password1\" size=\"10\" /><br />\n");
-	$("#popup-content").append("<input type=\"submit\" value=\"Register\" onclick=\"register();\" /></form>\n");
-	showPopup();	
+	x_printRegisterForm(popup_cb);
 }
 function printManageUserForm(){
 	x_printManageUserForm(printPage);
@@ -95,74 +87,68 @@ function changePassword(){
 	var password = $("#chpw-password").val();
 	var newPassword1 = $("#chpw-newPassword1").val();
 	var newPassword2 = $("#chpw-newPassword2").val();
-	
-	if(!password || !newPassword1 || !newPassword2){
+	var captchaAnswer = $("#chpw-captcha").val();
+
+	if(!password || !newPassword1 || !newPassword2 || !captchaAnswer){
 		popupFeedBack("Required field missing.");
 	}else if(newPassword1 != newPassword2){
 		popupFeedBack("New passwords don't match.");
-	}else if(newPassword1.length < 6){
+	}else if(newPassword1.length < 8){
 		popupFeedBack("New password is too short.");
 	}else{
-		var md5newPassword = hex_md5(newPassword1);
-		var md5password = hex_md5(password);
-		x_changePassword(md5password,md5newPassword,changePassword_cb);
+		x_changePassword(password,newPassword1,captchaAnswer,changePassword_cb);
 	}
 }
+
 function printChangePasswordForm(){
-	//first make the form
 	$("#popupTitle").html("Change Password");
-	$("#popup-content").append("<form action=\"#\">");
-	$("#popup-content").append("Old Password:<input type=\"password\" id=\"chpw-password\" size=\"10\" /><br />");
-	$("#popup-content").append("New Password:<input type=\"password\" id=\"chpw-newPassword1\" size=\"10\" /><br />");
-	$("#popup-content").append("New Password:<input type=\"password\" id=\"chpw-newPassword2\" size=\"10\" /><br />");
-	$("#popup-content").append("<input type=\"submit\" value=\"Change Password\" onclick=\"changePassword();\"/>");
-	$("#popup-content").append("<input type=\"button\" value=\"Remove Account\" =class=\"ghotiMenu\" onclick=\"printDeleteUserDialog();\" /></form>")
-	showPopup();//then show the popup
+	x_printChangePasswordForm(popup_cb);
 }
 function printDeleteUserDialog(){
 	$("#popupTitle").html("Delete Account?");
-	$("#popup-content").append("This will delete your account and everything associated with it.<br />");
-	$("#popup-content").append("Delete Account?<br />");
-	$("#popup-content").append("<input type=\"button\" value=\"Delete!\" onclick=\"deleteUser(0);\"><br />");
+	$("#popup-content").html(
+		"<div class=\"ghotiForm\">"+
+			"<p class=\"ghotiHelpText\">This will delete your account and everything associated with it.</p>"+
+			"<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonDanger\" onclick=\"deleteUser(0);\">Delete Account</button></div>"+
+		"</div>"
+	);
 	showPopup();
 }
 function checkLogin(){
-  /* This is totally unsecure IMO. Basically we are trusting 
-  * the users cookies to tell us whether or not they are logged in. 
-  * Without even verifying it with a password prompt. Just asking politely. Hmm.
-  * Maybe I'm just paranoid.
-  */
-  x_checkLogin(checkLogin_cb);
+	x_checkLogin(checkLogin_cb);
 }
-//callbacks
+
 function checkLogin_cb(result){
-	/*At first glance, this seems useless, but it avoids unneccesary login attempts*/
 	if(result > 0){
-		//success
-		//x_logToFile(result);
 		login_cb(result);
 	}else{
-		//fail
 		return false;
 	}
 }
+
 function login_cb(id){
-	if(id > 0){ //assume if ID is above 0 then it's set, so we are successfully logging in
-		//alert(id);
-		x_setSessionVars(id,doNothing_cb);
-		x_printSystemMenu(systemMenu_cb);
-		x_refreshPrivateMenu(privateMenu_cb);
-		x_isAdmin(id,adminMenu_cb);
+	if(id > 0){
+		// setSessionVars regenerates the session id (session_regenerate_id).
+		// The remaining calls MUST wait for it to finish and for the new session
+		// cookie to be applied - otherwise they race, each arriving with the old
+		// (now-deleted) session id, spawn fresh empty sessions under
+		// session.use_strict_mode, and the browser ends up on a session with no
+		// userId. That is what caused "admin access required" while logged in.
+		x_setSessionVars(id, function(){
+			x_printSystemMenu(systemMenu_cb);
+			x_refreshPrivateMenu(privateMenu_cb);
+			x_isAdmin(id,adminMenu_cb);
+			x_getDefaultPage(printPage);
+		});
 		cancelPopup('popup-bg');
-		x_getDefaultPage(printPage);
 	}else if(id == 0){
 		$("#loginFeedback").html("Bad username or password!");
-		window.setTimeout('$("#loginFeedback").html("");',3000);
+		window.setTimeout(function(){ $("#loginFeedback").html(""); },3000);
 	}
 }
 function changePassword_cb(result){
 	if(result != true){
-		popupFeedBack("Changing password failed. Check your current password.");
+		popupFeedBack(result || "Changing password failed. Check your current password.");
 	}else{
 		popupFeedBack("Password changed!");
 	}
@@ -179,27 +165,21 @@ function adminMenu_cb(result){
 function systemMenu_cb(systemMenu){
 	$("#ghotiLogin").html(systemMenu);
 	$("#ghotiLoginTitle").html("Logged in");
-	$(".ghotiMenu").click(function(e){ //we do this again, because we just made more links.
-			e.preventDefault();// stop normal link click on ghotiMenu links
-		});
+	bindGhotiMenuLinks();
 }
 function privateMenu_cb(privateMenu){
 	$("#ghotiPrivateMenu").html(privateMenu);
 	$("#ghotiPrivateMenuTitle").html("Private Menu");
 	$("#ghotiPrivateMenuTitle").css("visibility","visible");
 	$("#ghotiPrivateMenu").css("visibility","visible");
-	$(".ghotiMenu").click(function(e){ //we do this again, because we just made more links.
-			e.preventDefault();// stop normal link click on ghotiMenu links
-		});
+	bindGhotiMenuLinks();
 }
 function printAdminMenu_cb(adminMenu){
 	$("#ghotiAdminMenu").html(adminMenu);
 	$("#ghotiAdminMenuTitle").html("Admin Menu");
 	$("#ghotiAdminMenuTitle").css("visibility","visible");
 	$("#ghotiAdminMenu").css("visibility","visible");
-	$(".ghotiMenu").click(function(e){ //we do this again, because we just made more links.
-			e.preventDefault();// stop normal link click on ghotiMenu links
-	});
+	bindGhotiMenuLinks();
 }
 function register_cb(resultMessage){
 	if(resultMessage == true){

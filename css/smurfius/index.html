@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smurfius — Design Systems &amp; Visual Engineering</title>
+  <meta name="description" content="Portfolio of a designer operating at the intersection of craft, systems, and code.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-layer" aria-hidden="true">
+    <img src="background.png" alt="" class="bg-layer__image" width="1920" height="1080">
+    <div class="bg-layer__veil"></div>
+  </div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <header class="site-header" data-animate="header">
+    <div class="header-layout">
+      <a href="/" class="header-brand" aria-label="Smurfius — home">
+        <span class="brand-logo">
+          <img src="smurfius.png" alt="Smurfius" class="brand-logo__img" width="200" height="200">
+        </span>
+        <span class="brand-name">smurfius</span>
+      </a>
+
+      <nav class="menu-cluster menu-cluster--primary" aria-label="Public navigation">
+        <ul class="user-menu" data-menu="user">
+          <li class="menu-label"><span>user</span></li>
+          <li><a href="/">index</a></li>
+          <li><a href="/work">work</a></li>
+          <li>
+            <a href="/projects">projects</a>
+            <ol>
+              <li><a href="/projects/brand">brand systems</a></li>
+              <li><a href="/projects/product">product ui</a></li>
+              <li><a href="/projects/motion">motion studies</a></li>
+            </ol>
+          </li>
+          <li><a href="/about">about</a></li>
+          <li><a href="/contact">contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <div class="telemetry-readout" aria-hidden="true">
+          <span class="telemetry-item" data-telemetry="fps">fps —</span>
+          <span class="telemetry-item" data-telemetry="time">00:00:00</span>
+        </div>
+        <button type="button" class="btn-login" id="login-btn" data-auth="login">
+          <span class="btn-login__icon" aria-hidden="true">⎆</span>
+          <span class="btn-login__text">login</span>
+        </button>
+      </div>
+
+      <nav class="menu-cluster menu-cluster--secondary" aria-label="Authenticated navigation">
+      <!-- Private menu — authenticated client area; backend renders active view -->
+      <ul class="private-menu" data-menu="private">
+        <li class="menu-label"><span>private</span></li>
+        <li><a href="/private/dashboard">dashboard</a></li>
+        <li>
+          <a href="/private/deliverables">deliverables</a>
+          <ol>
+            <li><a href="/private/deliverables/active">active</a></li>
+            <li><a href="/private/deliverables/archive">archive</a></li>
+          </ol>
+        </li>
+        <li><a href="/private/assets">asset vault</a></li>
+        <li><a href="/private/messages">messages</a></li>
+        <li><a href="/private/settings">settings</a></li>
+      </ul>
+
+      <!-- Admin menu — operator controls; backend enforces access -->
+      <ul class="admin-menu" data-menu="admin">
+        <li class="menu-label"><span>admin</span></li>
+        <li><a href="/admin/overview">overview</a></li>
+        <li>
+          <a href="/admin/content">content</a>
+          <ol>
+            <li><a href="/admin/content/pages">pages</a></li>
+            <li><a href="/admin/content/media">media</a></li>
+            <li><a href="/admin/content/collections">collections</a></li>
+          </ol>
+        </li>
+        <li><a href="/admin/users">users</a></li>
+        <li><a href="/admin/analytics">analytics</a></li>
+        <li><a href="/admin/system">system</a></li>
+      </ul>
+      </nav>
+    </div>
+
+    <div class="scroll-progress" aria-hidden="true"><span class="scroll-progress__bar"></span></div>
+  </header>
+
+  <main class="site-main">
+    <section class="hero" data-animate="hero">
+      <div class="hero-coords">
+        <span>x: <em data-coord="x">0.000</em></span>
+        <span>y: <em data-coord="y">0.000</em></span>
+        <span>scroll: <em data-coord="scroll">0</em>%</span>
+      </div>
+
+      <div class="hero-content">
+        <p class="hero-eyebrow"><span class="cursor-blink">_</span> portfolio v2.4.1</p>
+        <h1 class="hero-title">
+          <span class="title-line">Precision</span>
+          <span class="title-line title-line--accent">meets</span>
+          <span class="title-line">expression.</span>
+        </h1>
+        <p class="hero-lede">
+          Visual systems architect. I design interfaces that feel inevitable —
+          grid-native, token-driven, and built for teams who ship.
+        </p>
+        <ul class="hero-specs">
+          <li><strong>focus</strong> design systems · product ui · art direction</li>
+          <li><strong>stack</strong> figma · css · motion · prototyping</li>
+          <li><strong>status</strong> <span class="status-pulse">available for select projects</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="work-grid content-panel" id="work" data-animate="section">
+      <header class="section-header">
+        <h2>selected work</h2>
+        <ol class="section-index">
+          <li>01</li>
+          <li>02</li>
+          <li>03</li>
+          <li>04</li>
+        </ol>
+      </header>
+
+      <ul class="project-list">
+        <li class="project-card" data-project="01">
+          <article>
+            <span class="project-id">01 / 04</span>
+            <h3>Neural Grid Identity</h3>
+            <p>Brand system for a compute infrastructure startup. Modular mark, dark-mode-first tokens, 140+ components.</p>
+            <ul class="project-tags">
+              <li>brand</li>
+              <li>systems</li>
+              <li>2025</li>
+            </ul>
+          </article>
+        </li>
+        <li class="project-card" data-project="02">
+          <article>
+            <span class="project-id">02 / 04</span>
+            <h3>Atlas Dashboard</h3>
+            <p>Enterprise analytics interface. Density modes, real-time data viz, accessibility AA throughout.</p>
+            <ul class="project-tags">
+              <li>product</li>
+              <li>ui</li>
+              <li>2024</li>
+            </ul>
+          </article>
+        </li>
+        <li class="project-card" data-project="03">
+          <article>
+            <span class="project-id">03 / 04</span>
+            <h3>Kinetic Type Lab</h3>
+            <p>Experimental motion typography series. Scroll-linked easing, variable font axes, WebGL overlays.</p>
+            <ul class="project-tags">
+              <li>motion</li>
+              <li>type</li>
+              <li>2024</li>
+            </ul>
+          </article>
+        </li>
+        <li class="project-card" data-project="04">
+          <article>
+            <span class="project-id">04 / 04</span>
+            <h3>Signal Protocol</h3>
+            <p>Design ops framework for distributed teams. Figma libraries, CI linting, contribution workflows.</p>
+            <ul class="project-tags">
+              <li>ops</li>
+              <li>tooling</li>
+              <li>2023</li>
+            </ul>
+          </article>
+        </li>
+      </ul>
+    </section>
+
+    <section class="capabilities content-panel" data-animate="section">
+      <header class="section-header">
+        <h2>capabilities</h2>
+      </header>
+      <ol class="capability-list">
+        <li>
+          <span class="cap-num">01</span>
+          <div>
+            <h3>Design Systems</h3>
+            <p>Token architecture, component libraries, documentation that engineers actually use.</p>
+          </div>
+        </li>
+        <li>
+          <span class="cap-num">02</span>
+          <div>
+            <h3>Product Interface</h3>
+            <p>Complex dashboards, onboarding flows, and responsive layouts at scale.</p>
+          </div>
+        </li>
+        <li>
+          <span class="cap-num">03</span>
+          <div>
+            <h3>Visual Direction</h3>
+            <p>Art direction, campaign systems, and brand evolution for technical products.</p>
+          </div>
+        </li>
+        <li>
+          <span class="cap-num">04</span>
+          <div>
+            <h3>Motion &amp; Prototype</h3>
+            <p>High-fidelity prototypes, micro-interaction specs, Lottie and CSS motion handoff.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="site-footer content-panel">
+    <ul class="footer-links">
+      <li><a href="mailto:hello@smurfius.com">hello@smurfius.com</a></li>
+      <li><a href="/rss">rss</a></li>
+      <li><a href="/colophon">colophon</a></li>
+    </ul>
+    <p class="footer-copy">&copy; <span id="year"></span> smurfius — engineered with intent</p>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

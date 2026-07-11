@@ -2,203 +2,264 @@
 /*
  * Created on Apr 3, 2009
  */
- 
+
 class logindb extends ghotidb{
 	/**
 	 * Storage for method results used across the class.
 	 * Declared to avoid dynamic property issues on newer PHP versions.
 	 */
 	protected $result = array();
+	protected $passwordAlgo;
+
 	public function __construct(){
 		parent::__construct();
 		parent::loadModuleSql("login");
+		// NOTE: do NOT probe the password algorithm here. This constructor runs
+		// on every request (index.php always does `new login()`), and probing
+		// used to call password_hash() with Argon2id - a deliberately slow KDF
+		// (tens to hundreds of ms) - on every single request, including plain
+		// page views that never touch a password. The algorithm is now resolved
+		// lazily, only when we actually hash/verify (see algo()).
 	}
+
 	public function __destruct(){
 		parent::__destruct();
 	}
-	
+
+	//Resolve (and memoize for this request) the password hashing algorithm.
+	protected function algo(){
+		if ($this->passwordAlgo === null) {
+			$this->passwordAlgo = $this->getPasswordHashAlgo();
+		}
+		return $this->passwordAlgo;
+	}
+
+	protected function getPasswordHashAlgo(){
+		if (defined('PASSWORD_ARGON2ID') && PASSWORD_ARGON2ID !== 0) {
+			$testHash = @password_hash('ghoti-test-password', PASSWORD_ARGON2ID);
+			if ($testHash !== false) {
+				return PASSWORD_ARGON2ID;
+			}
+		}
+		return PASSWORD_DEFAULT;
+	}
+
+	protected function hashPassword($password){
+		try {
+			$hash = password_hash((string) $password, $this->algo());
+			if ($hash !== false) {
+				return $hash;
+			}
+		} catch (Throwable $e) {
+			ghoti::log("login.db.php password_hash fallback: ".$e->getMessage());
+		}
+		return password_hash((string) $password, PASSWORD_DEFAULT);
+	}
+
+	protected function normalizeValue($value){
+		return trim((string) $value);
+	}
+
+	protected function validatePassword($password){
+		if (strlen((string) $password) < 8) {
+			throw new Exception("Password must be at least 8 characters.");
+		}
+	}
+
 	public function addUser($userName,$password,$email){
-		$newId = array();
+		$userName = $this->normalizeValue($userName);
+		$email = $this->normalizeValue($email);
+		$password = (string) $password;
+
+		ghoti::log("login.db.php addUser start for '$userName'");
+
+		if ($userName === '' || $email === '' || $password === '') {
+			ghoti::log("login.db.php addUser rejected for '$userName': empty required field");
+			return false;
+		}
+
 		if(!$this->checkDuplicate($userName,$email)){
 			try{
-				$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-				//execute the sql
-				$nonQuery = $this->adodb->Execute("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$hashedPassword,$email,false));
-				if (!$nonQuery) ghoti::log($this->adodb->ErrorMsg()); //log any mysql errors
-				
-				$query = $this->adodb->Execute("select count(userId) from users;");//select the usercount to see if we should make them admin
-				if(!$query) ghoti::log($this->adodb->ErrorMsg());
-				
-				if($query->fields[0] === '1'){ //if the count is 1, then this is the first user and we want to grant admin rights
-					$nonquery = $this->adodb->Execute("update users set admin = ? where admin = 0",array("1"));
-					if (!$nonquery) ghoti::log($this->adodb->ErrorMsg());
+				$this->validatePassword($password);
+				ghoti::log("login.db.php addUser password validated for '$userName'");
+				$hashedPassword = $this->hashPassword($password);
+				ghoti::log("login.db.php addUser hashing succeeded for '$userName'");
+				$this->query("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$hashedPassword,$email,0));
+				ghoti::log("login.db.php addUser insert succeeded for '$userName'");
+
+				$query = $this->query("select count(userId) from users;");
+				ghoti::log("login.db.php addUser count query returned ".var_export($query->fields, true));
+
+				if((int) $query->fields[0] === 1){
+					$this->query("update users set admin = ? where admin = 0",array(1));
+					ghoti::log("login.db.php addUser promoted first user to admin");
 				}
-				
-			}catch (exception $e){
-				ghoti::log("login.db.php $e");
+			}catch (Throwable $e){
+				ghoti::log("login.db.php addUser failed for '$userName': ".$e->getMessage());
 				return false;
 			}
-			
-			return true;	
-		}else{
-			return false;
-		}
-		
-	}
-	public function checkDuplicate($userName,$email){
-		$result = array();
-		try{
-			$records = $this->adodb->Execute("select userId from users where userName = ? or email = ?",array($userName,$email));
-			if (!$records) ghoti::log($this->adodb->ErrorMsg());	
-		}catch (exception $e){
-			ghoti::log("login.db.php $e");
-			return false;
-		}
-		foreach ($records as $records=>$row){
-			$result[0] .= $row[0];
-		}
-		if($result[0] > 0){
-			//if this is true then we must have found a duplicate
+
 			return true;
-		}else{
-			//no dupes
+		}
+		ghoti::log("login.db.php addUser rejected for '$userName': duplicate detected");
+		return false;
+	}
+
+	public function checkDuplicate($userName,$email){
+		$userName = $this->normalizeValue($userName);
+		$email = $this->normalizeValue($email);
+		try{
+			$records = $this->query("select userId from users where userName = ? or email = ?",array($userName,$email));
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
 			return false;
 		}
+		$found = false;
+		foreach ($records as $row){
+			$found = true;
+			break;
+		}
+		return $found;
 	}
+
 	public function isAdmin($id){
 		$this->result = array();
 		$this->result[0] = "";
 		try{
-			$records = $this->adodb->Execute("select admin from users where userId = ?",array($id));
-		}catch (exception $e){
-			ghoti::log("login.db.php $e");
+			$records = $this->query("select admin from users where userId = ?",array((int) $id));
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
 			return false;
 		}
-		foreach ($records as $records=>$row){
+		foreach ($records as $row){
 			$this->result[0] .= $row[0];
 		}
-		if($this->result[0] === '1'){
+		if($this->result[0] === '1' || $this->result[0] === 1){
 			ghoti::debug("isAdmin == true");
 			return true;
-		}else{
-			ghoti::debug("isAdmin == false");
-			return false;
 		}
+		ghoti::debug("isAdmin == false");
+		return false;
+	}
 
-		
-	}
-	
 	public function authenticate($userName,$password){
-		$result = array("");
+		$userName = $this->normalizeValue($userName);
+		$password = (string) $password;
+		ghoti::log("login.db.php authenticate start for '$userName'");
 		try{
-			$auth = $this->adodb->Execute("select userId,password from users where userName = ?",array($userName));
-			if (!$auth) ghoti::log($this->adodb->ErrorMsg());
-		}catch (exception $e){
-			ghoti::log("login.db.php $e");
+			$auth = $this->query("select userId,password from users where userName = ? limit 1",array($userName));
+		}catch (Throwable $e){
+			ghoti::log("login.db.php authenticate query failed for '$userName': ".$e->getMessage());
 			return false;
 		}
-		foreach ($auth as $records=>$row){
-			$storedHash = $row[1];
-			if (password_verify($password, $storedHash)) {
-				$result[0] .= $row[0];
-				break;
+		foreach ($auth as $row){
+			$storedHash = (string) $row[1];
+			ghoti::log("login.db.php authenticate found user '$userName' with stored hash length ".strlen($storedHash));
+			if (is_string($storedHash) && $storedHash !== '' && password_verify($password, $storedHash)) {
+				ghoti::log("login.db.php authenticate verified password hash for '$userName'");
+				if (password_needs_rehash($storedHash, $this->algo())) {
+					$this->query("update users set password = ? where userId = ?", array($this->hashPassword($password), $row[0]));
+				}
+				return (string) $row[0];
 			}
-			// support legacy plaintext passwords during migration
-			if ($storedHash === $password) {
-				$result[0] .= $row[0];
-				$updateHash = password_hash($password, PASSWORD_DEFAULT);
-				$this->adodb->Execute("update users set password = ? where userId = ?", array($updateHash, $row[0]));
-				break;
+			if (is_string($storedHash) && $storedHash !== '' && $storedHash === $password) {
+				ghoti::log("login.db.php authenticate matched legacy plaintext password for '$userName'");
+				$this->query("update users set password = ? where userId = ?", array($this->hashPassword($password), $row[0]));
+				return (string) $row[0];
 			}
 		}
-		return $result[0];
+		ghoti::log("login.db.php authenticate failed for '$userName': no matching password hash");
+		return false;
 	}
-	
+
 	public function getUserList(){
 		try{
-			$userList = $this->adodb->Execute("select userId,userName,email,admin from users");
-			if (!$userList) ghoti::log($this->adodb->ErrorMsg());	
-		}catch (exception $e){
-			ghoti::log("login.db.php $e");
+			$userList = $this->query("select userId,userName,email,admin from users");
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
 			return false;
 		}
 		return $userList;
 	}
+
 	public function updateUser($userId,$userName,$email){
 		try{
-			$rs = $this->adodb->Execute("update users set userName = ?, email = ? where userId = ?",array($userName,$email,$userId));
-			if (!$rs) ghoti::log($this->adodb->ErrorMsg());	
-		}catch (exception $e){
-			ghoti::log("login.db.php $e");
+			$this->query("update users set userName = ?, email = ? where userId = ?",array($userName,$email,$userId));
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
 			return false;
 		}
 		return true;
 	}
+
+	public function countAdmins(){
+		try{
+			$numberOfAdmins = $this->query("select count(userId) from users where admin = 1;");
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
+			return 0;
+		}
+		return isset($numberOfAdmins->fields[0]) ? (int) $numberOfAdmins->fields[0] : 0;
+	}
+
 	public function deleteUser($userId){
 		try{
-			$numberOfAdmins = $this->adodb->Execute("select count(userId) from users where admin = 1;");//select the usercount to see if we should make them admin
-			if(!$numberOfAdmins) ghoti::log($this->adodb->ErrorMsg());
-			if($numberOfAdmins->fields[0] === '1' && isAdmin($userId)){ //if the count is 1, then there's only 1 admin left and Im it, then we don't want to delete.
-					Throw new Exception("Can't delete only admin.");
+			if($this->countAdmins() <= 1 && $this->isAdmin($userId)){
+				Throw new Exception("Can't delete only admin.");
 			}else{
-				$users = $this->adodb->Execute("delete from users where userId = ?;",array($userId));
-				if (!$users) ghoti::log($this->adodb->ErrorMsg());
-				$comments = $this->adodb->Execute("delete from comments where userId = ?;",array($userId));
-				if (!$comments) ghoti::log($this->adodb->ErrorMsg());
+				$this->query("delete from users where userId = ?;",array($userId));
+				$this->query("delete from comments where userId = ?;",array($userId));
 			}
-		}catch (exception $e){
+		}catch (Throwable $e){
 			ghoti::log("login.db.php ".$e->getMessage());
 			return $e->getMessage();
 		}
-		return true;	
+		return true;
 	}
-	public function checkForLastAdmin(){
-		try{
 
-		}catch(Exception $e){
-			return $e->getMessage();
-		}
-		return true; //if we made it this far.
-	}
-	public function toggleAdmin($userId){
+	public function toggleAdmin($userId,$actorUserId = 0){
+		$userId = (int) $userId;
+		$actorUserId = (int) $actorUserId;
 		try{
-			if(isAdmin($userId)){
-				$numberOfAdmins = $this->adodb->Execute("select count(userId) from users where admin = 1;");//select the usercount to see if we should make them admin
-				if(!$numberOfAdmins) ghoti::log($this->adodb->ErrorMsg());
-				if($numberOfAdmins->fields[0] === '1'){ //if the count is 1, then there's only 1 admin left(us presumably) and we don't want to toggle.
+			if($this->isAdmin($userId)){
+				$numberOfAdmins = $this->countAdmins();
+				if($numberOfAdmins <= 1){
+					if($actorUserId === $userId){
+						Throw new Exception("You can't remove admin rights from the only admin account.");
+					}
 					Throw new Exception("Can't revoke admin rights from only admin.");
 				}else{
-					$rs = $this->adodb->Execute("update users set admin = 0 where userId = ?;",array($userId)); //toggle it off	
+					$this->query("update users set admin = 0 where userId = ?;",array($userId));
 				}
 			}else{
-				$rs = $this->adodb->Execute("update users set admin = 1 where userId = ?;",array($userId)); //toggle it on
+				$this->query("update users set admin = 1 where userId = ?;",array($userId));
 			}
-			if (!$rs) ghoti::log($this->adodb->ErrorMsg());
-		}catch (Exception $e){
-			ghoti::log("login.db.php ".$e->getMessage()); //we only want to log the message this time.
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
 			return $e->getMessage();
 		}
 		return true;
 	}
+
 	public function changePassword($userId,$password){
 		try{
-			$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-			$sql = $this->adodb->Execute("update users set password = ? where userId = ?",array($hashedPassword,$userId));
-		}catch (exception $e){
-			ghoti::log("login.db.php $e");
-			return false;		
+			$hashedPassword = $this->hashPassword($password);
+			$this->query("update users set password = ? where userId = ?",array($hashedPassword,$userId));
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
+			return false;
 		}
 		return true;
 	}
+
 	public function getUserNameById($userId){
 		try{
-			$query = $this->adodb->Execute("select userName from users where userId = ?",array($userId));
-			if (!$query) ghoti::log($this->adodb->ErrorMsg());
-		}catch (exception $e){
-			ghoti::log("login.db.php $e");
-			return false;		
+			$query = $this->query("select userName from users where userId = ?",array($userId));
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
+			return false;
 		}
-		return $query->fields[0];			
+		return $query->fields[0];
 	}
 }
 ?>

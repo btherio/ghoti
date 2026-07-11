@@ -6,11 +6,8 @@ $(document).ready(function(){
 	//getDefaultPage(); //gets the def
 	
 	x_getDefaultPage(printPage);
-	x_getLinks(getLinks_cb); //gets the links and starts the timed links updating cycle that I'm not fond of.
-	
-	$(".ghotiMenu").click(function(e){
-		e.preventDefault();// stop normal link click on ghotiMenu links
-	});
+	x_getLinks(getLinks_cb); //loads the links pane once; it now refreshes on change instead of polling every 3s.
+	bindGhotiMenuLinks();
 
 	// inject lightweight SVG icons for any .linkIcon elements missing an image
 	function injectIcons(){
@@ -30,9 +27,27 @@ $(document).ready(function(){
 
 /*These are some nice strip/add slashes functions google found for me @ about.com
 * an alternative to this could have been shooting the slashed data back to php ala
-* sajax.
+* the ghoti async layer.
 */
+function ghotiString(value) {
+	if(value === null || typeof value === 'undefined'){
+		return "";
+	}
+	return String(value);
+}
+function ghotiEscapeHtml(value) {
+	return ghotiString(value)
+		.replace(/&/g,'&amp;')
+		.replace(/</g,'&lt;')
+		.replace(/>/g,'&gt;')
+		.replace(/"/g,'&quot;')
+		.replace(/'/g,'&#039;');
+}
+function ghotiEscapeHtmlAttr(value) {
+	return ghotiEscapeHtml(value);
+}
 function addslashes(str) {
+	str = ghotiString(str);
 	str=str.replace(/\\/g,'\\\\');
 	str=str.replace(/\'/g,'\\\'');
 	str=str.replace(/\"/g,'\\"');
@@ -40,11 +55,20 @@ function addslashes(str) {
 	return str;
 }
 function stripslashes(str) {
+	str = ghotiString(str);
 	str=str.replace(/\\'/g,'\'');
 	str=str.replace(/\\"/g,'"');
 	str=str.replace(/\\0/g,'\0');
 	str=str.replace(/\\\\/g,'\\');
 	return str;
+}
+
+function bindGhotiMenuLinks(){
+	$(document)
+		.off('click.ghotiMenu', '.ghotiMenu')
+		.on('click.ghotiMenu', '.ghotiMenu', function(e){
+			e.preventDefault();
+		});
 }
 
 function showPopup() {
@@ -97,19 +121,22 @@ function pageFeedBack(text){
 }
 
 function changeTheme(form){
-	selectedItem = form.theme.selectedIndex;
-	url = form.theme.options[ selectedItem ].value;
-	if(url.length > 0){
+	var themeSelect = form && form.theme;
+	if(!themeSelect || themeSelect.selectedIndex < 0){
+		return;
+	}
+	var selectedItem = themeSelect.selectedIndex;
+	var url = themeSelect.options[selectedItem].value;
+	if(url && url !== '#'){
 		location.href=url;
 	}
 }
+// Page editing uses a plain textarea (#pageContentEdit) - no rich-text editor.
 function printPageEditor(){
-	$("#managePageForm").css("visibility", "visible").slideDown("slow");
+	$("#ghotiPageDisplay").stop(true, true).slideUp("slow");
+	$("#managePageForm").stop(true, true).css("visibility", "visible").slideDown("slow");
 	$("#pageEditButton").css("visibility", "hidden");
-	if(CKEDITOR.instances.pageContentEdit){ //we want to destroy it if it already exists before we make a new one
-		CKEDITOR.instances.pageContentEdit.destroy();
-	}
- 	CKEDITOR.replace(document.getElementById('pageContentEdit'));
+	$("#pageContentEdit").focus();
 }
 
 //ajax functions
@@ -138,8 +165,8 @@ function deletePage(id){
 function savePage(){
 	var id = $("#pageIdEdit").val();
 	var title = $("#pageTitleEdit").val();
-	var content = CKEDITOR.instances.pageContentEdit.getData();
-	
+	var content = $("#pageContentEdit").val();
+
 	if(!title || !content){
 		pageFeedBack("Required field missing.");
 	}else{
@@ -157,7 +184,30 @@ function clearGhotiLog(){
 	var confirmation = confirm ('Clearing is permanent! \nAre you sure?');
 	if(confirmation){
 		x_clearGhotiLog();
-		window.setTimeout('x_showGhotiLog(printPage)',1000);
+		window.setTimeout(function(){ x_showGhotiLog(printPage); },1000);
+	}
+}
+function showSiteSettings(){
+	x_printSiteSettingsForm(printPage);
+}
+function saveSiteSettings(){
+	var settings = {
+		siteTitle: $("#set-siteTitle").val(),
+		defaultPageTitle: $("#set-defaultPageTitle").val(),
+		defaultTheme: $("#set-defaultTheme").val(),
+		headerImg: $("#set-headerImg").val(),
+		allowRegister: $("#set-allowRegister").is(":checked") ? 1 : 0,
+		enableThemeChanger: $("#set-enableThemeChanger").is(":checked") ? 1 : 0,
+		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0
+	};
+	x_saveSiteSettings(settings, saveSiteSettings_cb);
+}
+function saveSiteSettings_cb(result){
+	if(result === true){
+		pageFeedBack("Settings saved.");
+		showSiteSettings(); //re-render with the saved values
+	}else{
+		pageFeedBack(result);
 	}
 }
 function setPagePublic(id){
@@ -178,27 +228,17 @@ function changePageGroup_cb(id) {
   x_refreshPrivateMenu(refreshPrivateMenu_cb);
 }
 function printPage(content) {
-	if(CKEDITOR.instances){
-		if(CKEDITOR.instances.pageContentEdit){ //we want to destroy it if it already exists before we make a new one
-			CKEDITOR.instances.pageContentEdit.destroy();
-		}
-	}
-	
 	var $target = $("#ghotiContent");
 	$target.html(content);
-	// add fade-in animation to updated content
-	$target.find('*').addBack().addClass('fade-in');
+	// add fade-in animation to updated content.
+	// Build the set explicitly instead of relying on traversal helper behavior.
+	$target.addClass('fade-in').find('*').addClass('fade-in');
 	// remove animation class after it completes
-	setTimeout(function(){ $target.find('.fade-in').removeClass('fade-in'); }, 400);
+	setTimeout(function(){ $target.removeClass('fade-in').find('.fade-in').removeClass('fade-in'); }, 400);
 
 	$("#managePageForm").slideUp(0);//workaround to hide ugly space at the bottom.
 }
 function popup_cb(contents){
-	if(CKEDITOR.instances){
-		if(CKEDITOR.instances.pageContentEdit){ //we want to destroy it if it already exists before we make a new one
-			CKEDITOR.instances.pageContentEdit.destroy();
-		}
-	}
 	$("#popup-content").html(contents);
 	// show overlay and animated popup
 	$("#popup-bg").css('display','flex');
@@ -211,10 +251,6 @@ function savePage_cb(result){
 
 		x_refreshPageMenu(refreshPageMenu_cb);
 		x_refreshPrivateMenu(refreshPrivateMenu_cb);
-
-		if(CKEDITOR.instances.pageContentEdit){
-			CKEDITOR.instances.pageContentEdit.destroy();
-		}
 	}else{
 		pageFeedBack(result);
 		logToFile("Error saving page:"+result);

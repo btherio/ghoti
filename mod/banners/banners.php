@@ -3,7 +3,7 @@
  * Created on May 1, 2010
  */
 include_once('banners.db.php');
-include_once('banners.ui.php');
+include_once('banners.async.php'); //endpoints + class bannersui
 class banners{
 	public $bannersdb,$bannersui;
 	public function __construct(){

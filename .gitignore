@@ -1,0 +1,10 @@
+# Untracked local override for database credentials (see db.config.php)
+db.config.local.php
+
+# Runtime cache of which module tables have been provisioned (see ghoti.db.php).
+# Safe to delete; it will be rebuilt (and forces a re-check if you drop tables).
+db.provisioned.json
+
+# Per-install site settings edited via Admin Menu -> Site Settings (ghoti.php).
+# Untracked so each installation keeps its own; delete to fall back to defaults.
+ghoti.settings.json
