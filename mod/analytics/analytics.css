@@ -169,6 +169,19 @@
 
 @media (max-width: 640px){
 	#ghotiAnalytics .analytics-export{ margin-left:0; }
+	#ghotiAnalytics .analytics-ranges{ flex-wrap:wrap; }
+	#ghotiAnalytics .analytics-grid,
+	#ghotiAnalytics .analytics-kpis{ grid-template-columns:minmax(0,1fr); }
 	#ghotiAnalytics .analytics-log-errors li{ grid-template-columns: auto minmax(0,1fr); }
 	#ghotiAnalytics .analytics-log-last{ grid-column: 2; text-align:left; }
+}
+
+@media (max-width: 420px){
+	#ghotiAnalytics .analytics-toolbar{ align-items:stretch; flex-direction:column; gap:.65rem; }
+	#ghotiAnalytics .analytics-ranges{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+	#ghotiAnalytics .range-btn{ padding:.35rem .25rem; text-align:center; }
+	#ghotiAnalytics .analytics-export{ justify-content:center; width:100%; }
+	#ghotiAnalytics .analytics-card{ padding:.75rem; }
+	#ghotiAnalytics .analytics-log-errors li{ grid-template-columns:minmax(0,1fr); }
+	#ghotiAnalytics .analytics-log-last{ grid-column:1; }
 }

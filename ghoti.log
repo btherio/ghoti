@@ -201,3 +201,23 @@
 [Sat Jul 11 7:25:18 AM UTC 2026]Checking login, found uid2
 [Sat Jul 11 7:25:19 AM UTC 2026]Checking login, found uid2
 [Sat Jul 11 7:25:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:28 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:28 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:29 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:36 AM UTC 2026]Login flow start for user 'bryan' from 181.41.202.194
+[Sat Jul 11 7:33:36 AM UTC 2026]Login attempt(bryan) from 181.41.202.194
+[Sat Jul 11 7:33:36 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 7:33:36 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 7:33:37 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 7:33:39 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 7:33:39 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 7:33:39 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:39:00 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:39:00 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:39:01 AM UTC 2026]Checking login, found uid2
