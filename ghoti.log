@@ -1,1 +1,388 @@
-
+[Sat Jul 11 4:56:57 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:57:30 AM UTC 2026]Site settings updated by UID:2 from 149.22.95.178
+[Sat Jul 11 4:57:34 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:57:34 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:57:34 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:57:36 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:57:36 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:57:36 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:57:38 AM UTC 2026]Trying logout...
+[Sat Jul 11 4:57:38 AM UTC 2026]Logout finished.
+[Sat Jul 11 4:58:38 AM UTC 2026]Login flow start for user 'bryan' from 149.22.95.178
+[Sat Jul 11 4:58:38 AM UTC 2026]Login attempt(bryan) from 149.22.95.178
+[Sat Jul 11 4:58:38 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 4:58:38 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 4:58:39 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 4:58:41 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 4:58:41 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 4:58:41 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:58:44 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:58:46 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:58:57 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:58:57 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:58:57 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 4:59:06 AM UTC 2026]Toggling admin status for userID: 2 from 149.22.95.178
+[Sat Jul 11 4:59:06 AM UTC 2026]login.db.php You can't remove admin rights from the only admin account.
+[Sat Jul 11 5:00:27 AM UTC 2026]Login flow start for user 'bryan' from 149.22.95.178
+[Sat Jul 11 5:00:27 AM UTC 2026]Login attempt(bryan) from 149.22.95.178
+[Sat Jul 11 5:00:27 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 5:00:27 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 5:00:28 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 5:00:30 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 5:00:30 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 5:00:30 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:01:12 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:01:12 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:01:12 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:02:07 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:02:07 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:02:07 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:05:13 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:05:13 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:05:13 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:05:26 AM UTC 2026]Trying logout...
+[Sat Jul 11 5:05:26 AM UTC 2026]Logout finished.
+[Sat Jul 11 5:05:34 AM UTC 2026]Login flow start for user 'bryan' from 149.22.95.178
+[Sat Jul 11 5:05:34 AM UTC 2026]Login attempt(bryan) from 149.22.95.178
+[Sat Jul 11 5:05:34 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 5:05:34 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 5:05:35 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 5:05:37 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 5:05:37 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 5:05:37 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:06:03 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:06:33 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:06:33 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:06:33 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:06:46 AM UTC 2026]Trying logout...
+[Sat Jul 11 5:06:46 AM UTC 2026]Logout finished.
+[Sat Jul 11 5:21:20 AM UTC 2026]Login flow start for user 'bryan' from 149.22.95.178
+[Sat Jul 11 5:21:20 AM UTC 2026]Login attempt(bryan) from 149.22.95.178
+[Sat Jul 11 5:21:20 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 5:21:20 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 5:21:22 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 5:21:23 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 5:21:23 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 5:21:24 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:42:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:42:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:42:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:48:03 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:03 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:30 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:30 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:48:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: Undefined constant PDO::MYSQL_ATTR_INIT_COMMAND
+[Sat Jul 11 5:56:50 AM UTC 2026]Site settings updated by UID:2 from 149.22.95.178
+[Sat Jul 11 5:56:54 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:56:54 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:56:55 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:56:59 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 5:57:03 AM UTC 2026]Trying logout...
+[Sat Jul 11 5:57:03 AM UTC 2026]Logout finished.
+[Sat Jul 11 5:57:12 AM UTC 2026]Login flow start for user 'bryan' from 149.22.95.178
+[Sat Jul 11 5:57:12 AM UTC 2026]Login attempt(bryan) from 149.22.95.178
+[Sat Jul 11 5:57:12 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 5:57:12 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 5:57:14 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 5:57:15 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 5:57:15 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 5:57:16 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:04:17 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:04:17 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:04:17 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:05:17 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:05:17 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:05:18 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:05:31 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:05:33 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:05:45 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:05:49 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:10:20 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:12:36 AM UTC 2026]Site settings updated by UID:2 from 149.22.95.178
+[Sat Jul 11 6:47:34 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] Connection refused
+[Sat Jul 11 6:48:30 AM UTC 2026]Login flow start for user 'bryan' from 149.22.95.178
+[Sat Jul 11 6:48:30 AM UTC 2026]Login attempt(bryan) from 149.22.95.178
+[Sat Jul 11 6:48:30 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 6:48:30 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 6:48:32 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 6:48:34 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 6:48:34 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 6:48:34 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:48:45 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:48:45 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:48:45 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:49:25 AM UTC 2026]Site settings updated by UID:2 from 149.22.95.178
+[Sat Jul 11 6:49:52 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:49:52 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:49:52 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:51:52 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:51:53 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:51:53 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:52:05 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:52:07 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:52:22 AM UTC 2026]Toggling admin status for userID: 2 from 149.22.95.178
+[Sat Jul 11 6:52:22 AM UTC 2026]login.db.php You can't remove admin rights from the only admin account.
+[Sat Jul 11 6:54:38 AM UTC 2026]Site settings updated by UID:2 from 149.22.95.178
+[Sat Jul 11 6:54:40 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:40 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:41 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:43 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:44 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:51 AM UTC 2026]Site settings updated by UID:2 from 149.22.95.178
+[Sat Jul 11 6:54:55 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:55 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:55 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:57 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:54:59 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:55:15 AM UTC 2026]Site settings updated by UID:2 from 149.22.95.178
+[Sat Jul 11 6:55:27 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:55:27 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:55:28 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:55:30 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:55:30 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 6:55:30 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:21:53 AM UTC 2026]Registration flow start for 'hubert' from 181.41.202.194
+[Sat Jul 11 7:21:53 AM UTC 2026]Registration validation passed for 'hubert'
+[Sat Jul 11 7:21:53 AM UTC 2026]Registration duplicate check for 'hubert': false
+[Sat Jul 11 7:21:53 AM UTC 2026]Calling addUser for 'hubert'
+[Sat Jul 11 7:21:53 AM UTC 2026]login.db.php addUser start for 'hubert'
+[Sat Jul 11 7:21:53 AM UTC 2026]login.db.php addUser password validated for 'hubert'
+[Sat Jul 11 7:21:56 AM UTC 2026]login.db.php addUser hashing succeeded for 'hubert'
+[Sat Jul 11 7:21:56 AM UTC 2026]login.db.php addUser insert succeeded for 'hubert'
+[Sat Jul 11 7:21:56 AM UTC 2026]login.db.php addUser count query returned array (
+  0 => 2,
+)
+[Sat Jul 11 7:21:56 AM UTC 2026]Registration database result for 'hubert': true
+[Sat Jul 11 7:21:56 AM UTC 2026]Registered hubert from 181.41.202.194
+[Sat Jul 11 7:22:15 AM UTC 2026]Login flow start for user 'hubert' from 181.41.202.194
+[Sat Jul 11 7:22:15 AM UTC 2026]Login attempt(hubert) from 181.41.202.194
+[Sat Jul 11 7:22:15 AM UTC 2026]login.db.php authenticate start for 'hubert'
+[Sat Jul 11 7:22:15 AM UTC 2026]login.db.php authenticate found user 'hubert' with stored hash length 97
+[Sat Jul 11 7:22:17 AM UTC 2026]login.db.php authenticate verified password hash for 'hubert'
+[Sat Jul 11 7:22:18 AM UTC 2026]Login authentication result for 'hubert': '3'
+[Sat Jul 11 7:22:18 AM UTC 2026]Login succeeded for 'hubert' with userId 3
+[Sat Jul 11 7:22:18 AM UTC 2026]Checking login, found uid3
+[Sat Jul 11 7:22:24 AM UTC 2026]Checking login, found uid3
+[Sat Jul 11 7:22:29 AM UTC 2026]Checking login, found uid3
+[Sat Jul 11 7:22:29 AM UTC 2026]Checking login, found uid3
+[Sat Jul 11 7:22:29 AM UTC 2026]Checking login, found uid3
+[Sat Jul 11 7:22:31 AM UTC 2026]Checking login, found uid3
+[Sat Jul 11 7:22:33 AM UTC 2026]Trying logout...
+[Sat Jul 11 7:22:33 AM UTC 2026]Logout finished.
+[Sat Jul 11 7:24:30 AM UTC 2026]Login flow start for user 'bryan' from 181.41.202.194
+[Sat Jul 11 7:24:30 AM UTC 2026]Login attempt(bryan) from 181.41.202.194
+[Sat Jul 11 7:24:30 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 7:24:30 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 7:24:31 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 7:24:33 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 7:24:33 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 7:24:33 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:24:42 AM UTC 2026]Site settings updated by UID:2 from 181.41.202.194
+[Sat Jul 11 7:24:48 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:24:59 AM UTC 2026]Login flow start for user 'bryan' from 181.41.202.194
+[Sat Jul 11 7:24:59 AM UTC 2026]Login attempt(bryan) from 181.41.202.194
+[Sat Jul 11 7:24:59 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 7:24:59 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 7:25:00 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 7:25:02 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 7:25:02 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 7:25:02 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:10 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:10 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:10 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:14 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:14 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:14 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:18 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:19 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:25:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:21 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:26 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:28 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:28 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:29 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:33:36 AM UTC 2026]Login flow start for user 'bryan' from 181.41.202.194
+[Sat Jul 11 7:33:36 AM UTC 2026]Login attempt(bryan) from 181.41.202.194
+[Sat Jul 11 7:33:36 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 7:33:36 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 7:33:37 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 7:33:39 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 7:33:39 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 7:33:39 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:39:00 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:39:00 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 7:39:01 AM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:00:31 PM UTC 2026]Login flow start for user 'bryan' from 181.41.202.194
+[Sat Jul 11 8:00:31 PM UTC 2026]Login attempt(bryan) from 181.41.202.194
+[Sat Jul 11 8:00:31 PM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 8:00:31 PM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 8:00:33 PM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 8:00:34 PM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 8:00:34 PM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 8:00:35 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:00:54 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:00:54 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:00:54 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:00:57 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:00:57 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:00:57 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:13 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:13 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:14 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:19 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:39 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:39 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:39 PM UTC 2026]Checking login, found uid2
+[Sat Jul 11 8:01:45 PM UTC 2026]Trying logout...
+[Sat Jul 11 8:01:45 PM UTC 2026]Logout finished.
+[Sat Jul 11 8:01:50 PM UTC 2026]Login flow start for user 'bryan' from 181.41.202.194
+[Sat Jul 11 8:01:50 PM UTC 2026]Login attempt(bryan) from 181.41.202.194
+[Sat Jul 11 8:01:50 PM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 11 8:01:50 PM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 11 8:01:52 PM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 11 8:01:53 PM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 11 8:01:53 PM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 11 8:01:54 PM UTC 2026]Checking login, found uid2
+[Thu Jul 16 12:42:16 AM UTC 2026]Login flow start for user 'bryan' from 72.143.223.101
+[Thu Jul 16 12:42:16 AM UTC 2026]Login attempt(bryan) from 72.143.223.101
+[Thu Jul 16 12:42:16 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Thu Jul 16 12:42:16 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Thu Jul 16 12:42:17 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Thu Jul 16 12:42:19 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Thu Jul 16 12:42:19 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Thu Jul 16 12:42:20 AM UTC 2026]Checking login, found uid2
+[Thu Jul 16 12:42:45 AM UTC 2026]Checking login, found uid2
+[Thu Jul 16 12:43:00 AM UTC 2026]Checking login, found uid2
+[Thu Jul 16 12:43:00 AM UTC 2026]Checking login, found uid2
+[Thu Jul 16 12:43:00 AM UTC 2026]Checking login, found uid2
+[Sun Jul 19 8:30:28 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Sun Jul 19 9:01:20 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Sun Jul 19 2:40:37 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Sun Jul 19 7:55:07 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Mon Jul 20 5:01:47 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Mon Jul 20 9:01:45 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Mon Jul 20 1:01:36 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Mon Jul 20 3:01:03 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Mon Jul 20 9:41:58 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Tue Jul 21 4:06:22 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Tue Jul 21 5:10:45 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Tue Jul 21 6:51:28 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Tue Jul 21 7:57:22 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Wed Jul 22 4:36:54 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Wed Jul 22 7:12:42 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Wed Jul 22 12:18:28 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Wed Jul 22 8:50:01 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 3:52:30 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 4:00:33 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 5:31:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 5:41:47 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 6:00:48 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 6:00:51 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 7:06:52 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 7:06:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 7:25:46 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 7:25:49 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 9:05:26 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 9:11:07 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 11:11:55 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 11:12:40 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 11:12:44 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 11:12:48 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 11:12:53 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 1:02:41 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 1:17:37 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 3:52:19 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Thu Jul 23 8:44:33 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 1:20:58 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 5:22:01 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 8:54:51 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 10:59:01 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 10:59:23 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 5:41:27 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 10:21:25 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 10:21:28 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 10:21:32 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Fri Jul 24 10:21:35 PM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Sat Jul 25 12:39:23 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Sat Jul 25 12:58:41 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Sat Jul 25 12:59:18 AM UTC 2026]ghoti.db.php isConfigured probe failed: SQLSTATE[HY000] [2002] No route to host
+[Sat Jul 25 2:59:06 AM UTC 2026]Login flow start for user 'bryan' from 212.56.52.72
+[Sat Jul 25 2:59:06 AM UTC 2026]Login attempt(bryan) from 212.56.52.72
+[Sat Jul 25 2:59:06 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 25 2:59:06 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 25 2:59:08 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 25 2:59:09 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 25 2:59:09 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 25 2:59:09 AM UTC 2026]Login flow start for user 'bryan' from 212.56.52.72
+[Sat Jul 25 2:59:09 AM UTC 2026]Login attempt(bryan) from 212.56.52.72
+[Sat Jul 25 2:59:09 AM UTC 2026]login.db.php authenticate start for 'bryan'
+[Sat Jul 25 2:59:09 AM UTC 2026]login.db.php authenticate found user 'bryan' with stored hash length 97
+[Sat Jul 25 2:59:09 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 2:59:11 AM UTC 2026]login.db.php authenticate verified password hash for 'bryan'
+[Sat Jul 25 2:59:12 AM UTC 2026]Login authentication result for 'bryan': '2'
+[Sat Jul 25 2:59:12 AM UTC 2026]Login succeeded for 'bryan' with userId 2
+[Sat Jul 25 2:59:12 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 2:59:58 AM UTC 2026]Toggling admin status for userID: 3 from 212.56.52.72
+[Sat Jul 25 2:59:59 AM UTC 2026]Toggling admin status for userID: 3 from 212.56.52.72
+[Sat Jul 25 3:00:01 AM UTC 2026]Toggling admin status for userID: 3 from 212.56.52.72
+[Sat Jul 25 3:00:03 AM UTC 2026]Toggling admin status for userID: 3 from 212.56.52.72
+[Sat Jul 25 3:00:07 AM UTC 2026]Attempting to save user info for hubert from 212.56.52.72
+[Sat Jul 25 3:01:32 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:01:33 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:01:59 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:01:59 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:01:59 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:02:36 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:02:36 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:02:37 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:02:44 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:02:44 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:02:44 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:03:29 AM UTC 2026]Site settings updated by UID:2 from 212.56.52.72
+[Sat Jul 25 3:03:29 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:03:33 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:24 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:04:24 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking for session userId
+[Sat Jul 25 3:04:24 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Found userId2
+[Sat Jul 25 3:04:24 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking user for admin priv
+[Sat Jul 25 3:04:24 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:24 AM UTC 2026]DEBUG:ghoti.async.php:getPage: admin checked positive
+[Sat Jul 25 3:04:24 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:55 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:04:55 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking for session userId
+[Sat Jul 25 3:04:55 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Found userId2
+[Sat Jul 25 3:04:55 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking user for admin priv
+[Sat Jul 25 3:04:55 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:55 AM UTC 2026]DEBUG:ghoti.async.php:getPage: admin checked positive
+[Sat Jul 25 3:04:55 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:55 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:58 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:04:58 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking for session userId
+[Sat Jul 25 3:04:58 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Found userId2
+[Sat Jul 25 3:04:58 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking user for admin priv
+[Sat Jul 25 3:04:58 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:58 AM UTC 2026]DEBUG:ghoti.async.php:getPage: admin checked positive
+[Sat Jul 25 3:04:58 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:59 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:04:59 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking for session userId
+[Sat Jul 25 3:04:59 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Found userId2
+[Sat Jul 25 3:04:59 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking user for admin priv
+[Sat Jul 25 3:04:59 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:04:59 AM UTC 2026]DEBUG:ghoti.async.php:getPage: admin checked positive
+[Sat Jul 25 3:04:59 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:05:04 AM UTC 2026]Checking login, found uid2
+[Sat Jul 25 3:05:04 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking for session userId
+[Sat Jul 25 3:05:04 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Found userId2
+[Sat Jul 25 3:05:04 AM UTC 2026]DEBUG:ghoti.async.php:getPage: Checking user for admin priv
+[Sat Jul 25 3:05:04 AM UTC 2026]DEBUG:isAdmin == true
+[Sat Jul 25 3:05:04 AM UTC 2026]DEBUG:ghoti.async.php:getPage: admin checked positive
+[Sat Jul 25 3:05:04 AM UTC 2026]DEBUG:isAdmin == true

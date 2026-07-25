@@ -60,7 +60,7 @@
 					<h1 id="ghotiAdminMenuTitle"></h1>
 					<div id="ghotiAdminMenu"></div>
 
-					<?php print $_SESSION['ghotiObj']->themeChanger(); ?>
+	
         </div>
       </div>
 
@@ -73,15 +73,13 @@
         </div>
 
         <div class="quarter">
-        	<h1>Standards Compliant</h1><br />
-        	<div class="alignRight">
-        	Valid <a href="http://validator.w3.org/check/referer">XHTML</a> and <a href="http://jigsaw.w3.org/css-validator/check/referer">CSS</a>.
-        	</div>
-        </div>
-
-        <div class="quarter">
 					<h1>Links</h1>
 					<div id="ghotiLinks">Loading...</div>
+        </div>
+        
+        <div class="quarter">
+            <h1>Theme</h1>
+                <?php print $_SESSION['ghotiObj']->themeChanger(); ?>
         </div>
       </div>
     </div>

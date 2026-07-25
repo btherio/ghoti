@@ -3,7 +3,7 @@
  * Created on May 28, 2010
  */
 include_once('comments.db.php');
-include_once('comments.ui.php');
+include_once('comments.async.php'); //endpoints + class commentsui
 class comments{
 	public $m_commentId = 0;
 	public $m_userId = 0;
