@@ -8,3 +8,8 @@ db.provisioned.json
 # Per-install site settings edited via Admin Menu -> Site Settings (ghoti.php).
 # Untracked so each installation keeps its own; delete to fall back to defaults.
 ghoti.settings.json
+
+# Local AI coding-agent instructions.
+agents.md
+AGENTS.md
+CLAUDE.md
