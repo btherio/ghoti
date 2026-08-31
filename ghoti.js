@@ -421,14 +421,11 @@ function savePage(){
 function logToFile(line){
 	x_logToFile(line,doNothing_cb);
 }
-function showGhotiLog(){
-	x_showGhotiLog(printPage);
-}
 function clearGhotiLog(){
 	var confirmation = confirm ('Clearing is permanent! \nAre you sure?');
 	if(confirmation){
 		x_clearGhotiLog();
-		window.setTimeout(function(){ x_showGhotiLog(printPage); },1000);
+		window.setTimeout(function(){ showAnalytics(); },1000);
 	}
 }
 function showSiteSettings(){

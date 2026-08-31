@@ -1,8 +1,8 @@
 <?php
 /*
- * Site usage analytics: collection + reporting. Complements the log viewer
- * (ghotiui::showGhotiLog() in ghoti.async.php) which tracks errors/audit
- * events - this module tracks actual visitor traffic.
+ * Site usage analytics: collection + reporting. The dashboard here also
+ * displays the raw application log (errors/audit events) alongside actual
+ * visitor traffic.
  */
 
 class analyticsdb extends ghotidb{

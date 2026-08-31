@@ -60,10 +60,10 @@ ghoti_async_register("showAnalytics");
 /* ---------------------------------------------------------------- *
  *  UI renderer (formerly analytics.ui.php / class analyticsui)
  *
- *  Renders the analytics dashboard as one HTML blob (mirrors
- *  ghotiui::showGhotiLog()'s "one shot" style): KPI tiles, chart placeholders,
- *  a raw data table, and a JSON payload that mod/analytics/analytics.js reads
- *  to draw the actual SVG charts client-side.
+ *  Renders the analytics dashboard as one HTML blob: KPI tiles, chart
+ *  placeholders, a raw data table, the raw error log, and a JSON payload
+ *  that mod/analytics/analytics.js reads to draw the actual SVG charts
+ *  client-side.
  * ---------------------------------------------------------------- */
 
 class analyticsui{
@@ -102,7 +102,7 @@ class analyticsui{
 		);
 
 		$out  = "<div id=\"ghotiAnalytics\">\n";
-		$docs = ghoti_docs_panel("How to use analytics", "ranges, tiles, export", array(
+		$docs = ghoti_docs_panel("How to use analytics", "ranges, tiles, export, log", array(
 			array('heading' => 'Choose a range',
 				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons switch the whole dashboard &mdash; including the CSV export.')),
 			array('heading' => 'Exclude admin views',
@@ -110,11 +110,13 @@ class analyticsui{
 			array('heading' => 'The tiles',
 				'list' => array('<b>Pageviews</b> &mdash; total page loads tracked.', '<b>Unique sessions</b> &mdash; distinct browser sessions (a new session starts after 30 minutes of inactivity).', '<b>Unique visitors</b> &mdash; distinct IP + user-agent combinations.', '<b>Pages viewed</b> &mdash; distinct pages hit.', '<b>Avg. views/day</b> &mdash; pageviews divided by the range.')),
 			array('heading' => 'CSV export',
-				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range.'))
+				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range.')),
+			array('heading' => 'The log',
+				'list' => array('One line per event: logins, page saves, uploads, blocked requests and errors. Newest entries appear at the top.', '<code>SECURITY:</code> lines flag legacy plaintext passwords and throttled logins &mdash; investigate and fix them. <code>denied</code> / <code>rejected</code> lines are blocked attempts (bad CSRF token, unauthorised endpoint, private page).', 'The log rotates automatically at 5MB and keeps three generations. <b>Clear log</b> empties it now.'))
 		));
 		$out .= "<div class=\"analytics-head\">\n";
 		$out .= "<h1>Analytics</h1>\n";
-		$out .= "<p class=\"analytics-sub\">Site usage for the last ".(int)$days." day".($days==1?'':'s')." &middot; complements the <a href=\"#\" class=\"ghotiMenu\" onclick=\"showGhotiLog();\">Log</a></p>\n";
+		$out .= "<p class=\"analytics-sub\">Site usage for the last ".(int)$days." day".($days==1?'':'s')."</p>\n";
 		$out .= "</div>\n";
 
 		//Range picker + toggles
@@ -151,6 +153,7 @@ class analyticsui{
 		$out .= "</div>\n";
 
 		$out .= $this->logErrorsCard($topErrors,$days);
+		$out .= $this->rawLogCard();
 
 		//Raw data table
 		$out .= "<div class=\"card analytics-card wide\">\n";
@@ -206,6 +209,24 @@ class analyticsui{
 			}
 			$out .= "</ol>\n";
 		}
+		$out .= "</div>\n";
+		return $out;
+	}
+
+	private function rawLogCard(){
+		//Read + reverse in PHP. The old `tail -r ghoti.log` only exists on BSD/macOS
+		//(GNU/Linux tail has no -r), so this view was broken on the Linux servers
+		//this actually runs on. htmlspecialchars() stops logged user input (e.g. a
+		//crafted username) from injecting HTML into the admin log view.
+		$logPath = ghoti::$ghotiLog;
+		$lines = is_file($logPath) ? file($logPath, FILE_IGNORE_NEW_LINES) : array();
+		if(!is_array($lines)){ $lines = array(); }
+		$logText = htmlspecialchars(implode("\n", array_reverse($lines)), ENT_QUOTES);
+
+		$out  = "<div class=\"card analytics-card analytics-log-card wide\">\n";
+		$out .= "<h2>Log <span class=\"analytics-muted\">reverse chronological</span></h2>\n";
+		$out .= "<pre class=\"analytics-log-raw\">".$logText."</pre>\n";
+		$out .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"clearGhotiLog();\">Clear log</button>\n";
 		$out .= "</div>\n";
 		return $out;
 	}

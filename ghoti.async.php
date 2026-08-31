@@ -623,15 +623,6 @@ function logToFile($line){
 	ghoti::log("(UID:".$_SESSION["userId"].")".$line);
 	return true;
 }
-function showGhotiLog(){
-	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::log("ghoti.async.php Unauthorized showGhotiLog attempt from ".ghoti_remote_addr());
-		return "<h1>Log</h1><p>Admin access required.</p>";
-	}
-	$_SESSION['ghotiObj'] = new ghoti();
-	$_SESSION["ghotiObj"]->ghotiui = new ghotiui();
-	return $_SESSION['ghotiObj']->ghotiui->showGhotiLog();
-}
 function clearGhotiLog(){
 	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
 		ghoti::log("ghoti.async.php Unauthorized clearGhotiLog attempt from ".ghoti_remote_addr());
@@ -721,7 +712,6 @@ ghoti_async_register(
 	"setPagePublic",
 	"setPagePrivate",
 	"clearGhotiLog",
-	"showGhotiLog",
 	"logToFile",
 	"printSiteSettingsForm",
 	"saveSiteSettings",
@@ -747,30 +737,6 @@ ghoti_async_register(
 class ghotiui{
 	public $output;
 
-	function showGhotiLog(){
-		$showGhotiLog = "<h1>Log</h1>\n";
-		$docs = ghoti_docs_panel("How to use the log", "what it records", array(
-			array('heading' => 'What is in here',
-				'list' => array('One line per event: logins, page saves, uploads, blocked requests and errors.', 'Newest entries appear at the top.')),
-			array('heading' => 'Security entries',
-				'list' => array('<code>SECURITY:</code> lines flag legacy plaintext passwords and throttled logins &mdash; investigate and fix them.', '<code>denied</code> / <code>rejected</code> lines are blocked attempts (bad CSRF token, unauthorised endpoint, private page).')),
-			array('heading' => 'Housekeeping',
-				'list' => array('The log rotates automatically at 5MB and keeps three generations.', '<b>Clear log</b> empties it now.'))
-		));
-		$showGhotiLog .= "<h7><i>Log file appears reverse chronologically</i></h7>\n";
-		//Read + reverse in PHP. The old `tail -r ghoti.log` only exists on BSD/macOS
-		//(GNU/Linux tail has no -r), so this view was broken on the Linux servers
-		//this actually runs on. htmlspecialchars() stops logged user input (e.g. a
-		//crafted username) from injecting HTML into the admin log view.
-		$logPath = ghoti::$ghotiLog;
-		$lines = is_file($logPath) ? file($logPath, FILE_IGNORE_NEW_LINES) : array();
-		if(!is_array($lines)){ $lines = array(); }
-		$logText = htmlspecialchars(implode("\n", array_reverse($lines)), ENT_QUOTES);
-		$showGhotiLog .= "<br /><pre>".$logText."</pre><br />\n";
-		$showGhotiLog .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"clearGhotiLog();\">Clear log</button>\n";
-		$showGhotiLog .= $docs;
-		return $showGhotiLog;
-	}
 	function printPageList($pageList){
 		$this->output = "<ul class=\"navbar-nav text-light\" id=\"accordionSidebar\">\n";
 		foreach($pageList as $records => $row){
