@@ -102,6 +102,16 @@ class analyticsui{
 		);
 
 		$out  = "<div id=\"ghotiAnalytics\">\n";
+		$docs = ghoti_docs_panel("How to use analytics", "ranges, tiles, export", array(
+			array('heading' => 'Choose a range',
+				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons switch the whole dashboard &mdash; including the CSV export.')),
+			array('heading' => 'Exclude admin views',
+				'list' => array('Tick the checkbox to ignore pageviews recorded while an admin was viewing, for visitor-only numbers.')),
+			array('heading' => 'The tiles',
+				'list' => array('<b>Pageviews</b> &mdash; total page loads tracked.', '<b>Unique sessions</b> &mdash; distinct browser sessions (a new session starts after 30 minutes of inactivity).', '<b>Unique visitors</b> &mdash; distinct IP + user-agent combinations.', '<b>Pages viewed</b> &mdash; distinct pages hit.', '<b>Avg. views/day</b> &mdash; pageviews divided by the range.')),
+			array('heading' => 'CSV export',
+				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range.'))
+		));
 		$out .= "<div class=\"analytics-head\">\n";
 		$out .= "<h1>Analytics</h1>\n";
 		$out .= "<p class=\"analytics-sub\">Site usage for the last ".(int)$days." day".($days==1?'':'s')." &middot; complements the <a href=\"#\" class=\"ghotiMenu\" onclick=\"showGhotiLog();\">Log</a></p>\n";
@@ -111,13 +121,13 @@ class analyticsui{
 		$out .= "<div class=\"analytics-toolbar\">\n";
 		$out .= "<div class=\"analytics-ranges\">\n";
 		foreach(array(7=>'7d',30=>'30d',90=>'90d',365=>'1y') as $d=>$label){
-			$active = ($d == $days) ? ' active' : '';
-			$out .= "<a href=\"#\" class=\"ghotiMenu range-btn$active\" onclick=\"setAnalyticsRange($d);\">$label</a>\n";
+			$rangeClass = ($d == $days) ? ' ghotiRangeActive' : '';
+			$out .= "<a href=\"#\" class=\"ghotiMenu ghotiButton ghotiButtonCompact ghotiButtonSecondary$rangeClass\" onclick=\"setAnalyticsRange($d);\">$label</a>\n";
 		}
 		$out .= "</div>\n";
 		$checked = $excludeAdmin ? ' checked="checked"' : '';
 		$out .= "<label class=\"analytics-toggle\"><input type=\"checkbox\" id=\"analyticsExcludeAdmin\"$checked onclick=\"toggleAnalyticsAdmin(this.checked);\" /> Exclude admin views</label>\n";
-		$out .= "<a href=\"mod/analytics/analytics.export.php?days=".(int)$days."\" class=\"btn analytics-export\" target=\"_blank\" rel=\"noopener\">&#8681; Download CSV</a>\n";
+		$out .= "<a href=\"mod/analytics/analytics.export.php?days=".(int)$days."&amp;token=".rawurlencode(ghoti_csrf_token())."\" class=\"ghotiButton ghotiButtonCompact analytics-export\" target=\"_blank\" rel=\"noopener\">&#8681; Download CSV</a>\n";
 		$out .= "</div>\n";
 
 		//KPI row
@@ -146,26 +156,22 @@ class analyticsui{
 		$out .= "<div class=\"card analytics-card wide\">\n";
 		$out .= "<h2>Recent pageviews <span class=\"analytics-muted\">(".count($recent)." shown)</span></h2>\n";
 		$out .= "<div class=\"analytics-table-wrap\"><table class=\"analytics-table\">\n";
-		$out .= "<thead><tr><th>When</th><th>Page</th><th>IP</th><th>Browser</th><th>OS</th><th>Device</th><th>Referrer</th><th>Admin?</th></tr></thead>\n<tbody>\n";
+		$out .= "<thead><tr><th>When</th><th>Page</th><th>Referrer</th></tr></thead>\n<tbody>\n";
 		foreach($recent as $row){
 			$referrerHost = !empty($row[6]) ? parse_url($row[6], PHP_URL_HOST) : null;
 			$out .= "<tr>";
 			$out .= "<td>".htmlspecialchars($row[0])."</td>";
 			$out .= "<td>".htmlspecialchars($row[1] !== null ? $row[1] : '(untitled)')."</td>";
-			$out .= "<td>".htmlspecialchars($row[2])."</td>";
-			$out .= "<td>".htmlspecialchars($row[3] !== null ? $row[3] : 'Unknown')."</td>";
-			$out .= "<td>".htmlspecialchars($row[4] !== null ? $row[4] : 'Unknown')."</td>";
-			$out .= "<td>".htmlspecialchars($row[5] !== null ? $row[5] : 'Unknown')."</td>";
 			$out .= "<td>".htmlspecialchars($referrerHost ? $referrerHost : 'Direct')."</td>";
-			$out .= "<td>".($row[7] == 1 ? 'Yes' : '')."</td>";
 			$out .= "</tr>\n";
 		}
 		if(empty($recent)){
-			$out .= "<tr><td colspan=\"8\" class=\"analytics-empty\">No pageviews recorded yet.</td></tr>\n";
+			$out .= "<tr><td colspan=\"3\" class=\"analytics-empty\">No pageviews recorded yet.</td></tr>\n";
 		}
 		$out .= "</tbody></table></div>\n";
 		$out .= "</div>\n"; //card
 
+		$out .= $docs;
 		$out .= "<script type=\"application/json\" id=\"analyticsData\">".json_encode($data)."</script>\n";
 		$out .= "</div>\n"; //ghotiAnalytics
 

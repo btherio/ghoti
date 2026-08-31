@@ -92,9 +92,9 @@ class commentsui{
 		return $this->comments;
 	}
 	public function addCommentForm(){
-	 $addCommentForm = "<form id=\"addCommentForm\" class=\"ghotiForm\" action=\"javascript:addComment();\">\n";
+	 $addCommentForm = "<form id=\"addCommentForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"addComment(); return false;\">\n";
 	 $addCommentForm .= "<label class=\"ghotiField\"><span>Comment</span><textarea id=\"commentBox\" rows=\"7\" cols=\"50\" placeholder=\"Write your comment here...\"></textarea></label>\n";
-	 $addCommentForm .= "<div class=\"ghotiFormActions\"><input type=\"submit\" value=\"Comment\" /></div></form>";
+	 $addCommentForm .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Comment</button></div></form>";
 	 return $addCommentForm;
 	}
 	public function addCommentButton(){

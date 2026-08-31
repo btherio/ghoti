@@ -122,6 +122,23 @@ class logindb extends ghotidb{
 		return $found;
 	}
 
+	/* True when a DIFFERENT account already uses $userName or $email. Used by
+	 * the admin user-edit path so an edit can't collide with another account. */
+	public function checkDuplicateExcluding($userName,$email,$excludeId){
+		$userName = $this->normalizeValue($userName);
+		$email = $this->normalizeValue($email);
+		try{
+			$records = $this->queryArray(
+				"select userId from users where (userName = ? or email = ?) and userId <> ?",
+				array($userName,$email,(int)$excludeId)
+			);
+		}catch (Throwable $e){
+			ghoti::log("login.db.php ".$e->getMessage());
+			return false;
+		}
+		return !empty($records);
+	}
+
 	public function isAdmin($id){
 		$this->result = array();
 		$this->result[0] = "";
@@ -162,10 +179,16 @@ class logindb extends ghotidb{
 				}
 				return (string) $row[0];
 			}
+			//A stored value that is not a hash (legacy plaintext) must NOT
+			//authenticate: accepting it makes any leaked DB dump instantly
+			//usable. Flag it so the operator knows to reset that account.
+			//Recovery for such an account (the only way back in - note that
+			//changePassword() verifies the current password via authenticate(),
+			//so a plaintext account cannot change its own password):
+			//   UPDATE users SET password = '<hash>' WHERE userId = <id>;
+			//generate <hash> with PHP: password_hash('newpass', PASSWORD_ARGON2ID).
 			if (is_string($storedHash) && $storedHash !== '' && $storedHash === $password) {
-				ghoti::log("login.db.php authenticate matched legacy plaintext password for '$userName'");
-				$this->query("update users set password = ? where userId = ?", array($this->hashPassword($password), $row[0]));
-				return (string) $row[0];
+				ghoti::log("login.db.php SECURITY: '$userName' has a legacy plaintext password - refusing plaintext login, reset the password");
 			}
 		}
 		ghoti::log("login.db.php authenticate failed for '$userName': no matching password hash");

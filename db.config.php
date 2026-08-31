@@ -17,7 +17,12 @@ $config = array(
     'port'     => getenv('GHOTI_DB_PORT')     ?: '3306',
     'database' => getenv('GHOTI_DB_NAME')     ?: 'ghoti',
     'username' => getenv('GHOTI_DB_USER')     ?: 'ghoti',
-    'password' => getenv('GHOTI_DB_PASSWORD') ?: 'gvxH!KD1Zw5RCv8o',
+    // NO password fallback is shipped here: a literal credential in a tracked
+    // source file ends up in git history. The password must come from either
+    // the GHOTI_DB_PASSWORD environment variable or the untracked local
+    // override (db.config.local.php) below. See db.config.local.php for the
+    // per-install credential file.
+    'password' => getenv('GHOTI_DB_PASSWORD') ?: '',
     'charset'  => getenv('GHOTI_DB_CHARSET')  ?: 'utf8mb4',
 );
 

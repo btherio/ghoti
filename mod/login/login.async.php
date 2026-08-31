@@ -55,6 +55,131 @@ function loginHashEquals($known,$user){
 	return $result === 0;
 }
 
+/* ---------------------------------------------------------------- *
+ *  Server-side login throttling (per-IP + per-username)
+ *
+ *  The old session-only counter could be bypassed by simply rotating the
+ *  session cookie. This store persists failure timestamps in a small JSON
+ *  file (login.throttle.json, gitignored + web-denied) keyed by IP and by
+ *  username, so a brute-force attempt is throttled even across sessions.
+ *  It is best-effort: if the file can't be written the app still works,
+ *  just without the cross-session throttle.
+ * ---------------------------------------------------------------- */
+class login_throttle{
+	private $file;
+	private $data = array();
+
+	public function __construct($file){
+		$this->file = $file;
+		$this->load();
+	}
+
+	private function load(){
+		$raw = @file_get_contents($this->file);
+		if($raw === false){ return; }
+		$decoded = json_decode($raw, true);
+		if(is_array($decoded)){ $this->data = $decoded; }
+	}
+
+	private function save(){
+		$tmp = $this->file.'.tmp';
+		if(@file_put_contents($tmp, json_encode($this->data), LOCK_EX) === false){ return false; }
+		$ok = @rename($tmp, $this->file);
+		if($ok === false){ @unlink($tmp); }
+		return $ok;
+	}
+
+	/* Seconds still blocked for $key, or 0 if not blocked. Trims stale
+	 * timestamps for the key as a side effect (no save needed for that). */
+	public function isBlocked($key, $limit = 5, $window = 600){
+		if(!isset($this->data[$key]) || !is_array($this->data[$key])){ return 0; }
+		$cutoff = time() - $window;
+		$recent = array();
+		foreach($this->data[$key] as $ts){
+			if((int)$ts >= $cutoff){ $recent[] = (int)$ts; }
+		}
+		$this->data[$key] = $recent;
+		if(count($recent) >= $limit){
+			$remaining = (min($recent) + $window) - time();
+			return $remaining > 0 ? $remaining : 0;
+		}
+		return 0;
+	}
+
+	/* Append a failure timestamp. $max caps entries per key so a single key
+	 * can't grow the file unboundedly. */
+	public function recordFailure($key, $max = 20){
+		if(!isset($this->data[$key]) || !is_array($this->data[$key])){ $this->data[$key] = array(); }
+		$this->data[$key][] = time();
+		while(count($this->data[$key]) > $max){ array_shift($this->data[$key]); }
+		$this->prune();
+		$this->save();
+	}
+
+	/* Forget all failures for a key (e.g. on successful login). */
+	public function clear($key){
+		if(isset($this->data[$key])){ unset($this->data[$key]); }
+		$this->save();
+	}
+
+	/* Count entries for $key within the last $window seconds (used for
+	 * rate-limiting non-login writes like logToFile). */
+	public function countWindow($key, $window){
+		$cutoff = time() - $window;
+		$n = 0;
+		if(isset($this->data[$key]) && is_array($this->data[$key])){
+			foreach($this->data[$key] as $ts){
+				if((int)$ts >= $cutoff){ $n++; }
+			}
+		}
+		return $n;
+	}
+
+	/* Drop entries older than 2h and cap the total number of keys. */
+	private function prune(){
+		$cutoff = time() - 7200;
+		foreach($this->data as $k => $times){
+			if(!is_array($times)){ unset($this->data[$k]); continue; }
+			$kept = array();
+			foreach($times as $ts){
+				if((int)$ts >= $cutoff){ $kept[] = (int)$ts; }
+			}
+			if(empty($kept)){ unset($this->data[$k]); }else{ $this->data[$k] = $kept; }
+		}
+		if(count($this->data) > 5000){
+			uasort($this->data, function($a, $b){
+				$am = is_array($a) ? max($a) : 0;
+				$bm = is_array($b) ? max($b) : 0;
+				return $am < $bm ? 1 : -1;
+			});
+			$this->data = array_slice($this->data, 0, 5000, true);
+		}
+	}
+}
+
+function login_throttle_store(){
+	static $instance = null;
+	if($instance === null){
+		$instance = new login_throttle(dirname(__DIR__).'/login.throttle.json');
+	}
+	return $instance;
+}
+
+/*
+ * Throttle keys for one login attempt: always the client IP, plus the
+ * username bucket when one was supplied. The username is lowercased on
+ * purpose: user lookup is case-insensitive under the default MySQL collation,
+ * so "Bryan" and "bryan" are the same account and must share one bucket -
+ * otherwise an attacker could rotate letter-case to dodge the throttle.
+ */
+function login_throttle_keys($username){
+	$keys = array('ip:'.loginRemoteAddr());
+	if($username !== ''){
+		$keys[] = 'user:'.strtolower(trim($username));
+	}
+	return $keys;
+}
+
 function loginCaptchaCreate($purpose){
 	$left = loginSecureRandomInt(2,12);
 	$right = loginSecureRandomInt(2,12);
@@ -107,6 +232,20 @@ function login($username,$password){
 	$attempts = isset($_SESSION['login_attempts']) ? (int) $_SESSION['login_attempts'] : 0;
 	$lastAttempt = isset($_SESSION['login_last_attempt']) ? (int) $_SESSION['login_last_attempt'] : 0;
 
+	//Server-side throttle: per-IP AND per-username, persistent across sessions.
+	//The session counter below still applies too; this one survives cookie
+	//rotation and is the actual brute-force control.
+	$throttle = login_throttle_store();
+	$throttleKeys = login_throttle_keys($username);
+	$blocked = false;
+	foreach($throttleKeys as $throttleKey){
+		if($throttle->isBlocked($throttleKey)){ $blocked = true; break; }
+	}
+	if($blocked){
+		ghoti::log("Login blocked (server throttle) for '$username' from ".loginRemoteAddr());
+		return "Too many login attempts. Please try again later.";
+	}
+
 	ghoti::log("Login flow start for user '$username' from ".loginRemoteAddr());
 
 	if ($attempts >= 5 && ($now - $lastAttempt) < 600) {
@@ -135,6 +274,8 @@ function login($username,$password){
 	if ($id && $id > 0) {
 		$_SESSION['login_attempts'] = 0;
 		$_SESSION['login_last_attempt'] = 0;
+		//Clear the server-side throttle for this IP and username.
+		foreach($throttleKeys as $throttleKey){ $throttle->clear($throttleKey); }
 		// Establish the authenticated session HERE, immediately after we have
 		// verified the password. Previously the browser called setSessionVars()
 		// with an id of its choosing to elevate the session - which meant anyone
@@ -149,6 +290,8 @@ function login($username,$password){
 		$_SESSION['last_activity'] = time();
 		ghoti::log("Login succeeded for '$username' with userId $id");
 	} else {
+		//Record the failure in the server-side throttle (best-effort).
+		foreach($throttleKeys as $throttleKey){ $throttle->recordFailure($throttleKey); }
 		ghoti::log("Login failed for '$username'");
 	}
 	return $id;
@@ -215,6 +358,11 @@ function saveUser($name,$email,$id){
 		$email = $v->email($email);
 	}catch (Exception $e) {
 		return $e->getMessage();
+	}
+	//Reject a username/email already used by a DIFFERENT account (registration
+	//checks this too; the admin edit path previously skipped the check).
+	if($_SESSION["loginObj"]->logindb->checkDuplicateExcluding($name,$email,$id)){
+		return "Username or Email is already registered!";
 	}
 	ghoti::log("Attempting to save user info for $name from ".loginRemoteAddr());
 	return $_SESSION["loginObj"]->logindb->updateUser($id,$name,$email);
@@ -346,7 +494,7 @@ function toggleAdmin($id){
 
 function checkLogin(){
 	if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == true && isset($_SESSION["userId"]) && $_SESSION["userId"] > 0){
-		ghoti::log("Checking login, found uid" .$_SESSION["userId"]."");
+		ghoti::debug("Checking login, found uid" .$_SESSION["userId"]."");
 		return $_SESSION["userId"];
 	}
 	ghoti::debug("login.async.php.checklogin failed");
@@ -404,23 +552,25 @@ class loginui{
 	public function printAdminMenu(){
 		$this->output = "<ul>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"showPageManager();\">Pages</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"manageBanners();\">Banners</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"editLinkForm();\">Links</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('manageBanners');\">Banners</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('editLinkForm');\">Links</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"showGhotiLog();\">Log</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"showAnalytics();\">Analytics</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"printManageUserForm();\">Users</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('showAnalytics');\">Analytics</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('galleryManager');\">Galleries</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"showSiteSettings();\">Site Settings</a></li>\n";
 		$this->output .= "</ul>\n";
 		return $this->output;
 	}
 
 	public function printLoginForm(){
-		$this->output = "<div id=\"ghotiLogin\"><form id=\"loginForm\" class=\"ghotiForm\" action=\"javascript:login();\">\n";
+		$this->output = "<div id=\"ghotiLogin\"><form id=\"loginForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"login(); return false;\">\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Username</span><input type=\"text\" name=\"userName\" id=\"userName\" size=\"20\" autocomplete=\"username\" autocapitalize=\"none\" spellcheck=\"false\" /></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password</span><input type=\"password\" name=\"password\" id=\"password\" size=\"20\" autocomplete=\"current-password\" /></label>\n";
-		$this->output .= "<div class=\"ghotiFormActions\"><input type=\"submit\" value=\"Login\" />\n";
+		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Login</button>\n";
 		if(ghoti::$allowRegister == true){
-			$this->output .= "<input type=\"button\" class=\"ghotiButtonSecondary\" value=\"Register\" onclick=\"printRegisterForm();\" />\n";
+			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"printRegisterForm();\">Register</button>\n";
 		}
 		$this->output .= "</div></form><span id=\"loginFeedback\"></span></div>\n";
 		return $this->output;
@@ -432,30 +582,38 @@ class loginui{
 	}
 
 	public function printRegisterForm(){
-		$this->output = "<div id=\"ghotiLogin\"><form id=\"registerForm\" class=\"ghotiForm\" action=\"javascript:register();\">\n";
+		$this->output = "<div id=\"ghotiLogin\"><form id=\"registerForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"register(); return false;\">\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Username</span><input type=\"text\" name=\"userName\" id=\"registerForm-userName\" size=\"20\" autocomplete=\"username\" autocapitalize=\"none\" spellcheck=\"false\" /></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>E-mail</span><input type=\"email\" name=\"email\" id=\"registerForm-email\" size=\"20\" autocomplete=\"email\" /></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password</span><input type=\"password\" name=\"password\" id=\"registerForm-password\" size=\"20\" autocomplete=\"new-password\" /></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password again</span><input type=\"password\" name=\"password1\" id=\"registerForm-password1\" size=\"20\" autocomplete=\"new-password\" /></label>\n";
 		$this->output .= loginCaptchaHtml('register','registerForm-captcha');
-		$this->output .= "<div class=\"ghotiFormActions\"><input type=\"submit\" value=\"Register\" /></div>\n";
+		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Register</button></div>\n";
 		$this->output .= "</form><span id=\"loginFeedback\"></span></div>\n";
 		return $this->output;
 	}
 
 	public function printChangePasswordForm(){
-		$this->output = "<form id=\"changePasswordForm\" class=\"ghotiForm\" action=\"javascript:changePassword();\">";
+		$this->output = "<form id=\"changePasswordForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"changePassword(); return false;\">";
 		$this->output .= "<label class=\"ghotiField\"><span>Old password</span><input type=\"password\" id=\"chpw-password\" size=\"20\" autocomplete=\"current-password\" /></label>";
 		$this->output .= "<label class=\"ghotiField\"><span>New password</span><input type=\"password\" id=\"chpw-newPassword1\" size=\"20\" autocomplete=\"new-password\" /></label>";
 		$this->output .= "<label class=\"ghotiField\"><span>New password again</span><input type=\"password\" id=\"chpw-newPassword2\" size=\"20\" autocomplete=\"new-password\" /></label>";
 		$this->output .= loginCaptchaHtml('changePassword','chpw-captcha');
-		$this->output .= "<div class=\"ghotiFormActions\"><input type=\"submit\" value=\"Change Password\"/>";
-		$this->output .= "<input type=\"button\" value=\"Remove Account\" class=\"ghotiButtonDanger ghotiMenu\" onclick=\"printDeleteUserDialog();\" /></div></form>";
+		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Change Password</button>";
+		$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonDanger ghotiMenu\" onclick=\"printDeleteUserDialog();\">Remove Account</button></div></form>";
 		return $this->output;
 	}
 
 	function printManageUserForm($userList){
 		$this->output = "<section id=\"ghotiManageUsers\" class=\"ghotiAdminPanel\"><div class=\"ghotiCrudHeader\"><h1>Manage Users</h1></div>\n";
+		$docs = ghoti_docs_panel("How to manage users", "roles, edits, removal", array(
+			array('heading' => 'Roles',
+				'list' => array('The <b>Admin</b> / <b>User</b> button toggles admin rights.', 'The last remaining admin cannot be demoted or deleted.')),
+			array('heading' => 'Edit an account',
+				'list' => array('Change the username or email and press <b>Save</b>.', 'Usernames and emails must be unique &mdash; an address in use by another account is rejected.')),
+			array('heading' => 'Delete an account',
+				'list' => array('<b>Delete</b> removes the account and its comments. This cannot be undone.'))
+		));
 		$this->output .= "<table class=\"ghotiManageTable\"><thead><tr><th>Username</th><th>Email</th><th>Admin</th><th>Actions</th></tr></thead><tbody>\n";
 		foreach($userList as $records => $row){
 			$userId = (int)$row[0];
@@ -474,7 +632,9 @@ class loginui{
 			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"deleteUser('".$userId."');\"><img src=\"gfx/delete.png\" alt=\"\" />Delete</button></div></td>\n";
 			$this->output .= "</tr>\n";
 		}
-		$this->output .= "</tbody></table></section>\n";
+		$this->output .= "</tbody></table>\n";
+		$this->output .= $docs;
+		$this->output .= "</section>\n";
 		return $this->output;
 	}
 }

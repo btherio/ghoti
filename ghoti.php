@@ -78,9 +78,25 @@ class ghoti {
         return $pageMenu;
 	}
 
+	//Rotate ghoti.log when it exceeds 5MB: shift .1 -> .2, current -> .1. Best
+	//effort - the log is a diagnostic, never a reason to fail a request.
+	private static function rotateLogIfNeeded(){
+		$path = ghoti::$ghotiLog;
+		if(!is_file($path)){ return; }
+		clearstatcache(true, $path);
+		if(@filesize($path) < 5 * 1024 * 1024){ return; }
+		for($i = 2; $i >= 1; $i--){
+			$from = $path.'.'.$i;
+			$to   = $path.'.'.($i + 1);
+			if(is_file($from)){ @rename($from, $to); }
+		}
+		if(is_file($path)){ @rename($path, $path.'.1'); }
+	}
+
 	public static function log($line){
 		#logs a line to a logfile
 		try{
+	      self::rotateLogIfNeeded();
 	      $fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
 	      //Use PHP's date() instead of shelling out to `date` - the backtick spawned
 	      //a process on every log line (slow), and on Windows `date` blocks waiting
@@ -96,6 +112,7 @@ class ghoti {
 		#logs a  debug line to a logfile if enabled
 		if(ghoti::$enableDebug == True){
 			try{
+				self::rotateLogIfNeeded();
 				$fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
 				fwrite($fh,"[".date('D M j g:i:s A T Y')."]DEBUG:".$line."\n");
 				fclose($fh);

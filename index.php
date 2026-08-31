@@ -56,7 +56,7 @@ if(!ghotidb::isConfigured()){
 $_SESSION['ghotiObj'] = new ghoti();
 
 //load the modules add module name into array like "module1","module2"
-$modules = array("links","login","banners","comments","analytics");
+$modules = array("links","login","banners","comments","analytics","gallery","filemanager");
 $_SESSION['ghotiObj']->loadModules($modules);
 
 //Initialize each module you want active
@@ -67,11 +67,26 @@ $_SESSION['loginObj'] = new login();
 $_SESSION['bannersObj'] = new banners();
 $_SESSION['commentsObj'] = new comments();
 $_SESSION['analyticsObj'] = new analytics();
+$_SESSION['galleryObj'] = new gallery();
+$_SESSION['filemanagerObj'] = new filemanager();
 //(removed the unused $_SESSION['ghotidb'] = new ghotidb() - it was written every
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
 //dispatch an async (fetch) call if this request is one; otherwise fall
 //through and render the page normally.
 ghoti_async_handle_request();
+
+//Security headers for normal page responses (async responses get their own
+//headers in ghoti_async_send_json). script-src keeps 'unsafe-inline' because
+//the app uses inline <script> blocks and onclick attributes throughout -
+//tightening that further is a JS-refactor project; the rest of the policy
+//still blocks plugin injection, base-tag hijack, clickjacking and form CSRF.
+if(!headers_sent()){
+	header('X-Content-Type-Options: nosniff');
+	header('X-Frame-Options: DENY');
+	header('Referrer-Policy: strict-origin-when-cross-origin');
+	header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+	header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: http: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+}
 
 //process GET & SESSION variables
 //The theme name is concatenated into an include() path below, so it must be

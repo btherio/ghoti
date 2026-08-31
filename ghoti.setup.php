@@ -12,17 +12,30 @@
  * Security model (same as any web installer, e.g. WordPress's install screen):
  * this flow is ONLY reachable while ghotidb::isConfigured() is false. There are
  * no users/admins to authenticate against when the database is down, so it
- * can't be gated on login. The moment a working config is saved and connects,
- * index.php stops diverting here and the setup endpoints below refuse. To keep
- * the exposure minimal while it IS open, every field is strictly validated,
- * the driver is whitelisted, values are written with var_export() (no PHP
- * injection into the generated file), and the target path is fixed (not an
- * arbitrary-file-write primitive).
+ * can't be gated on login. To keep the exposure minimal while it IS open:
+ *   - every field is strictly validated, the driver is whitelisted, values are
+ *     written with var_export() (no PHP injection into the generated file),
+ *     and the target path is fixed (not an arbitrary-file-write primitive);
+ *   - the async calls carry the session CSRF token (same as every other
+ *     endpoint), so a cross-site request can't drive the form;
+ *   - if the GHOTI_SETUP_KEY environment variable is set, the setup page and
+ *     its endpoints additionally require that key (?k=... / payload "k"),
+ *     turning the outage window into a locked door instead of an open portal;
+ *   - raw PDO error text is flattened and truncated so it stays useful for the
+ *     operator without becoming a network-probing oracle.
+ * The moment a working config is saved and connects, index.php stops diverting
+ * here and the setup endpoints below refuse.
  */
 
 /* Drivers we actually support. The data layer is written for MySQL/MariaDB. */
 function ghoti_setup_allowed_drivers(){
 	return array('mysql');
+}
+
+/* Optional setup key from the environment; '' means "no key configured". */
+function ghoti_setup_configured_key(){
+	$key = getenv('GHOTI_SETUP_KEY');
+	return is_string($key) ? $key : '';
 }
 
 /*
@@ -99,9 +112,12 @@ function ghoti_setup_test_config($cfg){
 		$pdo = null; // close immediately; we only wanted to prove it connects
 		return true;
 	}catch (Throwable $e){
-		//Surface the driver's message (access denied, unknown database, ...) - it's
-		//exactly what the operator needs during setup - but flatten it to one line.
+		//Flatten + truncate the driver's message: keep it useful for the
+		//operator ("access denied", "unknown database", ...) without dumping a
+		//multi-line DSN/stack blob that doubles as a network-probing oracle.
 		$msg = preg_replace('/\s+/', ' ', $e->getMessage());
+		$msg = trim((string)$msg);
+		if(strlen($msg) > 200){ $msg = substr($msg, 0, 200).'...'; }
 		return "Connection failed: ".$msg;
 	}
 }
@@ -149,16 +165,36 @@ function ghoti_setup_save_config($input){
 }
 
 /*
+ * True only when the presented setup key (when one is configured) matches AND
+ * the request carries the session CSRF token.
+ */
+function ghoti_setup_access_ok($presentedKey, $token){
+	$key = ghoti_setup_configured_key();
+	if($key !== '' && (!is_string($presentedKey) || !hash_equals($key, $presentedKey))){
+		return false;
+	}
+	return ghoti_csrf_verify($token);
+}
+
+/*
  * Entry point called from index.php when the DB is unreachable. If this request
  * is the setup form's async POST, dispatch it and exit; otherwise render the
  * setup page and exit. Setup endpoints are handled HERE (not via the normal
  * async registry) so they exist only on this path, while the DB is down.
  */
 function ghoti_setup_dispatch(){
+	$key = ghoti_setup_configured_key();
 	$req = ghoti_async_read_request();
 	if($req !== null){
-		list($fn, $args) = $req;
+		list($fn, $args, $token) = $req;
 		$payload = isset($args[0]) ? $args[0] : array();
+		$presentedKey = (is_array($payload) && isset($payload['k'])) ? (string)$payload['k'] : '';
+		if(!ghoti_setup_access_ok($presentedKey, $token)){
+			//logLine() strips CR/LF so an attacker-chosen fn can't forge log entries.
+			ghoti::log("ghoti.setup.php denied setup request '".ghoti_validate()->logLine($fn)."' (bad key/token) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
+			ghoti_async_send_json(array('ok' => false, 'error' => 'Setup access denied.'), 403);
+			exit;
+		}
 		if($fn === 'saveDbConfig'){
 			ghoti_async_send_json(array('ok' => true, 'result' => ghoti_setup_save_config($payload)));
 		}else if($fn === 'testDbConfig'){
@@ -174,6 +210,18 @@ function ghoti_setup_dispatch(){
 			ghoti_async_send_json(array('ok' => false, 'error' => 'The site is not configured yet. Reload to finish database setup.'), 503);
 		}
 		exit;
+	}
+
+	//Page render: when a setup key is configured, require it in the URL.
+	if($key !== ''){
+		$presentedKey = isset($_GET['k']) ? (string)$_GET['k'] : '';
+		if(!is_string($presentedKey) || !hash_equals($key, $presentedKey)){
+			ghoti::log("ghoti.setup.php denied setup page (missing/bad key) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
+			http_response_code(403);
+			header('Content-Type: text/plain; charset=utf-8');
+			echo "Database setup is locked. Set GHOTI_SETUP_KEY and open this page with ?k=<key>.";
+			exit;
+		}
 	}
 	ghoti_setup_render_page();
 	exit;
@@ -191,12 +239,18 @@ function ghoti_setup_render_page(){
 	$username = $esc($cfg['username'] ?? '');
 	$charset  = $esc($cfg['charset']  ?? 'utf8mb4');
 	$endpoint = $esc(isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : 'index.php');
+	//CSRF token (same session token the async layer uses) + optional setup key.
+	$csrfJs   = json_encode(ghoti_csrf_token());
+	$keyJs    = json_encode(isset($_GET['k']) ? (string)$_GET['k'] : '');
 
 	if(!headers_sent()){
 		http_response_code(503); // "not ready yet" - correct while unconfigured
 		header('Content-Type: text/html; charset=utf-8');
 		header('Cache-Control: no-store');
 		header('Retry-After: 60');
+		header('X-Content-Type-Options: nosniff');
+		header('X-Frame-Options: DENY');
+		header('Referrer-Policy: no-referrer'); // the setup URL carries ?k= - don't leak it
 	}
 
 	echo <<<HTML
@@ -239,10 +293,21 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(42
 .row .port{width:110px}
 .actions{display:flex;gap:10px;align-items:center;margin-top:8px}
 button{appearance:none;border:1px solid var(--border);border-radius:9px;padding:10px 16px;
-	font-size:.95rem;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text)}
-button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-button.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
-button:disabled{opacity:.6;cursor:progress}
+	font-size:.95rem;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);
+	position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+	transition:transform .12s ease,box-shadow .18s ease,filter .18s ease}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.28)}
+button:active{transform:translateY(1px);box-shadow:inset 0 2px 5px rgba(0,0,0,.22)}
+button:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(42,120,214,.45)}
+button.primary{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 88%,#fff 12%),var(--accent));border-color:var(--accent);color:#fff}
+button.primary:hover{filter:saturate(1.1) brightness(1.05)}
+button:disabled{opacity:.6;cursor:progress;transform:none;filter:grayscale(.45);box-shadow:none}
+button.is-busy{pointer-events:none;color:transparent}
+button.is-busy > *{visibility:hidden}
+button.is-busy::after{content:"";position:absolute;inset:0;margin:auto;width:1.1em;height:1.1em;
+	border:2px solid color-mix(in srgb,var(--text) 30%,transparent);border-top-color:var(--text);
+	border-radius:50%;animation:ghotiSpin .7s linear infinite}
+@keyframes ghotiSpin{to{transform:rotate(360deg)}}
 .msg{margin-left:auto;font-size:.88rem;min-height:1.2em}
 .msg.ok{color:var(--ok)} .msg.err{color:var(--danger)}
 .setup-foot{padding:0 26px 20px;color:var(--muted);font-size:.78rem}
@@ -293,6 +358,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:5px}
 <script>
 (function(){
 	var ENDPOINT = "{$endpoint}";
+	var CSRF_TOKEN = {$csrfJs};
+	var SETUP_KEY = {$keyJs};
 	function fields(){
 		return {
 			driver:   document.getElementById('db-driver').value,
@@ -301,7 +368,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:5px}
 			database: document.getElementById('db-database').value,
 			username: document.getElementById('db-username').value,
 			password: document.getElementById('db-password').value,
-			charset:  document.getElementById('db-charset').value
+			charset:  document.getElementById('db-charset').value,
+			k:        SETUP_KEY
 		};
 	}
 	var msg = document.getElementById('db-msg');
@@ -310,16 +378,22 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:5px}
 		var testBtn = document.getElementById('db-test');
 		var saveBtn = document.getElementById('db-save');
 		testBtn.disabled = saveBtn.disabled = true;
+		testBtn.classList.add('is-busy');
+		saveBtn.classList.add('is-busy');
 		setMsg('Working...', '');
 		fetch(ENDPOINT, {
 			method:'POST', credentials:'same-origin',
 			headers:{'Content-Type':'application/json'},
-			body: JSON.stringify({ __ghoti_async:1, fn:fn, args:[fields()] })
+			body: JSON.stringify({ __ghoti_async:1, fn:fn, args:[fields()], token:CSRF_TOKEN })
 		}).then(function(r){ return r.json(); }).then(function(data){
 			testBtn.disabled = saveBtn.disabled = false;
+			testBtn.classList.remove('is-busy');
+			saveBtn.classList.remove('is-busy');
 			onResult(data && data.ok ? data.result : (data && data.error) || 'Request failed.');
 		}).catch(function(){
 			testBtn.disabled = saveBtn.disabled = false;
+			testBtn.classList.remove('is-busy');
+			saveBtn.classList.remove('is-busy');
 			setMsg('Network error - is the server reachable?', 'err');
 		});
 	}
