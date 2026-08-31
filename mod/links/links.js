@@ -97,6 +97,7 @@ function editLinkForm_cb(result){
 	$("#ghotiContent").html(
 		"<section id=\"ghotiManageLinks\" class=\"ghotiAdminPanel\">"+
 			"<div class=\"ghotiCrudHeader\"><h1>Manage Links</h1><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"addLinkForm();\">Add Link</button></div>"+
+			"<form id=\"editLinkForm\" class=\"ghotiForm ghotiCrudList\" action=\"#\">"+rows+"</form>"+
 			ghotiDocsHtml("How to use links", "sidebar links & groups", [
 				{ heading: "Add a link",
 				  list: ["Press <b>Add Link</b> and enter a name and a full URL.", "Only <b>http://</b>, <b>https://</b> and <b>mailto:</b> URLs are accepted."] },
@@ -105,7 +106,6 @@ function editLinkForm_cb(result){
 				{ heading: "Edit or remove",
 				  list: ["Change any field and press <b>Save</b>, or <b>Delete</b> to remove the link."] }
 			])+
-			"<form id=\"editLinkForm\" class=\"ghotiForm ghotiCrudList\" action=\"#\">"+rows+"</form>"+
 		"</section>"
 	);
 }
