@@ -23,7 +23,10 @@ if (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70300) {
 @session_set_cookie_params(0, '/', '', $secure, true);
 @session_start();
 
-function filemanagerDownloadDeny(){
+function filemanagerDownloadDeny($reason = ''){
+    if($reason !== ''){
+        ghoti::logWarn("filemanager.download.php", "denied download: $reason from ".ghoti_remote_addr());
+    }
     http_response_code(403);
     header('Content-Type: text/plain');
     echo "Forbidden";
@@ -31,18 +34,18 @@ function filemanagerDownloadDeny(){
 }
 
 if(!isset($_SESSION['loggedIn']) || $_SESSION['loggedIn'] !== true || !isset($_SESSION['userId'])){
-    filemanagerDownloadDeny();
+    filemanagerDownloadDeny('not logged in');
 }
 
 //CSRF: the download links are generated server-side with the session token
 //(filemanagerui::printManager), so a cross-site GET can't trigger a download.
 if(!ghoti_csrf_verify(isset($_GET['token']) ? (string)$_GET['token'] : '')){
-    filemanagerDownloadDeny();
+    filemanagerDownloadDeny('invalid CSRF token');
 }
 
 $logindb = new logindb();
 if(!$logindb->isAdmin($_SESSION['userId'])){
-    filemanagerDownloadDeny();
+    filemanagerDownloadDeny('non-admin uid '.$_SESSION['userId']);
 }
 
 //Resolve + confine the requested file (mirrors fm_resolve_dir in
@@ -53,17 +56,17 @@ $dir  = isset($_GET['dir']) ? (string)$_GET['dir'] : '';
 $name = isset($_GET['name']) ? (string)$_GET['name'] : '';
 $resolved = fm_resolve_dir($dir);
 if($resolved === false || fm_clean_name($name) === false){
-    filemanagerDownloadDeny();
+    filemanagerDownloadDeny('invalid dir/name');
 }
 
 //Realpath the final path too, so a symlinked file can't leak outside the root
 //or reach a denied file through a benign link name. Folders are refused.
 $path = fm_resolve_target($resolved, $name);
 if($path === false || !is_file($path) || !is_readable($path)){
-    filemanagerDownloadDeny();
+    filemanagerDownloadDeny('unresolvable or unreadable path');
 }
 
-ghoti::log("File manager: downloaded '".$resolved[1].'/'.$name."' by userId ".$_SESSION['userId']);
+ghoti::logInfo("filemanager.download.php", "downloaded '".$resolved[1].'/'.$name."' by userId ".$_SESSION['userId']);
 
 $filename = $name;
 header('Content-Type: '.fm_mime_type($path));

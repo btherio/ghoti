@@ -38,7 +38,7 @@ class gallerydb extends ghotidb{
 					$this->db()->exec($sql);
 				}
 			}catch (Throwable $e2){
-				ghoti::log("gallery.db.php ".$e2->getMessage());
+				ghoti::logException("gallery.db.php:ensurePhotosTable", $e2);
 			}
 		}
 	}
@@ -49,7 +49,7 @@ class gallerydb extends ghotidb{
 		try{
 			$rows = $this->queryArray("select galleryId,name,title,description,createdAt from gallery where name = ? limit 1",array($name));
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:getGalleryByName", $e);
 			return false;
 		}
 		if(!isset($rows[0])){ return false; }
@@ -60,7 +60,7 @@ class gallerydb extends ghotidb{
 		try{
 			$rows = $this->queryArray("select galleryId,name,title,description,createdAt from gallery where galleryId = ? limit 1",array((int)$id));
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:getGalleryById", $e);
 			return false;
 		}
 		if(!isset($rows[0])){ return false; }
@@ -76,7 +76,7 @@ class gallerydb extends ghotidb{
 				."order by g.createdAt desc, g.galleryId desc"
 			);
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:getAllGalleries", $e);
 			return false;
 		}
 		$out = array();
@@ -92,7 +92,7 @@ class gallerydb extends ghotidb{
 		try{
 			$rows = $this->queryArray("select galleryId from gallery where name = ? and galleryId <> ? limit 1",array($name,(int)$excludeId));
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:nameInUse", $e);
 			return false;
 		}
 		return !empty($rows);
@@ -105,7 +105,7 @@ class gallerydb extends ghotidb{
 				array($name,$title,$description,time())
 			);
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:addGallery", $e);
 			return false;
 		}
 		//lastInsertId() would need the statement; a plain SELECT is simplest here.
@@ -120,7 +120,7 @@ class gallerydb extends ghotidb{
 				array($name,$title,$description,(int)$id)
 			);
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:editGallery", $e);
 			return false;
 		}
 		return true;
@@ -131,7 +131,7 @@ class gallerydb extends ghotidb{
 			$this->query("delete from gallery where galleryId=?",array((int)$id));
 			$this->query("delete from gallery_photos where galleryId=?",array((int)$id));
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:deleteGallery", $e);
 			return false;
 		}
 		return true;
@@ -147,7 +147,7 @@ class gallerydb extends ghotidb{
 				array((int)$galleryId)
 			);
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:getPhotos", $e);
 			return false;
 		}
 		$out = array();
@@ -175,7 +175,7 @@ class gallerydb extends ghotidb{
 				array((int)$galleryId,$imageUrl,$caption,$sortOrder,time())
 			);
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:addPhoto", $e);
 			return false;
 		}
 		return true;
@@ -187,7 +187,7 @@ class gallerydb extends ghotidb{
 			$imageUrl = isset($rows[0][0]) ? $rows[0][0] : '';
 			$this->query("delete from gallery_photos where photoId=?",array((int)$photoId));
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:deletePhoto", $e);
 			return false;
 		}
 		return array('deleted' => true, 'imageUrl' => $imageUrl);
@@ -197,7 +197,7 @@ class gallerydb extends ghotidb{
 		try{
 			$this->query("update gallery_photos set caption=? where photoId=?",array($caption,(int)$photoId));
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:setPhotoCaption", $e);
 			return false;
 		}
 		return true;
@@ -228,7 +228,7 @@ class gallerydb extends ghotidb{
 				array((int)$photoId,(int)$neighbours[0][1],(int)$neighbours[0][0],$current,(int)$photoId,(int)$neighbours[0][0])
 			);
 		}catch (Throwable $e){
-			ghoti::log("gallery.db.php ".$e->getMessage());
+			ghoti::logException("gallery.db.php:movePhoto", $e);
 			return false;
 		}
 		return true;

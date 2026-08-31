@@ -23,7 +23,7 @@ function bannersRemoteAddr(){
 
 function bannersRequireAdmin(){
 	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::log("banners.async.php Unauthorized banner management attempt from ".bannersRemoteAddr());
+		ghoti::logWarn("banners.async.php", "Unauthorized banner management attempt from ".bannersRemoteAddr());
 		return false;
 	}
 	return true;

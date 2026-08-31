@@ -47,7 +47,7 @@ $days = isset($_GET['days']) ? (int)$_GET['days'] : 30;
 if($days < 1) $days = 1;
 if($days > 3650) $days = 3650;
 
-ghoti::log("Analytics CSV exported by userId ".$_SESSION['userId']." from ".($_SERVER['REMOTE_ADDR'] ?? ''));
+ghoti::logInfo("analytics.export.php", "Analytics CSV exported by userId ".$_SESSION['userId']." from ".($_SERVER['REMOTE_ADDR'] ?? ''));
 
 $analyticsdb = new analyticsdb();
 $rows = $analyticsdb->getExportRows($days);

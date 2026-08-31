@@ -17,7 +17,7 @@ class bannersdb extends ghotidb{
 		try{
 			$banner = $this->query("SELECT id,alt,imgUrl,linkUrl,smallBanner FROM `banners` order by smallBanner,linkUrl;");
 		}catch (Throwable $e){
-			ghoti::log("banners.db.php ".$e->getMessage());
+			ghoti::logException("banners.db.php:getAllBanners", $e);
 			return false;
 		}
 		return $banner;
@@ -30,7 +30,7 @@ class bannersdb extends ghotidb{
 				$banner = $this->query("SELECT id,alt,imgUrl,linkUrl FROM `banners` WHERE smallBanner=0 ORDER BY RAND() LIMIT 1;");
 			}
 		}catch (Throwable $e){
-			ghoti::log("banners.db.php ".$e->getMessage());
+			ghoti::logException("banners.db.php:getRandomBanner", $e);
 			return false;
 		}
 		return $banner;
@@ -39,7 +39,7 @@ class bannersdb extends ghotidb{
 		try{
 			$this->query("insert into banners(alt,imgUrl,linkUrl,smallBanner) values(?,?,?,?)",array($alt,$imgUrl,$linkUrl,(int)$smallBanner));
 		}catch (Throwable $e){
-			ghoti::log("banners.db.php ".$e->getMessage());
+			ghoti::logException("banners.db.php:addBanner", $e);
 			return false;
 		}
 		return true;
@@ -48,7 +48,7 @@ class bannersdb extends ghotidb{
 		try{
 			$this->query("delete from banners where id=?",array($id));
 		}catch (Throwable $e){
-			ghoti::log("banners.db.php ".$e->getMessage());
+			ghoti::logException("banners.db.php:deleteBanner", $e);
 			return false;
 		}
 		return true;
@@ -57,7 +57,7 @@ class bannersdb extends ghotidb{
 		try{
 			$this->query("update banners set alt=?,imgUrl=?,linkUrl=?,smallBanner=? where id=?",array($alt,$imgUrl,$linkUrl,$smallBanner,$id));
 		}catch (Throwable $e){
-			ghoti::log("banners.db.php ".$e->getMessage());
+			ghoti::logException("banners.db.php:editBanner", $e);
 			return false;
 		}
 		return true;

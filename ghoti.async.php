@@ -163,19 +163,21 @@ function ghoti_async_handle_request(){
 		return; // not an async call - carry on and render the page
 	}
 	list($fn, $args, $token) = $req;
+	$startTime = microtime(true);
+	ghoti::logDebug("ghoti.async.php:dispatch", "-> fn='".ghoti_validate()->logLine($fn)."' argc=".count($args)." from ".ghoti_remote_addr());
 
 	//CSRF: reject anything without a valid session token before any endpoint
 	//runs. Registered-or-not is irrelevant - an invalid token is a 403.
 	if(!ghoti_csrf_verify($token)){
 		//logLine() strips CR/LF so an attacker-chosen fn can't forge log entries.
-		ghoti::log("ghoti.async.php rejected request without valid CSRF token ('".ghoti_validate()->logLine($fn)."') from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:dispatch", "rejected request without valid CSRF token ('".ghoti_validate()->logLine($fn)."') from ".ghoti_remote_addr());
 		ghoti_async_send_json(array('ok' => false, 'error' => 'Invalid request token'), 403);
 		ghoti_free_request_objects();
 		exit;
 	}
 
 	if(!ghoti_async_is_registered($fn) || !function_exists($fn)){
-		ghoti::log("ghoti.async.php: rejected call to '".ghoti_validate()->logLine($fn)."' from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:dispatch", "rejected call to '".ghoti_validate()->logLine($fn)."' from ".ghoti_remote_addr());
 		ghoti_async_send_json(array('ok' => false, 'error' => 'Not callable'), 400);
 		ghoti_free_request_objects();
 		exit;
@@ -184,9 +186,10 @@ function ghoti_async_handle_request(){
 	try{
 		$result = call_user_func_array($fn, $args);
 		ghoti_async_send_json(array('ok' => true, 'result' => $result));
+		ghoti::logDebug("ghoti.async.php:dispatch", "<- fn='".ghoti_validate()->logLine($fn)."' ok in ".round((microtime(true)-$startTime)*1000,1)."ms");
 	}catch (Throwable $e){
 		//logLine() strips CR/LF so an exception message can't forge log entries.
-		ghoti::log("ghoti.async.php: exception in '".ghoti_validate()->logLine($fn)."': ".ghoti_validate()->logLine($e->getMessage()));
+		ghoti::logException("ghoti.async.php:dispatch", $e, "fn='".ghoti_validate()->logLine($fn)."'");
 		ghoti_async_send_json(array('ok' => false, 'error' => 'Server error'), 500);
 	}
 	ghoti_free_request_objects();
@@ -357,7 +360,7 @@ function ghoti_require_admin(){
 	if($uid > 0 && function_exists('isAdmin') && isAdmin($uid)){
 		return true;
 	}
-	ghoti::log("ghoti.async.php denied privileged action (uid ".$uid.") from ".ghoti_remote_addr());
+	ghoti::logWarn("ghoti.async.php:ghoti_require_admin", "denied privileged action (uid ".$uid.") from ".ghoti_remote_addr());
 	return false;
 }
 
@@ -379,14 +382,14 @@ function getPage($content){
 		$pageDisplay .= $_SESSION["commentsObj"]->commentsui->addCommentButton();
 	}
 	$content = "<div id=\"ghotiPageDisplay\">\n".$pageDisplay."</div>\n";
-	ghoti::debug("ghoti.async.php:getPage: Checking for session userId");
+	ghoti::logDebug("ghoti.async.php:getPage", "Checking for session userId");
 	$isAdminViewer = false;
 	if(isSet($_SESSION['userId'])){
-		ghoti::debug("ghoti.async.php:getPage: Found userId".$_SESSION['userId']);
-		ghoti::debug("ghoti.async.php:getPage: Checking user for admin priv");
+		ghoti::logDebug("ghoti.async.php:getPage", "Found userId".$_SESSION['userId']);
+		ghoti::logDebug("ghoti.async.php:getPage", "Checking user for admin priv");
 		if(isAdmin($_SESSION['userId'])){
 			$isAdminViewer = true;
-			ghoti::debug("ghoti.async.php:getPage: admin checked positive");
+			ghoti::logDebug("ghoti.async.php:getPage", "admin checked positive");
 			$content .= editPage($_SESSION['pageId']);
 		}
 	}
@@ -411,7 +414,7 @@ function getPageById($id){
 	//an id. getPageById returns [content,title,groupName].
 	$group = isset($content[0][2]) ? $content[0][2] : 'public';
 	if($group === 'private' && !ghoti_require_login()){
-		ghoti::log("ghoti.async.php denied private page $id to anon from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:getPage", "denied private page $id to anon from ".ghoti_remote_addr());
 		return "<p>You must be logged in to view this page.</p>";
 	}
 		//set the session page id so we can pull it up any time
@@ -426,7 +429,7 @@ function getPageByTitle($title){
 	if(!isset($content[0])){ return ""; }
 	$group = isset($content[0][3]) ? $content[0][3] : 'public';
 	if($group === 'private' && !ghoti_require_login()){
-		ghoti::log("ghoti.async.php denied private page title to anon from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:getPageTitle", "denied private page title to anon from ".ghoti_remote_addr());
 		return "<p>You must be logged in to view this page.</p>";
 	}
 	//set the session page id so we can pull it up any time
@@ -587,7 +590,7 @@ function savePageManagement($pages,$defaultPageId){
 	}
 	$settingsResult = ghoti::saveSettings(array('defaultPageTitle'=>$defaultTitle));
 	if($settingsResult !== true){
-		ghoti::log("ghoti.async.php page management saved but default title setting failed");
+		ghoti::logWarn("ghoti.async.php:savePageManagement", "saved but default title setting failed");
 		return "Pages were saved, but the default-page setting file could not be updated.";
 	}
 	return true;
@@ -620,12 +623,12 @@ function logToFile($line){
 		}
 		$throttle->recordFailure($key, 200);
 	}
-	ghoti::log("(UID:".$_SESSION["userId"].")".$line);
+	ghoti::logInfo("ghoti.async.php:appendUserLog", "(UID:".$_SESSION["userId"].") ".$line);
 	return true;
 }
 function clearGhotiLog(){
 	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::log("ghoti.async.php Unauthorized clearGhotiLog attempt from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:clearGhotiLog", "Unauthorized clearGhotiLog attempt from ".ghoti_remote_addr());
 		return false;
 	}
 	//Truncate the log in PHP rather than via a shell redirect (portable, and no

@@ -26,6 +26,24 @@ class ghoti {
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
 	public static $enableDebug = False;            //enable debug logging           [UI]
 
+	/* ---------------- Logging levels ----------------
+	 * Higher number = more severe. A line is written only when its level is
+	 * >= the effective threshold (DEBUG when $enableDebug is on, INFO
+	 * otherwise) - so ERROR/WARN/INFO always show up, DEBUG is opt-in noise.
+	 * $enableDebug stays the single admin-facing switch on purpose (no new
+	 * Site Settings UI needed); these constants just make call sites and log
+	 * output self-describing instead of everything looking like one bucket. */
+	const LOG_LEVEL_DEBUG = 10;
+	const LOG_LEVEL_INFO  = 20;
+	const LOG_LEVEL_WARN  = 30;
+	const LOG_LEVEL_ERROR = 40;
+	private static $levelNames = array(
+		self::LOG_LEVEL_DEBUG => 'DEBUG',
+		self::LOG_LEVEL_INFO  => 'INFO',
+		self::LOG_LEVEL_WARN  => 'WARN',
+		self::LOG_LEVEL_ERROR => 'ERROR',
+	);
+
 	// Not exposed in the UI on purpose:
 	//  - $ghotiLog is an arbitrary filesystem path (letting the browser set it
 	//    would be an arbitrary-file-write primitive).
@@ -94,33 +112,64 @@ class ghoti {
 	}
 
 	public static function log($line){
-		#logs a line to a logfile
-		try{
-	      self::rotateLogIfNeeded();
-	      $fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
-	      //Use PHP's date() instead of shelling out to `date` - the backtick spawned
-	      //a process on every log line (slow), and on Windows `date` blocks waiting
-	      //for interactive input, hanging the whole request.
-	      fwrite($fh,"[".date('D M j g:i:s A T Y')."]".$line."\n");
-	      fclose($fh);
-	    }catch (Exception $e){
-	      return $e->getMessage();
-	    }
-    	return True;
+		#logs a line to a logfile (kept for backward compatibility - treated as INFO)
+		return self::writeLog(self::LOG_LEVEL_INFO, null, $line);
 	}
 	public static function debug($line){
-		#logs a  debug line to a logfile if enabled
-		if(ghoti::$enableDebug == True){
-			try{
-				self::rotateLogIfNeeded();
-				$fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
-				fwrite($fh,"[".date('D M j g:i:s A T Y')."]DEBUG:".$line."\n");
-				fclose($fh);
-			  }catch (Exception $e){
-				return $e->getMessage();
-			  }
+		#logs a debug line to a logfile if enabled (kept for backward compatibility)
+		return self::writeLog(self::LOG_LEVEL_DEBUG, null, $line);
+	}
+
+	/* ---------------- Leveled logging core ----------------
+	 * Every log/debug/warn/error call in the codebase should route through
+	 * writeLog() (directly or via the convenience wrappers below) so format,
+	 * rotation, and the debug on/off switch stay in exactly one place. */
+
+	//Convenience wrappers. $context is an optional string identifying the
+	//call site (module/function), so log lines are greppable by origin
+	//without hand-prefixing every message (e.g. "login.db.php:authenticate").
+	public static function logInfo($context, $line){ return self::writeLog(self::LOG_LEVEL_INFO, $context, $line); }
+	public static function logWarn($context, $line){ return self::writeLog(self::LOG_LEVEL_WARN, $context, $line); }
+	public static function logError($context, $line){ return self::writeLog(self::LOG_LEVEL_ERROR, $context, $line); }
+	public static function logDebug($context, $line){ return self::writeLog(self::LOG_LEVEL_DEBUG, $context, $line); }
+
+	//Format + log a caught exception/Throwable in one call, including its
+	//class and (in debug mode) a compact stack trace - callers no longer
+	//need to hand-roll "$e->getMessage()" string building at every catch site.
+	public static function logException($context, Throwable $e, $extra = ''){
+		$line = get_class($e).': '.$e->getMessage().($extra !== '' ? ' ('.$extra.')' : '');
+		self::writeLog(self::LOG_LEVEL_ERROR, $context, $line);
+		if(self::$enableDebug){
+			self::writeLog(self::LOG_LEVEL_DEBUG, $context, "trace: ".str_replace("\n", ' | ', $e->getTraceAsString()));
 		}
-    	return True;
+	}
+
+	//Single choke point every log line passes through. Handles the
+	//debug-gate, rotation, context tag, and actual file write.
+	private static function writeLog($level, $context, $line){
+		//DEBUG-level lines are silently dropped unless debug logging is on -
+		//this is the "debug logging" half of the architecture: call sites
+		//don't need their own if(enableDebug) checks.
+		if($level === self::LOG_LEVEL_DEBUG && self::$enableDebug !== True){
+			return True;
+		}
+		$levelName = isset(self::$levelNames[$level]) ? self::$levelNames[$level] : 'INFO';
+		$prefix = $levelName;
+		if($context !== null && $context !== ''){
+			$prefix .= ' ['.$context.']';
+		}
+		try{
+			self::rotateLogIfNeeded();
+			$fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
+			//Use PHP's date() instead of shelling out to `date` - the backtick spawned
+			//a process on every log line (slow), and on Windows `date` blocks waiting
+			//for interactive input, hanging the whole request.
+			fwrite($fh,"[".date('D M j g:i:s A T Y')."] ".$prefix.": ".$line."\n");
+			fclose($fh);
+		}catch (Exception $e){
+			return $e->getMessage();
+		}
+		return True;
 	}
 	/* ---------------- Site Settings (admin-editable) ---------------- */
 
@@ -172,10 +221,10 @@ class ghoti {
 		$json = json_encode($clean, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 		if($json === false){ return "Could not encode settings."; }
 		if(@file_put_contents(self::settingsPath(), $json, LOCK_EX) === false){
-			ghoti::log("ghoti.php saveSettings: could not write ".self::settingsPath());
+			ghoti::logError("ghoti.php:saveSettings", "could not write ".self::settingsPath());
 			return "Could not write the settings file. Check that it is writable by the web server.";
 		}
-		ghoti::log("Site settings updated by UID:".($_SESSION['userId'] ?? '?')." from ".($_SERVER['REMOTE_ADDR'] ?? ''));
+		ghoti::logInfo("ghoti.php:saveSettings", "Site settings updated by UID:".($_SESSION['userId'] ?? '?')." from ".($_SERVER['REMOTE_ADDR'] ?? ''));
 		self::loadSettings(); //reflect immediately for the rest of this request
 		return true;
 	}

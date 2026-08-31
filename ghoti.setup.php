@@ -155,12 +155,12 @@ function ghoti_setup_save_config($input){
 	$php .= "return ".var_export($cfg, true).";\n";
 
 	if(@file_put_contents(ghoti_setup_local_config_path(), $php, LOCK_EX) === false){
-		ghoti::log("ghoti.setup.php: could not write ".ghoti_setup_local_config_path());
+		ghoti::logError("ghoti.setup.php:ghoti_setup_save_config", "could not write ".ghoti_setup_local_config_path());
 		return "Connected, but could not write db.config.local.php. Check that the web server can write to the ghoti directory.";
 	}
 
 	@chmod(ghoti_setup_local_config_path(), 0600); // credentials file - keep it tight where the OS honours it
-	ghoti::log("ghoti.setup.php: database configured for {$cfg['username']}@{$cfg['host']}:{$cfg['port']}/{$cfg['database']} from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
+	ghoti::logInfo("ghoti.setup.php:ghoti_setup_save_config", "database configured for {$cfg['username']}@{$cfg['host']}:{$cfg['port']}/{$cfg['database']} from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
 	return true;
 }
 
@@ -191,7 +191,7 @@ function ghoti_setup_dispatch(){
 		$presentedKey = (is_array($payload) && isset($payload['k'])) ? (string)$payload['k'] : '';
 		if(!ghoti_setup_access_ok($presentedKey, $token)){
 			//logLine() strips CR/LF so an attacker-chosen fn can't forge log entries.
-			ghoti::log("ghoti.setup.php denied setup request '".ghoti_validate()->logLine($fn)."' (bad key/token) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
+			ghoti::logWarn("ghoti.setup.php:ghoti_setup_dispatch", "denied setup request '".ghoti_validate()->logLine($fn)."' (bad key/token) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
 			ghoti_async_send_json(array('ok' => false, 'error' => 'Setup access denied.'), 403);
 			exit;
 		}
@@ -216,7 +216,7 @@ function ghoti_setup_dispatch(){
 	if($key !== ''){
 		$presentedKey = isset($_GET['k']) ? (string)$_GET['k'] : '';
 		if(!is_string($presentedKey) || !hash_equals($key, $presentedKey)){
-			ghoti::log("ghoti.setup.php denied setup page (missing/bad key) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
+			ghoti::logWarn("ghoti.setup.php:ghoti_setup_dispatch", "denied setup page (missing/bad key) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
 			http_response_code(403);
 			header('Content-Type: text/plain; charset=utf-8');
 			echo "Database setup is locked. Set GHOTI_SETUP_KEY and open this page with ?k=<key>.";

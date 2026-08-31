@@ -197,7 +197,7 @@ function loginCaptchaHtml($purpose,$inputId){
 	try{
 		$question = loginCaptchaCreate($purpose);
 	}catch (Exception $e){
-		ghoti::log("login.async.php captcha unavailable: ".$e->getMessage());
+		ghoti::logException("login.async.php:loginCaptchaHtml", $e);
 		return "<p class=\"captchaBlock\">Security check unavailable. Please try again later.</p>\n";
 	}
 	$question = htmlspecialchars($question, ENT_QUOTES);
@@ -242,19 +242,19 @@ function login($username,$password){
 		if($throttle->isBlocked($throttleKey)){ $blocked = true; break; }
 	}
 	if($blocked){
-		ghoti::log("Login blocked (server throttle) for '$username' from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:login", "Login blocked (server throttle) for '$username' from ".loginRemoteAddr());
 		return "Too many login attempts. Please try again later.";
 	}
 
-	ghoti::log("Login flow start for user '$username' from ".loginRemoteAddr());
+	ghoti::logDebug("login.async.php:login", "Login flow start for user '$username' from ".loginRemoteAddr());
 
 	if ($attempts >= 5 && ($now - $lastAttempt) < 600) {
-		ghoti::log("Blocked login attempt for $username from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:login", "Blocked login attempt for $username from ".loginRemoteAddr());
 		return "Too many login attempts. Please try again later.";
 	}
 
 	if ($username === '' || $password === '') {
-		ghoti::log("Login rejected: missing username or password for '$username'");
+		ghoti::logDebug("login.async.php:login", "Login rejected: missing username or password for '$username'");
 		return false;
 	}
 
@@ -262,15 +262,15 @@ function login($username,$password){
 	// (deliberately slow) password hasher - an unbounded password is a cheap
 	// slow-hash DoS. No valid username/password can exceed these.
 	if (strlen($username) > validate::MAX_USERNAME || strlen($password) > validate::MAX_PASSWORD) {
-		ghoti::log("Login rejected: over-length credentials for '".substr($username,0,20)."' from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:login", "Login rejected: over-length credentials for '".substr($username,0,20)."' from ".loginRemoteAddr());
 		return false;
 	}
 
 	$_SESSION['login_last_attempt'] = $now;
 	$_SESSION['login_attempts'] = $attempts + 1;
-	ghoti::log("Login attempt($username) from ".loginRemoteAddr());
+	ghoti::logInfo("login.async.php:login", "Login attempt($username) from ".loginRemoteAddr());
 	$id = $_SESSION["loginObj"]->logindb->authenticate($username,$password);
-	ghoti::log("Login authentication result for '$username': ".var_export($id, true));
+	ghoti::logDebug("login.async.php:login", "Login authentication result for '$username': ".var_export($id, true));
 	if ($id && $id > 0) {
 		$_SESSION['login_attempts'] = 0;
 		$_SESSION['login_last_attempt'] = 0;
@@ -288,11 +288,11 @@ function login($username,$password){
 		$_SESSION['userId'] = (int) $id;
 		$_SESSION['admin'] = isAdmin((int) $id);
 		$_SESSION['last_activity'] = time();
-		ghoti::log("Login succeeded for '$username' with userId $id");
+		ghoti::logInfo("login.async.php:login", "Login succeeded for '$username' with userId $id");
 	} else {
 		//Record the failure in the server-side throttle (best-effort).
 		foreach($throttleKeys as $throttleKey){ $throttle->recordFailure($throttleKey); }
-		ghoti::log("Login failed for '$username'");
+		ghoti::logWarn("login.async.php:login", "Login failed for '$username'");
 	}
 	return $id;
 }
@@ -301,14 +301,14 @@ function addUser($username,$email,$password,$captchaAnswer=''){
 	//Honour the server-side registration switch instead of relying on the
 	//client hiding the Register button.
 	if(ghoti::$allowRegister !== true){
-		ghoti::log("Registration attempt while disabled from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:addUser", "Registration attempt while disabled from ".loginRemoteAddr());
 		return "Registration is disabled.";
 	}
 	$username = trim((string) $username);
 	$email = trim((string) $email);
 	$password = (string) $password;
 
-	ghoti::log("Registration flow start for '$username' from ".loginRemoteAddr());
+	ghoti::logDebug("login.async.php:addUser", "Registration flow start for '$username' from ".loginRemoteAddr());
 
 	//Validate + normalize every field up front. username() enforces the safe
 	//charset (the username is echoed into several admin views), email() actually
@@ -319,33 +319,33 @@ function addUser($username,$email,$password,$captchaAnswer=''){
 		$username = $v->username($username);
 		$email    = $v->email($email);
 		$password = $v->password($password);
-		ghoti::log("Registration validation passed for '$username'");
+		ghoti::logDebug("login.async.php:addUser", "Registration validation passed for '$username'");
 	}catch (Exception $e) {
-		ghoti::log("Registration validation failed for '$username': ".$e->getMessage());
+		ghoti::logWarn("login.async.php:addUser", "Registration validation failed for '$username': ".$e->getMessage());
 		return $e->getMessage();
 	}
 
 	$captchaResult = loginCaptchaVerify('register',$captchaAnswer);
 	if($captchaResult !== true){
-		ghoti::log("Registration rejected for '$username': captcha failed from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:addUser", "Registration rejected for '$username': captcha failed from ".loginRemoteAddr());
 		return $captchaResult;
 	}
 
 	$duplicate = $_SESSION["loginObj"]->logindb->checkDuplicate($username,$email);
-	ghoti::log("Registration duplicate check for '$username': ".var_export($duplicate, true));
+	ghoti::logDebug("login.async.php:addUser", "Registration duplicate check for '$username': ".var_export($duplicate, true));
 	if($duplicate){
-		ghoti::log("Registration rejected for '$username': duplicate user/email");
+		ghoti::logWarn("login.async.php:addUser", "Registration rejected for '$username': duplicate user/email");
 		return "Username or Email is already registered!";
 	}
 
-	ghoti::log("Calling addUser for '$username'");
+	ghoti::logDebug("login.async.php:addUser", "Calling addUser for '$username'");
 	$result = $_SESSION["loginObj"]->logindb->addUser($username,$password,$email);
-	ghoti::log("Registration database result for '$username': ".var_export($result, true));
+	ghoti::logDebug("login.async.php:addUser", "Registration database result for '$username': ".var_export($result, true));
 	if($result){
-		ghoti::log("Registered $username from ".loginRemoteAddr());
+		ghoti::logInfo("login.async.php:addUser", "Registered $username from ".loginRemoteAddr());
 		return true;
 	}
-	ghoti::log("Registration failed for '$username' with no exception details");
+	ghoti::logWarn("login.async.php:addUser", "Registration failed for '$username' with no exception details");
 	return "Error!";
 }
 
@@ -364,7 +364,7 @@ function saveUser($name,$email,$id){
 	if($_SESSION["loginObj"]->logindb->checkDuplicateExcluding($name,$email,$id)){
 		return "Username or Email is already registered!";
 	}
-	ghoti::log("Attempting to save user info for $name from ".loginRemoteAddr());
+	ghoti::logInfo("login.async.php:saveUserInfo", "Attempting to save user info for $name from ".loginRemoteAddr());
 	return $_SESSION["loginObj"]->logindb->updateUser($id,$name,$email);
 }
 
@@ -375,7 +375,7 @@ function deleteUser($id){
 	if($id === 0){ $id = $selfId; }   //0 means "delete my own account"
 	//Deleting anyone other than yourself is an admin-only action.
 	if($id !== $selfId && !ghoti_require_admin()){ return false; }
-	ghoti::log("Attempting to delete userID: $id from ".loginRemoteAddr());
+	ghoti::logInfo("login.async.php:deleteUser", "Attempting to delete userID: $id from ".loginRemoteAddr());
 	return $_SESSION["loginObj"]->logindb->deleteUser($id);
 }
 
@@ -387,7 +387,7 @@ function setSessionVars($id){
 	// the session itself, so this only CONFIRMS the session already
 	// authenticated for the same id. It never grants access.
 	if($id <= 0 || ghoti_current_user_id() !== $id){
-		ghoti::log("login.async.php setSessionVars refused id ".$id." (session uid ".ghoti_current_user_id().") from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:setSessionVars", "refused id ".$id." (session uid ".ghoti_current_user_id().") from ".loginRemoteAddr());
 		return false;
 	}
 	$_SESSION['last_activity'] = time();
@@ -415,22 +415,22 @@ function changePassword($password,$newPassword,$captchaAnswer=''){
 
 	$captchaResult = loginCaptchaVerify('changePassword',$captchaAnswer);
 	if($captchaResult !== true){
-		ghoti::log("Change password captcha failed for $userName from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:changePassword", "captcha failed for $userName from ".loginRemoteAddr());
 		return $captchaResult;
 	}
 
-	ghoti::log("Change password for $userName from ".loginRemoteAddr().".");
+	ghoti::logInfo("login.async.php:changePassword", "Change password for $userName from ".loginRemoteAddr().".");
 	$id = $_SESSION["loginObj"]->logindb->authenticate($userName,$password);
 	if ($id > 0){
 		return $_SESSION["loginObj"]->logindb->changePassword($id,$newPassword);
 	}
-	ghoti::log("Auth failed for user ".$id."(".loginRemoteAddr().") trying to change password");
+	ghoti::logWarn("login.async.php:changePassword", "Auth failed for user ".$id."(".loginRemoteAddr().") trying to change password");
 	return false;
 }
 
 function logout(){
 	try{
-		ghoti::log("Trying logout...");
+		ghoti::logDebug("login.async.php:logout", "Trying logout...");
 		$_SESSION['login_attempts'] = 0;
 		$_SESSION['login_last_attempt'] = 0;
 		$_SESSION = array();
@@ -444,10 +444,10 @@ function logout(){
 		session_unset();
 		session_destroy();
 	}catch (Exception $e) {
-		ghoti::log($e->getMessage());
+		ghoti::logException("login.async.php:logout", $e);
 		return $e->getMessage();
 	}
-	ghoti::log("Logout finished.");
+	ghoti::logInfo("login.async.php:logout", "Logout finished.");
 	return true;
 }
 
@@ -464,7 +464,7 @@ function printAdminMenu(){
 
 function printManageUserForm(){
 	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::log("login.async.php Unauthorized printManageUserForm attempt from ".loginRemoteAddr());
+		ghoti::logWarn("login.async.php:printManageUserForm", "Unauthorized attempt from ".loginRemoteAddr());
 		return "<h1>Users</h1><p>Admin access required.</p>";
 	}
 	$userList = $_SESSION["loginObj"]->logindb->getUserList();
@@ -488,16 +488,16 @@ function toggleAdmin($id){
 	}catch (Exception $e) {
 		return "Invalid user.";
 	}
-	ghoti::log("Toggling admin status for userID: $id from ".loginRemoteAddr());
+	ghoti::logInfo("login.async.php:toggleAdmin", "Toggling admin status for userID: $id from ".loginRemoteAddr());
 	return $_SESSION["loginObj"]->logindb->toggleAdmin($id, ghoti_current_user_id());
 }
 
 function checkLogin(){
 	if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == true && isset($_SESSION["userId"]) && $_SESSION["userId"] > 0){
-		ghoti::debug("Checking login, found uid" .$_SESSION["userId"]."");
+		ghoti::logDebug("login.async.php:checkLogin", "Found uid ".$_SESSION["userId"]);
 		return $_SESSION["userId"];
 	}
-	ghoti::debug("login.async.php.checklogin failed");
+	ghoti::logDebug("login.async.php:checkLogin", "No active session");
 	return false;
 }
 

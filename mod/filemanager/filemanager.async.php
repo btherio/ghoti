@@ -240,7 +240,7 @@ function fmCreateDir($dir, $name){
 	if(!@mkdir($path, 0755)){
 		return "Could not create the folder.";
 	}
-	ghoti::log("File manager: created folder '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
+	ghoti::logInfo("filemanager.async.php:fmCreateFolder", "created folder '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
 	return true;
 }
 
@@ -261,7 +261,7 @@ function fmRename($dir, $oldName, $newName){
 	if(!@rename($from, $to)){
 		return "Could not rename the file.";
 	}
-	ghoti::log("File manager: renamed '".$resolved[1].'/'.$oldName."' to '".$resolved[1].'/'.$newName."' by uid ".ghoti_current_user_id());
+	ghoti::logInfo("filemanager.async.php:fmRename", "renamed '".$resolved[1].'/'.$oldName."' to '".$resolved[1].'/'.$newName."' by uid ".ghoti_current_user_id());
 	return true;
 }
 
@@ -308,7 +308,7 @@ function fmDelete($dir, $name){
 		if(!@unlink($raw)){
 			return "Could not delete '".$name."'.";
 		}
-		ghoti::log("File manager: deleted (symlink) '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
+		ghoti::logInfo("filemanager.async.php:fmDelete", "deleted (symlink) '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
 		return true;
 	}
 	//Resolve the target too: a benign-looking link that realpaths outside the
@@ -318,7 +318,7 @@ function fmDelete($dir, $name){
 	if(!fm_delete_path($resolved[0], $path)){
 		return "Could not delete '".$name."'.";
 	}
-	ghoti::log("File manager: deleted '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
+	ghoti::logInfo("filemanager.async.php:fmDelete", "deleted '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
 	return true;
 }
 
@@ -327,6 +327,7 @@ function fmUpload($dir){
 	if(!ghoti_require_admin()){ return "Admin access required."; }
 	$resolved = fm_resolve_dir($dir);
 	if($resolved === false){ return "Invalid directory."; }
+	ghoti::logDebug("filemanager.async.php:fmUpload", "start dir='".$resolved[1]."' by uid ".ghoti_current_user_id());
 	if(!is_writable($resolved[2])){ return "That directory is not writable."; }
 	if(!isset($_FILES['file'])){
 		return "No file was uploaded.";
@@ -334,9 +335,13 @@ function fmUpload($dir){
 	$file = $_FILES['file'];
 	if(!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK){
 		$code = isset($file['error']) ? (int)$file['error'] : -1;
+		ghoti::logWarn("filemanager.async.php:fmUpload", "PHP upload error $code for dir '".$resolved[1]."' by uid ".ghoti_current_user_id());
 		return "Upload failed (error $code).";
 	}
-	if(!is_uploaded_file($file['tmp_name'])){ return "Upload failed."; }
+	if(!is_uploaded_file($file['tmp_name'])){
+		ghoti::logError("filemanager.async.php:fmUpload", "is_uploaded_file() check failed (possible tampering) for dir '".$resolved[1]."' by uid ".ghoti_current_user_id());
+		return "Upload failed.";
+	}
 	$maxUpload = fm_max_upload_bytes();
 	//Re-check the real size on disk (the client-supplied size field is not
 	//authoritative).
@@ -344,20 +349,26 @@ function fmUpload($dir){
 		$human = $maxUpload >= 1048576
 			? floor($maxUpload/1048576)."MB"
 			: max(1, floor($maxUpload/1024))."KB";
+		ghoti::logWarn("filemanager.async.php:fmUpload", "rejected oversize upload (".$file['size']." bytes > $maxUpload) for dir '".$resolved[1]."' by uid ".ghoti_current_user_id());
 		return "File is too large (max ".$human.").";
 	}
 	$name = fm_clean_name($file['name']);
 	if($name === false){
+		ghoti::logWarn("filemanager.async.php:fmUpload", "rejected filename '".$file['name']."' for dir '".$resolved[1]."' by uid ".ghoti_current_user_id());
 		return "That filename is not allowed.";
 	}
-	if(fm_is_denied($name)){ return "That filename is not allowed."; }
+	if(fm_is_denied($name)){
+		ghoti::logWarn("filemanager.async.php:fmUpload", "rejected denied-extension filename '$name' for dir '".$resolved[1]."' by uid ".ghoti_current_user_id());
+		return "That filename is not allowed.";
+	}
 	$dest = fm_target_path($resolved, $name);
 	if(file_exists($dest)){ return "A file with that name already exists."; }
 	if(!move_uploaded_file($file['tmp_name'], $dest)){
+		ghoti::logError("filemanager.async.php:fmUpload", "move_uploaded_file() failed for '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
 		return "Could not save the file.";
 	}
 	@chmod($dest, 0644);
-	ghoti::log("File manager: uploaded '".$resolved[1].'/'.$name."' (".$file['size']." bytes) by uid ".ghoti_current_user_id());
+	ghoti::logInfo("filemanager.async.php:fmUpload", "uploaded '".$resolved[1].'/'.$name."' (".$file['size']." bytes) by uid ".ghoti_current_user_id());
 	return true;
 }
 
@@ -399,7 +410,7 @@ function fmSaveTextFile($dir, $name, $content){
 	if(@file_put_contents($path, $content, LOCK_EX) === false){
 		return "Could not save the file.";
 	}
-	ghoti::log("File manager: saved '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
+	ghoti::logInfo("filemanager.async.php:fmSaveTextFile", "saved '".$resolved[1].'/'.$name."' by uid ".ghoti_current_user_id());
 	return true;
 }
 

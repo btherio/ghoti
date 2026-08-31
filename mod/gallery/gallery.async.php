@@ -163,7 +163,7 @@ function addGallery($name,$title,$description){
 	if($_SESSION['galleryObj']->gallerydb->nameInUse($name)){
 		return "A gallery with that name already exists.";
 	}
-	ghoti::log("Adding gallery '$name' from ".ghoti_remote_addr());
+	ghoti::logInfo("gallery.async.php:addGallery", "Adding gallery '$name' from ".ghoti_remote_addr());
 	$id = $_SESSION['galleryObj']->gallerydb->addGallery($name,$title,$description);
 	return $id ? $id : "Could not create the gallery.";
 }
@@ -205,7 +205,7 @@ function deleteGallery($id){
 		}
 	}
 	$_SESSION['galleryObj']->gallerydb->deleteGallery($id);
-	ghoti::log("Deleted gallery '".$gallery['name']."' (id $id) from ".ghoti_remote_addr());
+	ghoti::logInfo("gallery.async.php:deleteGallery", "Deleted gallery '".$gallery['name']."' (id $id) from ".ghoti_remote_addr());
 	return true;
 }
 
@@ -244,6 +244,7 @@ function uploadPhoto($galleryId){
 	}catch (Exception $e){
 		return $e->getMessage();
 	}
+	ghoti::logDebug("gallery.async.php:uploadPhoto", "start galleryId=$galleryId by uid ".ghoti_current_user_id());
 	if(!$_SESSION['galleryObj']->gallerydb->getGalleryById($galleryId)){
 		return "Gallery not found.";
 	}
@@ -253,18 +254,24 @@ function uploadPhoto($galleryId){
 	$file = $_FILES['file'];
 	if(!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK){
 		$code = isset($file['error']) ? (int)$file['error'] : -1;
+		ghoti::logWarn("gallery.async.php:uploadPhoto", "PHP upload error $code for galleryId=$galleryId by uid ".ghoti_current_user_id());
 		return "Upload failed (error $code).";
 	}
-	if(!is_uploaded_file($file['tmp_name'])){ return "Upload failed."; }
+	if(!is_uploaded_file($file['tmp_name'])){
+		ghoti::logError("gallery.async.php:uploadPhoto", "is_uploaded_file() check failed (possible tampering) for galleryId=$galleryId by uid ".ghoti_current_user_id());
+		return "Upload failed.";
+	}
 	$maxUpload = gallery_max_upload_bytes();
 	if((int)$file['size'] > $maxUpload){
 		$human = $maxUpload >= 1048576
 			? floor($maxUpload/1048576)."MB"
 			: max(1, floor($maxUpload/1024))."KB";
+		ghoti::logWarn("gallery.async.php:uploadPhoto", "rejected oversize upload (".$file['size']." bytes > $maxUpload) for galleryId=$galleryId by uid ".ghoti_current_user_id());
 		return "Image is too large (max ".$human.").";
 	}
 	$ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
 	if(!in_array($ext, GALLERY_ALLOWED_EXT, true)){
+		ghoti::logWarn("gallery.async.php:uploadPhoto", "rejected disallowed extension '$ext' for galleryId=$galleryId by uid ".ghoti_current_user_id());
 		return "Only ".implode(', ', GALLERY_ALLOWED_EXT)." images are allowed.";
 	}
 	//MIME double-check when available - extension alone is too easy to spoof.
@@ -273,19 +280,23 @@ function uploadPhoto($galleryId){
 		$mime  = $finfo ? (string)finfo_file($finfo, $file['tmp_name']) : '';
 		if($finfo){ finfo_close($finfo); }
 		if($mime !== '' && !in_array($mime, GALLERY_ALLOWED_MIME, true)){
+			ghoti::logWarn("gallery.async.php:uploadPhoto", "rejected mismatched MIME '$mime' for galleryId=$galleryId by uid ".ghoti_current_user_id());
 			return "That file is not a valid image.";
 		}
 	}
 	$dir = dirname(__DIR__, 2).'/files/gallery/'.$galleryId;
 	if(!is_dir($dir) && !@mkdir($dir, 0755, true)){
+		ghoti::logError("gallery.async.php:uploadPhoto", "could not create upload directory '$dir'");
 		return "Could not create the upload directory.";
 	}
 	if(!is_dir($dir) || !is_writable($dir)){
+		ghoti::logError("gallery.async.php:uploadPhoto", "upload directory '$dir' not writable");
 		return "The upload directory is not writable.";
 	}
 	$newName = bin2hex(random_bytes(16)).'.'.$ext;
 	$dest    = $dir.'/'.$newName;
 	if(!move_uploaded_file($file['tmp_name'], $dest)){
+		ghoti::logError("gallery.async.php:uploadPhoto", "move_uploaded_file() failed for galleryId=$galleryId by uid ".ghoti_current_user_id());
 		return "Could not save the uploaded file.";
 	}
 	@chmod($dest, 0644);
@@ -293,8 +304,10 @@ function uploadPhoto($galleryId){
 	$added = $_SESSION['galleryObj']->gallerydb->addPhoto($galleryId, $imageUrl, '');
 	if(!$added){
 		@unlink($dest); // don't leave an orphan on disk the client was told about
+		ghoti::logError("gallery.async.php:uploadPhoto", "addPhoto() failed after saving file, removed orphan '$dest'");
 		return "The image was uploaded but could not be added to the gallery - please try again.";
 	}
+	ghoti::logInfo("gallery.async.php:uploadPhoto", "uploaded '$imageUrl' by uid ".ghoti_current_user_id());
 	return $imageUrl;
 }
 

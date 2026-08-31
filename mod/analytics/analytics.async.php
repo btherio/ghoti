@@ -40,7 +40,7 @@ function trackPageView($isAdminViewer=false){
 			session_id()
 		);
 	}catch (Throwable $e){
-		ghoti::log("analytics.async.php ".$e->getMessage());
+		ghoti::logException("analytics.async.php:trackPageView", $e);
 	}
 }
 
@@ -48,7 +48,7 @@ function showAnalytics($days=30,$excludeAdmin=true){
 	try{
 		analyticsRequireAdmin();
 	}catch (Exception $e){
-		ghoti::log("analytics.async.php Unauthorized analytics access attempt from ".analyticsServerValue('REMOTE_ADDR'));
+		ghoti::logWarn("analytics.async.php:showAnalytics", "Unauthorized analytics access attempt from ".analyticsServerValue('REMOTE_ADDR'));
 		return "<h1>Analytics</h1><p>Admin access required.</p>";
 	}
 	$days = (int)$days;

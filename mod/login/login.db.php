@@ -51,7 +51,7 @@ class logindb extends ghotidb{
 				return $hash;
 			}
 		} catch (Throwable $e) {
-			ghoti::log("login.db.php password_hash fallback: ".$e->getMessage());
+			ghoti::logException("login.db.php:hashPassword", $e, "falling back to PASSWORD_DEFAULT");
 		}
 		return password_hash((string) $password, PASSWORD_DEFAULT);
 	}
@@ -71,37 +71,37 @@ class logindb extends ghotidb{
 		$email = $this->normalizeValue($email);
 		$password = (string) $password;
 
-		ghoti::log("login.db.php addUser start for '$userName'");
+		ghoti::logDebug("login.db.php:addUser", "start for '$userName'");
 
 		if ($userName === '' || $email === '' || $password === '') {
-			ghoti::log("login.db.php addUser rejected for '$userName': empty required field");
+			ghoti::logWarn("login.db.php:addUser", "rejected for '$userName': empty required field");
 			return false;
 		}
 
 		if(!$this->checkDuplicate($userName,$email)){
 			try{
 				$this->validatePassword($password);
-				ghoti::log("login.db.php addUser password validated for '$userName'");
+				ghoti::logDebug("login.db.php:addUser", "password validated for '$userName'");
 				$hashedPassword = $this->hashPassword($password);
-				ghoti::log("login.db.php addUser hashing succeeded for '$userName'");
+				ghoti::logDebug("login.db.php:addUser", "hashing succeeded for '$userName'");
 				$this->query("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$hashedPassword,$email,0));
-				ghoti::log("login.db.php addUser insert succeeded for '$userName'");
+				ghoti::logInfo("login.db.php:addUser", "insert succeeded for '$userName'");
 
 				$query = $this->query("select count(userId) from users;");
-				ghoti::log("login.db.php addUser count query returned ".var_export($query->fields, true));
+				ghoti::logDebug("login.db.php:addUser", "count query returned ".var_export($query->fields, true));
 
 				if((int) $query->fields[0] === 1){
 					$this->query("update users set admin = ? where admin = 0",array(1));
-					ghoti::log("login.db.php addUser promoted first user to admin");
+					ghoti::logInfo("login.db.php:addUser", "promoted first user to admin");
 				}
 			}catch (Throwable $e){
-				ghoti::log("login.db.php addUser failed for '$userName': ".$e->getMessage());
+				ghoti::logException("login.db.php:addUser", $e, "userName='$userName'");
 				return false;
 			}
 
 			return true;
 		}
-		ghoti::log("login.db.php addUser rejected for '$userName': duplicate detected");
+		ghoti::logWarn("login.db.php:addUser", "rejected for '$userName': duplicate detected");
 		return false;
 	}
 
@@ -111,7 +111,7 @@ class logindb extends ghotidb{
 		try{
 			$records = $this->query("select userId from users where userName = ? or email = ?",array($userName,$email));
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:checkDuplicate", $e);
 			return false;
 		}
 		$found = false;
@@ -133,7 +133,7 @@ class logindb extends ghotidb{
 				array($userName,$email,(int)$excludeId)
 			);
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:checkDuplicateExcluding", $e);
 			return false;
 		}
 		return !empty($records);
@@ -145,35 +145,35 @@ class logindb extends ghotidb{
 		try{
 			$records = $this->query("select admin from users where userId = ?",array((int) $id));
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:isAdmin", $e);
 			return false;
 		}
 		foreach ($records as $row){
 			$this->result[0] .= $row[0];
 		}
 		if($this->result[0] === '1' || $this->result[0] === 1){
-			ghoti::debug("isAdmin == true");
+			ghoti::logDebug("login.db.php:isAdmin", "result=true");
 			return true;
 		}
-		ghoti::debug("isAdmin == false");
+		ghoti::logDebug("login.db.php:isAdmin", "result=false");
 		return false;
 	}
 
 	public function authenticate($userName,$password){
 		$userName = $this->normalizeValue($userName);
 		$password = (string) $password;
-		ghoti::log("login.db.php authenticate start for '$userName'");
+		ghoti::logDebug("login.db.php:authenticate", "start for '$userName'");
 		try{
 			$auth = $this->query("select userId,password from users where userName = ? limit 1",array($userName));
 		}catch (Throwable $e){
-			ghoti::log("login.db.php authenticate query failed for '$userName': ".$e->getMessage());
+			ghoti::logException("login.db.php:authenticate", $e, "userName='$userName'");
 			return false;
 		}
 		foreach ($auth as $row){
 			$storedHash = (string) $row[1];
-			ghoti::log("login.db.php authenticate found user '$userName' with stored hash length ".strlen($storedHash));
+			ghoti::logDebug("login.db.php:authenticate", "found user '$userName' with stored hash length ".strlen($storedHash));
 			if (is_string($storedHash) && $storedHash !== '' && password_verify($password, $storedHash)) {
-				ghoti::log("login.db.php authenticate verified password hash for '$userName'");
+				ghoti::logInfo("login.db.php:authenticate", "verified password hash for '$userName'");
 				if (password_needs_rehash($storedHash, $this->algo())) {
 					$this->query("update users set password = ? where userId = ?", array($this->hashPassword($password), $row[0]));
 				}
@@ -188,10 +188,10 @@ class logindb extends ghotidb{
 			//   UPDATE users SET password = '<hash>' WHERE userId = <id>;
 			//generate <hash> with PHP: password_hash('newpass', PASSWORD_ARGON2ID).
 			if (is_string($storedHash) && $storedHash !== '' && $storedHash === $password) {
-				ghoti::log("login.db.php SECURITY: '$userName' has a legacy plaintext password - refusing plaintext login, reset the password");
+				ghoti::logError("login.db.php:authenticate", "SECURITY: '$userName' has a legacy plaintext password - refusing plaintext login, reset the password");
 			}
 		}
-		ghoti::log("login.db.php authenticate failed for '$userName': no matching password hash");
+		ghoti::logWarn("login.db.php:authenticate", "failed for '$userName': no matching password hash");
 		return false;
 	}
 
@@ -199,7 +199,7 @@ class logindb extends ghotidb{
 		try{
 			$userList = $this->query("select userId,userName,email,admin from users");
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:getUserList", $e);
 			return false;
 		}
 		return $userList;
@@ -209,7 +209,7 @@ class logindb extends ghotidb{
 		try{
 			$this->query("update users set userName = ?, email = ? where userId = ?",array($userName,$email,$userId));
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:updateUser", $e);
 			return false;
 		}
 		return true;
@@ -219,7 +219,7 @@ class logindb extends ghotidb{
 		try{
 			$numberOfAdmins = $this->query("select count(userId) from users where admin = 1;");
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:countAdmins", $e);
 			return 0;
 		}
 		return isset($numberOfAdmins->fields[0]) ? (int) $numberOfAdmins->fields[0] : 0;
@@ -234,7 +234,7 @@ class logindb extends ghotidb{
 				$this->query("delete from comments where userId = ?;",array($userId));
 			}
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:deleteUser", $e);
 			return $e->getMessage();
 		}
 		return true;
@@ -258,7 +258,7 @@ class logindb extends ghotidb{
 				$this->query("update users set admin = 1 where userId = ?;",array($userId));
 			}
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:toggleAdmin", $e);
 			return $e->getMessage();
 		}
 		return true;
@@ -269,7 +269,7 @@ class logindb extends ghotidb{
 			$hashedPassword = $this->hashPassword($password);
 			$this->query("update users set password = ? where userId = ?",array($hashedPassword,$userId));
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:changePassword", $e);
 			return false;
 		}
 		return true;
@@ -279,7 +279,7 @@ class logindb extends ghotidb{
 		try{
 			$query = $this->query("select userName from users where userId = ?",array($userId));
 		}catch (Throwable $e){
-			ghoti::log("login.db.php ".$e->getMessage());
+			ghoti::logException("login.db.php:getUserNameById", $e);
 			return false;
 		}
 		return $query->fields[0];

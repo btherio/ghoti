@@ -28,7 +28,7 @@ class analyticsdb extends ghotidb{
 				array($pageId,$pageTitle,$sessionId,$userId,$ipAddress,$userAgent,$browser,$os,$deviceType,$referrer,$requestUri,$isAdminView?1:0)
 			);
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:logPageView", $e);
 			return false;
 		}
 		return true;
@@ -75,7 +75,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days).($excludeAdmin ? " and isAdminView = 0" : "");
 			$rows = $this->queryArray("select count(*),count(distinct sessionId),count(distinct ipAddress),count(distinct pageId) from analytics where $where");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getSummary", $e);
 			return array(0,0,0,0);
 		}
 		return isset($rows[0]) ? $rows[0] : array(0,0,0,0);
@@ -86,7 +86,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days).($excludeAdmin ? " and isAdminView = 0" : "");
 			$rows = $this->queryArray("select date(createdAt),count(*) from analytics where $where group by date(createdAt) order by date(createdAt) asc");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getPageviewsByDay", $e);
 			$rows = array();
 		}
 		$byDate = array();
@@ -106,7 +106,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days).($excludeAdmin ? " and isAdminView = 0" : "");
 			$rows = $this->queryArray("select hour(createdAt),count(*) from analytics where $where group by hour(createdAt)");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getHourlyDistribution", $e);
 			$rows = array();
 		}
 		$byHour = array_fill(0,24,0);
@@ -122,7 +122,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days).($excludeAdmin ? " and isAdminView = 0" : "");
 			$rows = $this->queryArray("select coalesce(pageTitle,'(untitled)'),pageId,count(*) as c from analytics where $where group by pageId,pageTitle order by c desc limit $limit");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getTopPages", $e);
 			$rows = array();
 		}
 		foreach($rows as &$row){ $row[2] = (int)$row[2]; }
@@ -136,7 +136,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days).($excludeAdmin ? " and isAdminView = 0" : "");
 			$rows = $this->queryArray("select coalesce($column,'Unknown'),count(*) as c from analytics where $where group by $column order by c desc");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getBreakdown", $e);
 			$rows = array();
 		}
 		foreach($rows as &$row){ $row[1] = (int)$row[1]; }
@@ -148,7 +148,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days).($excludeAdmin ? " and isAdminView = 0" : "");
 			$rows = $this->queryArray("select referrer from analytics where $where and referrer is not null and referrer != ''");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getTopReferrers", $e);
 			$rows = array();
 		}
 		$counts = array();
@@ -170,7 +170,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days);
 			$rows = $this->queryArray("select createdAt,pageTitle,ipAddress,browser,os,deviceType,referrer,isAdminView,sessionId from analytics where $where order by createdAt desc limit $limit");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getRecentPageviews", $e);
 			$rows = array();
 		}
 		return $rows;
@@ -181,7 +181,7 @@ class analyticsdb extends ghotidb{
 			$where = $this->rangeClause($days);
 			$rows = $this->queryArray("select id,createdAt,pageId,pageTitle,sessionId,userId,ipAddress,userAgent,browser,os,deviceType,referrer,requestUri,isAdminView from analytics where $where order by createdAt desc");
 		}catch (Throwable $e){
-			ghoti::log("analytics.db.php ".$e->getMessage());
+			ghoti::logException("analytics.db.php:getExportRows", $e);
 			$rows = array();
 		}
 		return $rows;
