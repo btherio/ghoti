@@ -655,13 +655,17 @@ button.ghotiButtonDanger:hover{
 #popup-bg{
   display: none;                         /* JS sets display:flex to open */
   position: fixed; inset: 0; z-index: 2147483647;
-  align-items: flex-start; justify-content: center;
+  /* Center vertically so the modal always clears fixed/sticky headers,
+     whose heights vary widely between themes (a fixed top offset is
+     unreliable and can end up hidden underneath a tall header). */
+  align-items: center; justify-content: center;
   padding: 1.5rem;
+  overflow-y: auto;
   background: rgba(8,12,20,.5);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 #popup{
-  width: 100%; max-width: 520px; margin: 6vh auto 0;
+  width: 100%; max-width: 520px; margin: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
@@ -983,7 +987,7 @@ img.linkIcon:hover{ transform: scale(1.15); }
   .ghotiManageTable{ display: block; overflow-x: auto; }
   .midHeader{ padding: .8rem var(--gutter); }
   .midHeader img{ height: 42px; }
-  #popup{ max-width: 100%; margin-top: 2vh; }
+  #popup{ max-width: 100%; }
   #ghotiPageManager .ghotiCrudHeader{ align-items: stretch; }
   .ghotiPageAddForm input{ width: 100%; }
   .ghotiPageManagerLabels{ display: none; }
@@ -1026,7 +1030,7 @@ img.linkIcon:hover{ transform: scale(1.15); }
   .ghotiFormActions > .ghotiButton{ width: 100%; margin: 0; }
   .ghotiCrudMeta{ width: 100%; margin-right: 0; }
   #popup-bg{ padding: .5rem; }
-  #popup{ margin-top: .5rem; border-radius: 10px; }
+  #popup{ border-radius: 10px; }
   #popup-title{ padding: .8rem 3rem .8rem .85rem; }
   #popup-content{ padding: .85rem; max-height: calc(100vh - 5rem); }
   #popup-content .ghotiFormActions > input[type=button],
