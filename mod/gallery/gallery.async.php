@@ -14,7 +14,10 @@
  *
  * Uploaded photos are stored under files/gallery/<galleryId>/ with a random
  * name and a strict image-only whitelist (no PHP, no SVG) - the .htaccess in
- * that folder blocks script execution as a second layer. URL-added photos go
+ * that folder blocks script execution as a second layer. Browser-safe formats
+ * (jpg/png/gif/webp/avif) are stored as-is; HEIC/HEIF (the default format on
+ * recent iPhones/iPads), TIFF and BMP are auto-transcoded to JPEG via
+ * ImageMagick since browsers can't render them directly. URL-added photos go
  * through the same scheme validation as links/banners.
  */
 
@@ -27,8 +30,52 @@ const GALLERY_MAX_TITLE     = 120;
 const GALLERY_MAX_DESC      = 500;
 const GALLERY_MAX_CAPTION   = 255;
 const GALLERY_MAX_UPLOAD    = 12582912;              // 12MB
-const GALLERY_ALLOWED_EXT   = array('jpg','jpeg','png','gif','webp');
-const GALLERY_ALLOWED_MIME  = array('image/jpeg','image/png','image/gif','image/webp');
+
+//Formats the browser can display directly - stored as-is once validated.
+const GALLERY_WEB_SAFE_EXT  = array('jpg','jpeg','png','gif','webp','avif');
+const GALLERY_WEB_SAFE_MIME = array('image/jpeg','image/png','image/gif','image/webp','image/avif');
+
+//Formats accepted for upload but not renderable by browsers - transcoded to
+//JPEG server-side (via ImageMagick, which understands all of these) before
+//storage. HEIC/HEIF covers the default format for recent iPhones/iPads.
+const GALLERY_CONVERTIBLE_EXT  = array('heic','heif','tif','tiff','bmp');
+const GALLERY_CONVERTIBLE_MIME = array('image/heic','image/heif','image/heic-sequence','image/heif-sequence','image/tiff','image/bmp','image/x-ms-bmp');
+
+//Path to the ImageMagick CLI used to transcode GALLERY_CONVERTIBLE_EXT
+//uploads to JPEG. False (rather than a missing binary crashing uploads) when
+//neither binary is on PATH - convertible formats are then rejected with a
+//clear error instead of silently failing.
+function gallery_convert_bin(){
+	static $bin = null;
+	if($bin === null){
+		$bin = false;
+		foreach(array('magick','convert') as $candidate){
+			$path = trim((string)@shell_exec('command -v '.escapeshellarg($candidate).' 2>/dev/null'));
+			if($path !== ''){ $bin = $path; break; }
+		}
+	}
+	return $bin;
+}
+
+//Convert a HEIC/HEIF/TIFF/BMP file at $src to a JPEG at $dest using
+//ImageMagick. -auto-orient bakes in EXIF rotation (mobile HEIC photos are
+//almost always stored sideways/upside-down relative to their EXIF tag), and
+//-strip drops metadata (GPS, etc.) from the re-encoded copy. Returns true on
+//success.
+function gallery_convert_to_jpeg($src, $dest){
+	$bin = gallery_convert_bin();
+	if($bin === false){ return false; }
+	$cmd = escapeshellarg($bin).' '.escapeshellarg($src.'[0]')
+		.' -auto-orient -strip -quality 85 '.escapeshellarg($dest);
+	$descriptors = array(1 => array('pipe','w'), 2 => array('pipe','w'));
+	$proc = @proc_open('timeout 20 '.$cmd, $descriptors, $pipes);
+	if(!is_resource($proc)){ return false; }
+	fclose($pipes[1]);
+	fclose($pipes[2]);
+	$status = proc_close($proc);
+	return $status === 0 && is_file($dest) && filesize($dest) > 0;
+}
+
 
 //Gallery slug used by the shortcode: letters, numbers, _ . - only.
 function gallery_name($var){
@@ -270,18 +317,28 @@ function uploadPhoto($galleryId){
 		return "Image is too large (max ".$human.").";
 	}
 	$ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
-	if(!in_array($ext, GALLERY_ALLOWED_EXT, true)){
+	$isWebSafe     = in_array($ext, GALLERY_WEB_SAFE_EXT, true);
+	$isConvertible = in_array($ext, GALLERY_CONVERTIBLE_EXT, true);
+	if(!$isWebSafe && !$isConvertible){
+		$allowed = array_merge(GALLERY_WEB_SAFE_EXT, GALLERY_CONVERTIBLE_EXT);
 		ghoti::logWarn("gallery.async.php:uploadPhoto", "rejected disallowed extension '$ext' for galleryId=$galleryId by uid ".ghoti_current_user_id());
-		return "Only ".implode(', ', GALLERY_ALLOWED_EXT)." images are allowed.";
+		return "Only ".implode(', ', $allowed)." images are allowed.";
 	}
 	//MIME double-check when available - extension alone is too easy to spoof.
+	//Also used to catch an extension that lies about which bucket (web-safe vs
+	//convertible) the file actually belongs to.
+	$mime = '';
 	if(function_exists('finfo_open')){
 		$finfo = finfo_open(FILEINFO_MIME_TYPE);
 		$mime  = $finfo ? (string)finfo_file($finfo, $file['tmp_name']) : '';
 		if($finfo){ finfo_close($finfo); }
-		if($mime !== '' && !in_array($mime, GALLERY_ALLOWED_MIME, true)){
+		$allowedMime = array_merge(GALLERY_WEB_SAFE_MIME, GALLERY_CONVERTIBLE_MIME);
+		if($mime !== '' && !in_array($mime, $allowedMime, true)){
 			ghoti::logWarn("gallery.async.php:uploadPhoto", "rejected mismatched MIME '$mime' for galleryId=$galleryId by uid ".ghoti_current_user_id());
 			return "That file is not a valid image.";
+		}
+		if($mime !== '' && $isWebSafe && !in_array($mime, GALLERY_WEB_SAFE_MIME, true)){
+			$isWebSafe = false; $isConvertible = true; // extension lied - fall back to MIME-based bucket
 		}
 	}
 	$dir = dirname(__DIR__, 2).'/files/gallery/'.$galleryId;
@@ -293,11 +350,36 @@ function uploadPhoto($galleryId){
 		ghoti::logError("gallery.async.php:uploadPhoto", "upload directory '$dir' not writable");
 		return "The upload directory is not writable.";
 	}
-	$newName = bin2hex(random_bytes(16)).'.'.$ext;
-	$dest    = $dir.'/'.$newName;
-	if(!move_uploaded_file($file['tmp_name'], $dest)){
-		ghoti::logError("gallery.async.php:uploadPhoto", "move_uploaded_file() failed for galleryId=$galleryId by uid ".ghoti_current_user_id());
-		return "Could not save the uploaded file.";
+	$stem = bin2hex(random_bytes(16));
+	if($isWebSafe){
+		$newName = $stem.'.'.$ext;
+		$dest    = $dir.'/'.$newName;
+		if(!move_uploaded_file($file['tmp_name'], $dest)){
+			ghoti::logError("gallery.async.php:uploadPhoto", "move_uploaded_file() failed for galleryId=$galleryId by uid ".ghoti_current_user_id());
+			return "Could not save the uploaded file.";
+		}
+	}else{
+		//Not browser-renderable as-is (HEIC/HEIF/TIFF/BMP) - transcode to JPEG.
+		//Uploaded tmp file first needs a real extension so ImageMagick's
+		//format sniffing (which some decoders rely on) works correctly.
+		$newName = $stem.'.jpg';
+		$dest    = $dir.'/'.$newName;
+		$srcTmp  = $file['tmp_name'].'.'.$ext;
+		if(!@rename($file['tmp_name'], $srcTmp)){
+			//is_uploaded_file()'s tmp path may be on a different filesystem
+			//than sys_get_temp_dir() allows renaming into - copy as fallback.
+			if(!@copy($file['tmp_name'], $srcTmp)){
+				ghoti::logError("gallery.async.php:uploadPhoto", "could not stage '$ext' upload for conversion (galleryId=$galleryId)");
+				return "Could not process the uploaded file.";
+			}
+			@unlink($file['tmp_name']);
+		}
+		$converted = gallery_convert_to_jpeg($srcTmp, $dest);
+		@unlink($srcTmp);
+		if(!$converted){
+			ghoti::logError("gallery.async.php:uploadPhoto", "conversion of '$ext' (mime '$mime') failed for galleryId=$galleryId by uid ".ghoti_current_user_id());
+			return "That image format (".strtoupper($ext).") could not be converted for the web - please try a jpg, png, gif, webp or avif file.";
+		}
 	}
 	@chmod($dest, 0644);
 	$imageUrl = 'files/gallery/'.$galleryId.'/'.$newName;
@@ -455,7 +537,7 @@ class galleryui{
 					'The gallery renders in place of that code whenever the page is viewed. Use the same code on as many pages as you like &mdash; change the gallery once and every page using it updates automatically.')),
 			array('heading' => 'Add photos',
 				'list' => array('<b>Image URL</b> &mdash; paste a direct link to an image file (http:// or https://).',
-					'<b>Upload</b> &mdash; drag and drop files onto the upload zone, or click it to browse. Only jpg, png, gif and webp are accepted; file size is limited by the server.')),
+					'<b>Upload</b> &mdash; drag and drop files onto the upload zone, or click it to browse. jpg, png, gif, webp and avif are accepted as-is; heic/heif (iPhone photos), tiff and bmp are automatically converted to jpg. File size is limited by the server.')),
 			array('heading' => 'Manage photos',
 				'list' => array('<b>Caption</b> &mdash; type into the caption box; it saves as soon as you leave the field.',
 					'<b>Order</b> &mdash; use the up/down arrows to reorder photos.',
@@ -513,7 +595,7 @@ class galleryui{
 		$o .= "<label class=\"ghotiField\"><span>Image URL</span><input type=\"text\" id=\"galleryPhotoUrl\" size=\"40\" placeholder=\"https://example.com/photo.jpg\" /></label>\n";
 		$o .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Add from URL</button></div>\n";
 		$o .= "</form>\n";
-		$o .= "<div id=\"galleryUploadZone\" class=\"ghotiGalleryUploadZone\"><span class=\"ghotiGalleryUploadIcon\">&#8682;</span><span><b>Drop images here</b> or click to browse &middot; jpg, png, gif, webp</span><input type=\"file\" id=\"galleryUploadInput\" multiple accept=\".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp\" /></div>\n";
+		$o .= "<div id=\"galleryUploadZone\" class=\"ghotiGalleryUploadZone\"><span class=\"ghotiGalleryUploadIcon\">&#8682;</span><span><b>Drop images here</b> or click to browse &middot; jpg, png, gif, webp, avif, heic/heif, tiff, bmp</span><input type=\"file\" id=\"galleryUploadInput\" multiple accept=\".jpg,.jpeg,.png,.gif,.webp,.avif,.heic,.heif,.tif,.tiff,.bmp,image/*\" /></div>\n";
 		$o .= "<p id=\"galleryUploadProgress\" class=\"ghotiHelpText\"></p>\n";
 		$o .= "</div>\n";
 

@@ -1,6 +1,7 @@
 # Uploaded gallery images only. The gallery module already restricts uploads
-# to jpg/png/gif/webp with random names; this denies script execution in depth
-# in case anything else ever lands here, and stops directory listings.
+# to jpg/png/gif/webp/avif (stored as-is) or heic/heif/tiff/bmp (converted to
+# jpg on upload), all saved with random names; this denies script execution in
+# depth in case anything else ever lands here, and stops directory listings.
 Options -Indexes
 
 <FilesMatch "(?i)\.(php|phtml|php3|php4|php5|php7|phps|phar|cgi|pl|py|sh|asp|aspx|jsp)$">
