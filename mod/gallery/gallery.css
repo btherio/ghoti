@@ -1,0 +1,322 @@
+/*
+ * gallery.css - photo gallery module.
+ * Public gallery grids + lightbox, and the admin manager/editor.
+ * Self-contained: uses its own variables so it works on any theme.
+ */
+
+.ghotiGalleryPage,
+.ghotiGalleryInline{
+	--g-accent-a: #8b5cf6;   /* violet */
+	--g-accent-b: #22d3ee;   /* cyan   */
+	--g-ink: #1b1d25;
+	--g-soft: rgba(255,255,255,0.86);
+	--g-card-bg: rgba(255,255,255,0.72);
+	--g-radius: 16px;
+	color: var(--g-ink);
+}
+
+/* ---------- standalone hero ---------- */
+
+.ghotiGalleryHero{
+	position: relative;
+	padding: 2.2rem 0 1.6rem;
+	margin-bottom: 1.4rem;
+	border-bottom: 1px solid rgba(127,127,160,0.25);
+}
+.ghotiGalleryTitle{
+	margin: 0 0 0.4rem;
+	font-size: clamp(1.8rem, 4vw, 3rem);
+	line-height: 1.05;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	background: linear-gradient(100deg, var(--g-accent-a), var(--g-accent-b));
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	color: var(--g-accent-a);
+}
+.ghotiGalleryBlurb{
+	margin: 0;
+	max-width: 60ch;
+	font-size: 1.02rem;
+	opacity: 0.75;
+}
+.ghotiGalleryCount{
+	display: inline-block;
+	margin-top: 0.9rem;
+	padding: 0.3rem 0.8rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--g-accent-a);
+	border: 1px solid currentColor;
+	border-radius: 999px;
+}
+
+/* ---------- grid ---------- */
+
+.ghotiGalleryGrid{
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+	gap: 14px;
+	margin: 1.2rem 0;
+}
+.ghotiGalleryItem{
+	position: relative;
+	margin: 0;
+	overflow: hidden;
+	border-radius: var(--g-radius);
+	background: var(--g-card-bg);
+	box-shadow: 0 6px 24px -12px rgba(20,20,40,0.45);
+	aspect-ratio: 4 / 3;
+	cursor: zoom-in;
+	animation: ghotiGalleryIn 0.55s cubic-bezier(0.22,0.68,0.35,1) both;
+	animation-delay: calc(var(--i, 1) * 55ms);
+	transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.ghotiGalleryItem::after{
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, transparent 45%, rgba(15,15,30,0.72));
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	pointer-events: none;
+}
+.ghotiGalleryItem:hover{
+	transform: translateY(-4px);
+	box-shadow: 0 16px 40px -14px rgba(80,60,220,0.55), 0 0 0 1px rgba(139,92,246,0.35);
+}
+.ghotiGalleryItem:hover::after{ opacity: 1; }
+.ghotiGalleryItem img{
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.6s cubic-bezier(0.22,0.68,0.35,1);
+}
+.ghotiGalleryItem:hover img{ transform: scale(1.08); }
+.ghotiGalleryItem figcaption{
+	position: absolute;
+	left: 0; right: 0; bottom: 0;
+	padding: 1.6rem 0.9rem 0.7rem;
+	font-size: 0.85rem;
+	font-weight: 500;
+	color: #fff;
+	transform: translateY(100%);
+	transition: transform 0.3s ease;
+	pointer-events: none;
+}
+.ghotiGalleryItem:hover figcaption{ transform: translateY(0); }
+
+@keyframes ghotiGalleryIn{
+	from{ opacity: 0; transform: translateY(14px) scale(0.98); }
+	to{ opacity: 1; transform: none; }
+}
+
+.ghotiGalleryEmpty,
+.ghotiGalleryMissing{
+	padding: 2rem 1rem;
+	text-align: center;
+	opacity: 0.65;
+	font-style: italic;
+}
+
+/* ---------- lightbox ---------- */
+
+.ghotiLightbox{
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	visibility: hidden;
+	opacity: 0;
+	transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+.ghotiLightboxOpen{ visibility: visible; opacity: 1; }
+body.ghotiLightboxLocked{ overflow: hidden; }
+
+.ghotiLightboxBackdrop{
+	position: absolute;
+	inset: 0;
+	background: rgba(10,10,20,0.88);
+	backdrop-filter: blur(10px) saturate(1.2);
+	-webkit-backdrop-filter: blur(10px) saturate(1.2);
+}
+.ghotiLightboxFigure{
+	position: absolute;
+	inset: 6vh 6vw;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.8rem;
+	pointer-events: none;
+}
+.ghotiLightboxImage{
+	max-width: 100%;
+	max-height: 82vh;
+	border-radius: 12px;
+	box-shadow: 0 30px 80px -20px rgba(0,0,0,0.8);
+	opacity: 0;
+	transform: scale(0.92);
+	transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22,0.68,0.35,1);
+}
+.ghotiLightboxImageReady{
+	opacity: 1;
+	transform: scale(1);
+}
+.ghotiLightboxCaption{
+	color: #e8e8f2;
+	font-size: 0.95rem;
+	text-align: center;
+	max-width: 70ch;
+}
+.ghotiLightboxCounter{
+	position: absolute;
+	top: 3vh; left: 50%;
+	transform: translateX(-50%);
+	color: #c9c9e0;
+	font-size: 0.8rem;
+	letter-spacing: 0.1em;
+	padding: 0.3rem 0.9rem;
+	border: 1px solid rgba(255,255,255,0.25);
+	border-radius: 999px;
+}
+.ghotiLightboxNav{
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 2;
+	width: 52px; height: 52px;
+	border: none;
+	border-radius: 50%;
+	background: rgba(255,255,255,0.12);
+	color: #fff;
+	font-size: 1.3rem;
+	cursor: pointer;
+	transition: background 0.2s ease, transform 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.ghotiLightboxNav:hover{ background: rgba(139,92,246,0.8); transform: translateY(-50%) scale(1.06); }
+.ghotiLightboxPrev{ left: 2vw; }
+.ghotiLightboxNext{ right: 2vw; }
+.ghotiLightboxClose{
+	position: absolute;
+	top: 2.4vh; right: 2vw;
+	z-index: 2;
+	width: 44px; height: 44px;
+	border: none;
+	border-radius: 50%;
+	background: rgba(255,255,255,0.12);
+	color: #fff;
+	font-size: 1rem;
+	cursor: pointer;
+	transition: background 0.2s ease, transform 0.2s ease;
+}
+.ghotiLightboxClose:hover{ background: rgba(239,68,68,0.85); transform: rotate(90deg); }
+
+/* ---------- admin: manager ---------- */
+
+.ghotiGalleryManagerList{
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 14px;
+	margin-top: 1rem;
+}
+.ghotiGalleryCard{
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 0.8rem;
+	padding: 1rem 1.1rem;
+	border: 1px solid rgba(127,127,160,0.3);
+	border-radius: 14px;
+	background: linear-gradient(160deg, rgba(139,92,246,0.10), rgba(34,211,238,0.06));
+	transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.ghotiGalleryCard:hover{
+	border-color: rgba(139,92,246,0.6);
+	box-shadow: 0 10px 30px -18px rgba(139,92,246,0.5);
+}
+.ghotiGalleryCard h2{ margin: 0 0 0.25rem; font-size: 1.15rem; }
+.ghotiGalleryCardDesc{ margin: 0.4rem 0 0; font-size: 0.9rem; opacity: 0.7; }
+.ghotiGalleryCard code{
+	padding: 0.1rem 0.4rem;
+	border-radius: 6px;
+	background: rgba(127,127,160,0.18);
+	font-size: 0.85em;
+}
+
+/* ---------- admin: editor ---------- */
+
+.ghotiGalleryAdd{
+	margin: 1.4rem 0 0.6rem;
+	padding: 1rem 1.1rem;
+	border: 1px dashed rgba(127,127,160,0.45);
+	border-radius: 14px;
+}
+.ghotiGalleryUploadZone{
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	min-height: 110px;
+	margin-top: 0.8rem;
+	padding: 1rem;
+	text-align: center;
+	border: 2px dashed rgba(139,92,246,0.55);
+	border-radius: 12px;
+	background: rgba(139,92,246,0.06);
+	cursor: pointer;
+	transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.ghotiGalleryUploadZone:hover,
+.ghotiGalleryUploadZoneActive{
+	border-color: var(--g-accent-b, #22d3ee);
+	background: rgba(34,211,238,0.10);
+	transform: scale(1.01);
+}
+.ghotiGalleryUploadZone input[type="file"]{
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+.ghotiGalleryUploadIcon{ font-size: 1.8rem; line-height: 1; }
+
+.ghotiGalleryPhotoList{
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 1rem;
+}
+.ghotiGalleryPhotoRow{
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+	padding: 0.6rem 0.8rem;
+	border: 1px solid rgba(127,127,160,0.3);
+	border-radius: 12px;
+	background: rgba(127,127,160,0.06);
+}
+.ghotiGalleryPhotoThumb{
+	width: 84px; height: 60px;
+	object-fit: cover;
+	border-radius: 8px;
+	flex: 0 0 auto;
+}
+.ghotiGalleryPhotoFields{ flex: 1 1 auto; min-width: 0; }
+.ghotiGalleryPhotoRow .ghotiCrudActions{ flex: 0 0 auto; }
+
+@media (prefers-reduced-motion: reduce){
+	.ghotiGalleryItem{ animation: none; }
+	.ghotiGalleryItem img,
+	.ghotiGalleryItem figcaption{ transition: none; }
+	.ghotiLightboxImage{ transition: opacity 0.2s ease; }
+}

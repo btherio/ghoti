@@ -71,6 +71,122 @@ function bindGhotiMenuLinks(){
 		});
 }
 
+/*
+ * Admin-menu actions that live in module scripts (banners.js, links.js,
+ * login.js, analytics.js) are called through this guard. Those scripts load
+ * right after ghoti.js, but a partial deployment or a blocked request can
+ * leave one of them unloaded - in which case the old inline onclick produced
+ * a bare "showAnalytics is not defined" console error and a dead menu item.
+ * Now the click shows a clear message and can be retried after a reload.
+ * When the module script has loaded (the normal case) behaviour is identical
+ * to calling the function directly.
+ */
+function ghotiModuleAction(name){
+	if(typeof window[name] === 'function'){
+		return window[name].apply(null, Array.prototype.slice.call(arguments, 1));
+	}
+	pageFeedBack("The '" + name + "' script did not load - reload the page to retry.");
+	return false;
+}
+
+/*
+ * Client-side twin of ghoti_docs_panel() (ghoti.async.php): builds the same
+ * collapsible "how to" <details> markup for admin panels that are rendered in
+ * JS (e.g. the links manager). headings/hints are escaped; list items are
+ * trusted static markup.
+ */
+function ghotiDocsHtml(title, hint, sections){
+	var html = '<details class="ghotiDocs">';
+	html += '<summary><span class="ghotiDocsTitle">' + ghotiEscapeHtml(title) + '</span><span class="ghotiDocsHint">' + ghotiEscapeHtml(hint) + '</span></summary>';
+	html += '<div class="ghotiDocsBody">';
+	for(var i = 0; i < sections.length; i++){
+		var s = sections[i];
+		if(s && s.heading){ html += '<h3>' + ghotiEscapeHtml(s.heading) + '</h3>'; }
+		if(s && s.list){
+			html += '<ul>';
+			for(var j = 0; j < s.list.length; j++){ html += '<li>' + s.list[j] + '</li>'; }
+			html += '</ul>';
+		}else if(s && s.html){ html += s.html; }
+	}
+	html += '</div></details>';
+	return html;
+}
+
+/* ================================================================== *
+ *  Button feedback
+ *
+ *  Every press of a button that fires an async RPC shows a spinner on that
+ *  button (ghotiAsync applies/removes the .is-busy state - see the wrapper
+ *  in ghoti.async.php). We capture the most recent button click / form
+ *  submit here, and ghotiAsync consumes it if it is fresh enough. Buttons
+ *  with an immediate visual result (popups, navigation) need no spinner -
+ *  the :active press + the new UI state are the feedback.
+ * ================================================================== */
+
+var GHOTI_LAST_TRIGGER = null;
+var GHOTI_LAST_TRIGGER_AT = 0;
+
+function ghotiCaptureTrigger(el){
+	GHOTI_LAST_TRIGGER = el;
+	GHOTI_LAST_TRIGGER_AT = Date.now();
+}
+
+//Capture phase, so this runs before any inline onclick handler that fires
+//the async call - and we record the button, not whatever was inside it.
+//Only real buttons are captured: <button>, submit/button/image/reset inputs,
+//and links styled as buttons - never plain text inputs or checkboxes.
+document.addEventListener('click', function(e){
+	var el = e.target;
+	while(el && el.nodeType === 1){
+		var tag = el.tagName;
+		var isInputButton = tag === 'INPUT' && (el.type === 'submit' || el.type === 'button' || el.type === 'image' || el.type === 'reset');
+		if(tag === 'BUTTON' || isInputButton
+			|| (el.classList && (el.classList.contains('ghotiButton') || el.classList.contains('ghotiIconButton') || el.classList.contains('btn')))){
+			ghotiCaptureTrigger(el);
+			return;
+		}
+		el = el.parentNode;
+	}
+}, true);
+
+//Enter-key submissions: attribute the spinner to the form's submit button.
+document.addEventListener('submit', function(e){
+	var form = e.target;
+	if(!form || !form.elements){ return; }
+	for(var i = 0; i < form.elements.length; i++){
+		var el = form.elements[i];
+		if(el.tagName === 'BUTTON' && (el.type === 'submit' || el.type === '')){
+			ghotiCaptureTrigger(el);
+			return;
+		}
+	}
+}, true);
+
+//Add/remove the spinner state on a captured button (see .is-busy in ghoti.css).
+//Buttons are disabled while busy to prevent double submits; anchors get the
+//pointer-events:none from .is-busy instead. A button that was already disabled
+//before the click stays disabled afterwards.
+function ghotiButtonBusy(el, busy){
+	if(!el || !el.classList){ return; }
+	if(busy){
+		if(el.getAttribute('data-ghoti-busy') !== '1'){
+			el.setAttribute('data-ghoti-busy', '1');
+			el.setAttribute('data-ghoti-was-disabled', el.disabled ? '1' : '0');
+		}
+		el.classList.add('is-busy');
+		el.setAttribute('aria-busy', 'true');
+		if(el.tagName !== 'A'){ el.disabled = true; }
+	}else{
+		el.classList.remove('is-busy');
+		el.removeAttribute('aria-busy');
+		if(el.tagName !== 'A' && el.getAttribute('data-ghoti-was-disabled') !== '1'){
+			el.disabled = false;
+		}
+		el.removeAttribute('data-ghoti-busy');
+		el.removeAttribute('data-ghoti-was-disabled');
+	}
+}
+
 function showPopup() {
 	var $bg = $("#popup-bg");
 	var $popup = $("#popup");
@@ -305,14 +421,11 @@ function savePage(){
 function logToFile(line){
 	x_logToFile(line,doNothing_cb);
 }
-function showGhotiLog(){
-	x_showGhotiLog(printPage);
-}
 function clearGhotiLog(){
 	var confirmation = confirm ('Clearing is permanent! \nAre you sure?');
 	if(confirmation){
 		x_clearGhotiLog();
-		window.setTimeout(function(){ x_showGhotiLog(printPage); },1000);
+		window.setTimeout(function(){ showAnalytics(); },1000);
 	}
 }
 function showSiteSettings(){

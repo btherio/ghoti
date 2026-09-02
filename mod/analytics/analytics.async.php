@@ -40,7 +40,7 @@ function trackPageView($isAdminViewer=false){
 			session_id()
 		);
 	}catch (Throwable $e){
-		ghoti::log("analytics.async.php ".$e->getMessage());
+		ghoti::logException("analytics.async.php:trackPageView", $e);
 	}
 }
 
@@ -48,7 +48,7 @@ function showAnalytics($days=30,$excludeAdmin=true){
 	try{
 		analyticsRequireAdmin();
 	}catch (Exception $e){
-		ghoti::log("analytics.async.php Unauthorized analytics access attempt from ".analyticsServerValue('REMOTE_ADDR'));
+		ghoti::logWarn("analytics.async.php:showAnalytics", "Unauthorized analytics access attempt from ".analyticsServerValue('REMOTE_ADDR'));
 		return "<h1>Analytics</h1><p>Admin access required.</p>";
 	}
 	$days = (int)$days;
@@ -60,10 +60,10 @@ ghoti_async_register("showAnalytics");
 /* ---------------------------------------------------------------- *
  *  UI renderer (formerly analytics.ui.php / class analyticsui)
  *
- *  Renders the analytics dashboard as one HTML blob (mirrors
- *  ghotiui::showGhotiLog()'s "one shot" style): KPI tiles, chart placeholders,
- *  a raw data table, and a JSON payload that mod/analytics/analytics.js reads
- *  to draw the actual SVG charts client-side.
+ *  Renders the analytics dashboard as one HTML blob: KPI tiles, chart
+ *  placeholders, a raw data table, the raw error log, and a JSON payload
+ *  that mod/analytics/analytics.js reads to draw the actual SVG charts
+ *  client-side.
  * ---------------------------------------------------------------- */
 
 class analyticsui{
@@ -102,22 +102,34 @@ class analyticsui{
 		);
 
 		$out  = "<div id=\"ghotiAnalytics\">\n";
+		$docs = ghoti_docs_panel("How to use analytics", "ranges, tiles, export, log", array(
+			array('heading' => 'Choose a range',
+				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons switch the whole dashboard &mdash; including the CSV export.')),
+			array('heading' => 'Exclude admin views',
+				'list' => array('Tick the checkbox to ignore pageviews recorded while an admin was viewing, for visitor-only numbers.')),
+			array('heading' => 'The tiles',
+				'list' => array('<b>Pageviews</b> &mdash; total page loads tracked.', '<b>Unique sessions</b> &mdash; distinct browser sessions (a new session starts after 30 minutes of inactivity).', '<b>Unique visitors</b> &mdash; distinct IP + user-agent combinations.', '<b>Pages viewed</b> &mdash; distinct pages hit.', '<b>Avg. views/day</b> &mdash; pageviews divided by the range.')),
+			array('heading' => 'CSV export',
+				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range.')),
+			array('heading' => 'The log',
+				'list' => array('One line per event: logins, page saves, uploads, blocked requests and errors. Newest entries appear at the top.', '<code>SECURITY:</code> lines flag legacy plaintext passwords and throttled logins &mdash; investigate and fix them. <code>denied</code> / <code>rejected</code> lines are blocked attempts (bad CSRF token, unauthorised endpoint, private page).', 'The log rotates automatically at 5MB and keeps three generations. <b>Clear log</b> empties it now.'))
+		));
 		$out .= "<div class=\"analytics-head\">\n";
 		$out .= "<h1>Analytics</h1>\n";
-		$out .= "<p class=\"analytics-sub\">Site usage for the last ".(int)$days." day".($days==1?'':'s')." &middot; complements the <a href=\"#\" class=\"ghotiMenu\" onclick=\"showGhotiLog();\">Log</a></p>\n";
+		$out .= "<p class=\"analytics-sub\">Site usage for the last ".(int)$days." day".($days==1?'':'s')."</p>\n";
 		$out .= "</div>\n";
 
 		//Range picker + toggles
 		$out .= "<div class=\"analytics-toolbar\">\n";
 		$out .= "<div class=\"analytics-ranges\">\n";
 		foreach(array(7=>'7d',30=>'30d',90=>'90d',365=>'1y') as $d=>$label){
-			$active = ($d == $days) ? ' active' : '';
-			$out .= "<a href=\"#\" class=\"ghotiMenu range-btn$active\" onclick=\"setAnalyticsRange($d);\">$label</a>\n";
+			$rangeClass = ($d == $days) ? ' ghotiRangeActive' : '';
+			$out .= "<a href=\"#\" class=\"ghotiMenu ghotiButton ghotiButtonCompact ghotiButtonSecondary$rangeClass\" onclick=\"setAnalyticsRange($d);\">$label</a>\n";
 		}
 		$out .= "</div>\n";
 		$checked = $excludeAdmin ? ' checked="checked"' : '';
 		$out .= "<label class=\"analytics-toggle\"><input type=\"checkbox\" id=\"analyticsExcludeAdmin\"$checked onclick=\"toggleAnalyticsAdmin(this.checked);\" /> Exclude admin views</label>\n";
-		$out .= "<a href=\"mod/analytics/analytics.export.php?days=".(int)$days."\" class=\"btn analytics-export\" target=\"_blank\" rel=\"noopener\">&#8681; Download CSV</a>\n";
+		$out .= "<a href=\"mod/analytics/analytics.export.php?days=".(int)$days."&amp;token=".rawurlencode(ghoti_csrf_token())."\" class=\"ghotiButton ghotiButtonCompact analytics-export\" target=\"_blank\" rel=\"noopener\">&#8681; Download CSV</a>\n";
 		$out .= "</div>\n";
 
 		//KPI row
@@ -141,31 +153,28 @@ class analyticsui{
 		$out .= "</div>\n";
 
 		$out .= $this->logErrorsCard($topErrors,$days);
+		$out .= $this->rawLogCard();
 
 		//Raw data table
 		$out .= "<div class=\"card analytics-card wide\">\n";
 		$out .= "<h2>Recent pageviews <span class=\"analytics-muted\">(".count($recent)." shown)</span></h2>\n";
 		$out .= "<div class=\"analytics-table-wrap\"><table class=\"analytics-table\">\n";
-		$out .= "<thead><tr><th>When</th><th>Page</th><th>IP</th><th>Browser</th><th>OS</th><th>Device</th><th>Referrer</th><th>Admin?</th></tr></thead>\n<tbody>\n";
+		$out .= "<thead><tr><th>When</th><th>Page</th><th>Referrer</th></tr></thead>\n<tbody>\n";
 		foreach($recent as $row){
 			$referrerHost = !empty($row[6]) ? parse_url($row[6], PHP_URL_HOST) : null;
 			$out .= "<tr>";
 			$out .= "<td>".htmlspecialchars($row[0])."</td>";
 			$out .= "<td>".htmlspecialchars($row[1] !== null ? $row[1] : '(untitled)')."</td>";
-			$out .= "<td>".htmlspecialchars($row[2])."</td>";
-			$out .= "<td>".htmlspecialchars($row[3] !== null ? $row[3] : 'Unknown')."</td>";
-			$out .= "<td>".htmlspecialchars($row[4] !== null ? $row[4] : 'Unknown')."</td>";
-			$out .= "<td>".htmlspecialchars($row[5] !== null ? $row[5] : 'Unknown')."</td>";
 			$out .= "<td>".htmlspecialchars($referrerHost ? $referrerHost : 'Direct')."</td>";
-			$out .= "<td>".($row[7] == 1 ? 'Yes' : '')."</td>";
 			$out .= "</tr>\n";
 		}
 		if(empty($recent)){
-			$out .= "<tr><td colspan=\"8\" class=\"analytics-empty\">No pageviews recorded yet.</td></tr>\n";
+			$out .= "<tr><td colspan=\"3\" class=\"analytics-empty\">No pageviews recorded yet.</td></tr>\n";
 		}
 		$out .= "</tbody></table></div>\n";
 		$out .= "</div>\n"; //card
 
+		$out .= $docs;
 		$out .= "<script type=\"application/json\" id=\"analyticsData\">".json_encode($data)."</script>\n";
 		$out .= "</div>\n"; //ghotiAnalytics
 
@@ -200,6 +209,24 @@ class analyticsui{
 			}
 			$out .= "</ol>\n";
 		}
+		$out .= "</div>\n";
+		return $out;
+	}
+
+	private function rawLogCard(){
+		//Read + reverse in PHP. The old `tail -r ghoti.log` only exists on BSD/macOS
+		//(GNU/Linux tail has no -r), so this view was broken on the Linux servers
+		//this actually runs on. htmlspecialchars() stops logged user input (e.g. a
+		//crafted username) from injecting HTML into the admin log view.
+		$logPath = ghoti::$ghotiLog;
+		$lines = is_file($logPath) ? file($logPath, FILE_IGNORE_NEW_LINES) : array();
+		if(!is_array($lines)){ $lines = array(); }
+		$logText = htmlspecialchars(implode("\n", array_reverse($lines)), ENT_QUOTES);
+
+		$out  = "<div class=\"card analytics-card analytics-log-card wide\">\n";
+		$out .= "<h2>Log <span class=\"analytics-muted\">reverse chronological</span></h2>\n";
+		$out .= "<pre class=\"analytics-log-raw\">".$logText."</pre>\n";
+		$out .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"clearGhotiLog();\">Clear log</button>\n";
 		$out .= "</div>\n";
 		return $out;
 	}

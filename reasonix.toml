@@ -1,0 +1,2 @@
+[permissions]
+allow = ["Bash=git -C /mnt/www/smurfius.com/ghoti status && git -C /mnt/www/smurfius.com/ghoti log --oneline -10", "Bash=ls -la /mnt/www/smurfius.com/ghoti/mod/*/ ; echo ---; cat /mnt/www/smurfius.com/ghoti/db.provisioned.json; echo ---; git -C /mnt/www/smurfius.com/ghoti log --oneline -- db.config.php | head; echo ---; git -C /mnt/www/smurfius.com/ghoti show HEAD:db.config.php | grep -n password"]

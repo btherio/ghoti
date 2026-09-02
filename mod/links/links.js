@@ -1,11 +1,11 @@
 function addLinkForm(){
 	$("#popup-content").html(
-		"<form id=\"addLinkForm\" class=\"ghotiForm\" action=\"javascript:addLink();\">"+
+		"<form id=\"addLinkForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"addLink(); return false;\">"+
 			"<label class=\"ghotiField\"><span>Link name</span><input type=\"text\" id=\"linkName\" size=\"20\" autocomplete=\"off\" /></label>"+
 			"<label class=\"ghotiField\"><span>URL</span><input type=\"text\" id=\"linkURL\" size=\"30\" value=\"http://\" /></label>"+
 			"<p class=\"ghotiHelpText\">Include the protocol, such as <b>http://</b> or <b>https://</b>.</p>"+
 			"<label class=\"ghotiField\"><span>Group</span><select id=\"linkGroup\"></select></label>"+
-			"<div class=\"ghotiFormActions\"><input type=\"submit\" value=\"Add Link\" /></div>"+
+			"<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Add Link</button></div>"+
 		"</form>"
 	);
 
@@ -98,6 +98,14 @@ function editLinkForm_cb(result){
 		"<section id=\"ghotiManageLinks\" class=\"ghotiAdminPanel\">"+
 			"<div class=\"ghotiCrudHeader\"><h1>Manage Links</h1><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"addLinkForm();\">Add Link</button></div>"+
 			"<form id=\"editLinkForm\" class=\"ghotiForm ghotiCrudList\" action=\"#\">"+rows+"</form>"+
+			ghotiDocsHtml("How to use links", "sidebar links & groups", [
+				{ heading: "Add a link",
+				  list: ["Press <b>Add Link</b> and enter a name and a full URL.", "Only <b>http://</b>, <b>https://</b> and <b>mailto:</b> URLs are accepted."] },
+				{ heading: "Groups",
+				  list: ["The sidebar shows one list per group (the <b>default</b> group first).", "A new group is created simply by typing its name when adding or saving a link."] },
+				{ heading: "Edit or remove",
+				  list: ["Change any field and press <b>Save</b>, or <b>Delete</b> to remove the link."] }
+			])+
 		"</section>"
 	);
 }

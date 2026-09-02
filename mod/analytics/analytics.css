@@ -57,16 +57,9 @@
 	display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
 	margin-bottom: 1rem;
 }
-#ghotiAnalytics .analytics-ranges{ display:flex; gap:.35rem; }
-#ghotiAnalytics .range-btn{
-	padding:.3rem .7rem; border-radius:999px; border:1px solid var(--border);
-	color: var(--text-secondary); text-decoration:none; font-size:.85rem;
-}
-#ghotiAnalytics .range-btn.active{
-	background: var(--series-1); border-color: var(--series-1); color:#fff;
-}
+#ghotiAnalytics .analytics-ranges{ display:flex; gap:.35rem; flex-wrap:wrap; }
 #ghotiAnalytics .analytics-toggle{ color: var(--text-secondary); font-size:.85rem; display:flex; gap:.4rem; align-items:center; }
-#ghotiAnalytics .analytics-export{ margin-left:auto; text-decoration:none; color:var(--text-primary); }
+#ghotiAnalytics .analytics-export{ margin-left:auto; }
 
 #ghotiAnalytics .analytics-kpis{
 	display:grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
@@ -149,6 +142,19 @@
 	font-variant-numeric: tabular-nums;
 }
 
+#ghotiAnalytics .analytics-log-card{ margin-bottom:1rem; }
+#ghotiAnalytics .analytics-log-raw{
+	max-height: 360px; overflow:auto;
+	margin: 0 0 .75rem;
+	padding: .75rem;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	font-size: .8rem; line-height: 1.5;
+	white-space: pre-wrap; word-break: break-word;
+	color: var(--text-secondary);
+}
+
 #ghotiAnalytics .ranked-bars{ display:flex; flex-direction:column; gap:.4rem; }
 #ghotiAnalytics .ranked-row{ display:flex; align-items:center; gap:.5rem; font-size:.82rem; }
 #ghotiAnalytics .ranked-label{
@@ -179,7 +185,6 @@
 @media (max-width: 420px){
 	#ghotiAnalytics .analytics-toolbar{ align-items:stretch; flex-direction:column; gap:.65rem; }
 	#ghotiAnalytics .analytics-ranges{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
-	#ghotiAnalytics .range-btn{ padding:.35rem .25rem; text-align:center; }
 	#ghotiAnalytics .analytics-export{ justify-content:center; width:100%; }
 	#ghotiAnalytics .analytics-card{ padding:.75rem; }
 	#ghotiAnalytics .analytics-log-errors li{ grid-template-columns:minmax(0,1fr); }

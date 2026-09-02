@@ -523,27 +523,58 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
   font-weight: 700;
 }
 
+/* ===== Buttons =========================================================== *
+ * One button family for the whole app: <button>, input-style buttons, and
+ * links styled as buttons (.ghotiButton/.btn) all share the same fancy look -
+ * gradient, gloss edge, hover lift + glow, press, focus ring. The .is-busy
+ * state swaps the label for a spinner while an async action is in flight
+ * (see ghotiButtonBusy() in ghoti.js).
+ * ========================================================================= */
 .ghotiButton,
+.btn,
 input[type=button], input[type=submit], button{
   font: inherit; font-weight: 600;
-  display: inline-flex; align-items: center; gap: .45rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
   padding: .55rem 1.05rem; border-radius: var(--radius-sm);
   border: 1px solid transparent; cursor: pointer;
-  background: var(--accent); color: var(--on-accent);
-  transition: transform .12s ease, box-shadow .15s ease, background .15s ease, filter .15s ease;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff 12%), var(--accent));
+  color: var(--on-accent);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.22);
   text-decoration: none;
   max-width: 100%;
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: center;
-  justify-content: center;
+  position: relative;
+  transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
 }
 .ghotiButton:hover,
+.btn:hover,
 input[type=button]:hover, input[type=submit]:hover, button:hover{
-  transform: translateY(-1px); box-shadow: var(--shadow); filter: saturate(1.05); text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.25);
+  filter: saturate(1.08) brightness(1.04);
+  text-decoration: none;
 }
 .ghotiButton:active,
-input[type=button]:active, input[type=submit]:active, button:active{ transform: translateY(0); }
+.btn:active,
+input[type=button]:active, input[type=submit]:active, button:active{
+  transform: translateY(1px);
+  box-shadow: var(--shadow-sm), inset 0 2px 5px rgba(0,0,0,.22);
+  filter: brightness(.97);
+}
+.ghotiButton:focus-visible,
+.btn:focus-visible,
+input[type=button]:focus-visible, input[type=submit]:focus-visible, button:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.ghotiButton:disabled, .btn:disabled,
+input[type=button]:disabled, input[type=submit]:disabled, button:disabled{
+  opacity: .55; cursor: not-allowed; transform: none;
+  filter: grayscale(.45); box-shadow: none;
+}
 .ghotiButton img,
 button img{
   width: 16px;
@@ -551,6 +582,33 @@ button img{
   display: block;
   object-fit: contain;
 }
+
+/* busy: label swapped for a spinner (also works on <a> buttons). The label
+   text is made transparent (text nodes can't be targeted with visibility)
+   and the spinner uses --text so it reads on accent, secondary and danger
+   buttons alike. */
+.ghotiButton.is-busy, .btn.is-busy{ pointer-events: none; color: transparent; }
+.ghotiButton.is-busy > *, .btn.is-busy > *{ visibility: hidden; }
+.ghotiButton.is-busy::after, .btn.is-busy::after{
+  content: "";
+  position: absolute; inset: 0; margin: auto;
+  width: 1.15em; height: 1.15em;
+  border: 2px solid color-mix(in srgb, var(--text) 30%, transparent);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: ghotiSpin .7s linear infinite;
+}
+@keyframes ghotiSpin{ to { transform: rotate(360deg); } }
+
+/* standalone spinner (progress text, placeholders, ...) */
+.ghotiSpinner{
+  display: inline-block; width: 1.1em; height: 1.1em;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%;
+  animation: ghotiSpin .7s linear infinite;
+  vertical-align: -0.2em;
+}
+
 .ghotiButtonSecondary,
 input[type=button].ghotiButtonSecondary,
 input[type=submit].ghotiButtonSecondary,
@@ -558,6 +616,7 @@ button.ghotiButtonSecondary{
   background: var(--surface);
   color: var(--text);
   border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.06);
 }
 .ghotiButtonSecondary:hover,
 input[type=button].ghotiButtonSecondary:hover,
@@ -566,50 +625,52 @@ button.ghotiButtonSecondary:hover{
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+
+/* active range-picker button (analytics toolbar); placed after the secondary
+   group so hovering an active pill keeps its accent fill */
+.ghotiButton.ghotiRangeActive{
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, #000 4%), var(--accent-2, var(--accent)));
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px rgba(255,255,255,.18);
+  color: var(--on-accent);
+}
 .ghotiButtonDanger,
 input[type=button].ghotiButtonDanger,
 input[type=submit].ghotiButtonDanger,
 button.ghotiButtonDanger{
-  background: var(--bad);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bad) 88%, #fff 10%), var(--bad));
   color: #fff;
 }
 .ghotiButtonDanger:hover,
 input[type=button].ghotiButtonDanger:hover,
 input[type=submit].ghotiButtonDanger:hover,
 button.ghotiButtonDanger:hover{
-  background: color-mix(in srgb, var(--bad) 86%, #000 14%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bad) 80%, #000 4%), color-mix(in srgb, var(--bad) 86%, #000 14%));
 }
 .ghotiButtonCompact{
   padding: .42rem .7rem;
   font-size: .9rem;
 }
 
-/* secondary / ghost button (also used by analytics "Download CSV") */
-.btn{
-  display: inline-flex; align-items: center; gap: .5rem;
-  padding: .5rem .85rem; border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
-  cursor: pointer; font-weight: 600;
-  transition: transform .12s ease, box-shadow .12s ease, border-color .15s ease;
-}
-.btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--accent); text-decoration: none; }
-
 /* ===== Modal =============================================================== */
 #popup-bg{
   display: none;                         /* JS sets display:flex to open */
-  position: fixed; inset: 0; z-index: 9999;
-  align-items: flex-start; justify-content: center;
+  position: fixed; inset: 0; z-index: 2147483647;
+  /* Center vertically so the modal always clears fixed/sticky headers,
+     whose heights vary widely between themes (a fixed top offset is
+     unreliable and can end up hidden underneath a tall header). */
+  align-items: center; justify-content: center;
   padding: 1.5rem;
+  overflow-y: auto;
   background: rgba(8,12,20,.5);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 #popup{
-  width: 100%; max-width: 520px; margin: 6vh auto 0;
+  width: 100%; max-width: 520px; margin: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: var(--shadow-lg);
-  text-align: left; overflow: hidden; position: relative;
+  text-align: left; overflow: hidden; position: relative; z-index: 1;
   opacity: 0; transform: translateY(10px) scale(.985);
   transition: opacity .25s ease, transform .25s ease;
 }
@@ -658,6 +719,7 @@ button.ghotiButtonDanger:hover{
   align-items: center;
   justify-content: center;
   flex: 0 0 34px;
+  position: relative;
   border: 1px solid color-mix(in srgb, var(--accent) 44%, #ffffff 56%);
   border-radius: 8px;
   background: color-mix(in srgb, var(--surface) 70%, #ffffff 30%);
@@ -667,6 +729,17 @@ button.ghotiButtonDanger:hover{
   cursor: pointer;
   text-decoration: none;
   transition: transform .12s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.ghotiIconButton.is-busy{ pointer-events: none; color: transparent; }
+.ghotiIconButton.is-busy > *{ visibility: hidden; }
+.ghotiIconButton.is-busy::after{
+  content: "";
+  position: absolute; inset: 0; margin: auto;
+  width: .95em; height: .95em;
+  border: 2px solid color-mix(in srgb, var(--text) 30%, transparent);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: ghotiSpin .7s linear infinite;
 }
 .ghotiIconButton:hover{
   transform: translateY(-1px);
@@ -914,7 +987,7 @@ img.linkIcon:hover{ transform: scale(1.15); }
   .ghotiManageTable{ display: block; overflow-x: auto; }
   .midHeader{ padding: .8rem var(--gutter); }
   .midHeader img{ height: 42px; }
-  #popup{ max-width: 100%; margin-top: 2vh; }
+  #popup{ max-width: 100%; }
   #ghotiPageManager .ghotiCrudHeader{ align-items: stretch; }
   .ghotiPageAddForm input{ width: 100%; }
   .ghotiPageManagerLabels{ display: none; }
@@ -957,7 +1030,7 @@ img.linkIcon:hover{ transform: scale(1.15); }
   .ghotiFormActions > .ghotiButton{ width: 100%; margin: 0; }
   .ghotiCrudMeta{ width: 100%; margin-right: 0; }
   #popup-bg{ padding: .5rem; }
-  #popup{ margin-top: .5rem; border-radius: 10px; }
+  #popup{ border-radius: 10px; }
   #popup-title{ padding: .8rem 3rem .8rem .85rem; }
   #popup-content{ padding: .85rem; max-height: calc(100vh - 5rem); }
   #popup-content .ghotiFormActions > input[type=button],
@@ -1030,4 +1103,75 @@ img.linkIcon:hover{ transform: scale(1.15); }
   .ghotiCrudRow{ padding: .7rem; }
   .managePageActions{ align-items: flex-start; }
   #changeTheme select{ min-width: 0; }
+}
+
+/* ================================================================== *
+ *  Shared collapsible "how to" docs panel (ghoti_docs_panel / ghotiDocsHtml).
+ *  Used on every admin screen so all usage documentation looks the same.
+ * ================================================================== */
+.ghotiDocs{
+	margin: 1rem 0 0.2rem;
+	border: 1px solid rgba(127,127,160,0.35);
+	border-radius: 14px;
+	background: linear-gradient(160deg, rgba(139,92,246,0.08), rgba(34,211,238,0.05));
+	overflow: hidden;
+}
+.ghotiDocs summary{
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+	padding: 0.8rem 1.1rem;
+	cursor: pointer;
+	list-style: none;
+	font-weight: 600;
+	user-select: none;
+}
+.ghotiDocs summary::-webkit-details-marker{ display: none; }
+.ghotiDocs summary::before{
+	content: "\2139";
+	margin-right: 0.15rem;
+	color: #8b5cf6;
+	font-weight: 700;
+}
+.ghotiDocs summary::after{
+	content: "\25BE";
+	margin-left: auto;
+	color: #8b5cf6;
+	transition: transform 0.25s ease;
+}
+.ghotiDocs[open] summary::after{ transform: rotate(180deg); }
+.ghotiDocs[open] summary{ border-bottom: 1px solid rgba(127,127,160,0.25); }
+.ghotiDocsTitle{ font-size: 1rem; }
+.ghotiDocsHint{
+	font-size: 0.78rem;
+	font-weight: 400;
+	opacity: 0.6;
+}
+.ghotiDocsBody{
+	padding: 1rem 1.2rem 1.2rem;
+	font-size: 0.92rem;
+	line-height: 1.6;
+}
+.ghotiDocsBody h3{
+	margin: 1.1rem 0 0.3rem;
+	font-size: 0.95rem;
+	font-weight: 700;
+}
+.ghotiDocsBody h3:first-child{ margin-top: 0; }
+.ghotiDocsBody ul{ margin: 0.25rem 0 0.6rem; padding-left: 1.3rem; }
+.ghotiDocsBody li{ margin: 0.25rem 0; }
+.ghotiDocsBody code,
+.ghotiDocCode{
+	display: inline-block;
+	margin: 0.1rem 0;
+	padding: 0.2rem 0.6rem;
+	border-radius: 7px;
+	background: rgba(139,92,246,0.16);
+	border: 1px solid rgba(139,92,246,0.35);
+	font-size: 0.92em;
+	font-weight: 600;
+	color: #8b5cf6;
+}
+@media (prefers-reduced-motion: reduce){
+	.ghotiDocs summary::after{ transition: none; }
 }

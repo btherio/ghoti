@@ -1,0 +1,18 @@
+# Uploaded gallery images only. The gallery module already restricts uploads
+# to jpg/png/gif/webp with random names; this denies script execution in depth
+# in case anything else ever lands here, and stops directory listings.
+Options -Indexes
+
+<FilesMatch "(?i)\.(php|phtml|php3|php4|php5|php7|phps|phar|cgi|pl|py|sh|asp|aspx|jsp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

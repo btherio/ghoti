@@ -48,7 +48,7 @@ class ghotidb{
     private static $pdo = null;
 
     /* Module names allowed to be auto-provisioned via loadModuleSql(). */
-    private static $validModules = array('pages','banners','comments','links','login','analytics');
+    private static $validModules = array('pages','banners','comments','links','login','analytics','gallery');
     private static $moduleInitState = array();
     private static $pageSchemaReady = false;
     const PAGE_SCHEMA_VERSION = 1;
@@ -74,8 +74,8 @@ class ghotidb{
             $this->loadModuleSql("pages");
             $this->ensurePageSchema();
         }catch (Throwable $e){
-            ghoti::log("**DB Connection Error!**");
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logError("ghoti.db.php:__construct", "DB Connection Error!");
+            ghoti::logException("ghoti.db.php:__construct", $e);
         }
     }
 
@@ -157,8 +157,10 @@ class ghotidb{
                 isset($config['password']) ? $config['password'] : '',
                 self::pdoOptions(isset($config['driver']) ? $config['driver'] : 'mysql')
             );
+            ghoti::logDebug("ghoti.db.php:connect", "Connected to ".(isset($config['host']) ? $config['host'] : '?')."/".(isset($config['database']) ? $config['database'] : '?'));
         } catch (Throwable $e) {
             self::$pdo = null;
+            ghoti::logException("ghoti.db.php:connect", $e);
             throw $e;
         }
         return self::$pdo;
@@ -191,7 +193,7 @@ class ghotidb{
             return true;
         } catch (Throwable $e) {
             self::$pdo = null;
-            ghoti::log("ghoti.db.php isConfigured probe failed: ".$e->getMessage());
+            ghoti::logError("ghoti.db.php:isConfigured", "probe failed: ".$e->getMessage());
             return false;
         }
     }
@@ -204,6 +206,7 @@ class ghotidb{
     protected function query($sql, array $params = array()){
         $stmt = null;
         try {
+            ghoti::logDebug("ghoti.db.php:query", $sql);
             $stmt = $this->db()->prepare($sql);
             $stmt->execute($params);
             return new GhotiRecordSet($stmt);
@@ -216,6 +219,7 @@ class ghotidb{
                 }
             }
             $this->resetConnection();
+            ghoti::logException("ghoti.db.php:query", $e, $sql);
             throw $e;
         }
     }
@@ -224,6 +228,7 @@ class ghotidb{
     protected function queryArray($sql, array $params = array()){
         $stmt = null;
         try {
+            ghoti::logDebug("ghoti.db.php:queryArray", $sql);
             $stmt = $this->db()->prepare($sql);
             $stmt->execute($params);
             $rows = $stmt->fetchAll(PDO::FETCH_NUM);
@@ -237,6 +242,7 @@ class ghotidb{
                 }
             }
             $this->resetConnection();
+            ghoti::logException("ghoti.db.php:queryArray", $e, $sql);
             throw $e;
         } finally {
             if ($stmt instanceof PDOStatement) {
@@ -344,14 +350,14 @@ class ghotidb{
             self::$pageSchemaReady = true;
             return true;
         }catch(Throwable $e){
-            ghoti::log("ghoti.db.php page schema upgrade failed: ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:ensurePageSchema", $e, "page schema upgrade failed");
             return false;
         }
     }
 
     function loadModuleSql($moduleName="default"){
         if(!in_array($moduleName, self::$validModules, true)){
-            ghoti::log("ghoti.db.php Can't load module '$moduleName'");
+            ghoti::logError("ghoti.db.php:loadModuleSql", "Can't load module '$moduleName'");
             return false;
         }
 
@@ -412,7 +418,7 @@ class ghotidb{
             }
         }catch (Throwable $e){
             self::$moduleInitState[$moduleName] = 'failed';
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:loadModuleSql", $e);
             return false;
         }
 
@@ -426,7 +432,7 @@ class ghotidb{
             $sortOrder = isset($orderRows[0][0]) ? (int)$orderRows[0][0] : 1;
             $this->query("insert into pages (title,content,sortOrder) values(?,?,?)",array($m_title,$m_content,$sortOrder));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:addPage", $e);
             return false;
         }
         return true;
@@ -436,7 +442,7 @@ class ghotidb{
             $this->query("delete from pages where id=?",array($m_id));
             $this->query("delete from comments where pageId=?",array($m_id));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:deletePage", $e);
             return false;
         }
         return true;
@@ -445,7 +451,7 @@ class ghotidb{
         try{
             $m_pageList = $this->query("select id,title from pages where groupName=? order by sortOrder,id",array($group));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:getPageList", $e);
             return false;
         }
         return $m_pageList;
@@ -458,7 +464,7 @@ class ghotidb{
             }
             if(!$m_content) throw new Exception($this->errorInfo());
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:getDefaultPage", $e);
             return false;
         }
         return $m_content;
@@ -467,7 +473,7 @@ class ghotidb{
         try{
             $this->query("update pages set content=?,title=? where id=?",array($m_content,$m_title,$m_id));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:savePage", $e);
             return false;
         }
         return true;
@@ -476,7 +482,7 @@ class ghotidb{
         try{
             $this->query("update pages set content=? where title=?",array($m_content,$m_title));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:savePageByTitle", $e);
             return false;
         }
         return true;
@@ -485,7 +491,7 @@ class ghotidb{
         try{
             $m_content = $this->queryArray("select content,title,groupName from pages where id=?",array($m_id));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:getPageById", $e);
             return false;
         }
         return $m_content;
@@ -494,7 +500,7 @@ class ghotidb{
         try{
             $m_content = $this->queryArray("select content,id,title,groupName from pages where title=? order by sortOrder,id limit 1",array($m_title));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:getPageByTitle", $e);
             return false;
         }
         return $m_content;
@@ -503,7 +509,7 @@ class ghotidb{
         try{
             $m_group = $this->queryArray("select groupName from pages where id=?",array($m_id));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:getPageGroup", $e);
             return false;
         }
         return $m_group;
@@ -512,7 +518,7 @@ class ghotidb{
         try{
             $this->query("update pages set groupName=? where id=?",array($m_group,$m_id));
         }catch (Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:setPageGroup", $e);
             return false;
         }
         return true;
@@ -522,7 +528,7 @@ class ghotidb{
         try{
             return $this->queryArray("select id,title,groupName,sortOrder,isDefault from pages order by sortOrder,id");
         }catch(Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:getPageManagementList", $e);
             return false;
         }
     }
@@ -557,7 +563,7 @@ class ghotidb{
             $this->query($sql,$params);
             return true;
         }catch(Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:savePageManagement", $e);
             return false;
         }
     }
@@ -569,7 +575,7 @@ class ghotidb{
             $this->query("update pages set isDefault=case when id=? then 1 else 0 end",array((int)$rows[0][0]));
             return true;
         }catch(Throwable $e){
-            ghoti::log("ghoti.db.php ".$e->getMessage());
+            ghoti::logException("ghoti.db.php:setDefaultPageByTitle", $e);
             return false;
         }
     }

@@ -16,7 +16,7 @@ class linksdb extends ghotidb{
 		try{
 			$links = $this->queryArray("select distinct grp from links");
 		}catch (Throwable $e){
-			ghoti::log("links.db.php ".$e->getMessage());
+			ghoti::logException("links.db.php:getGroups", $e);
 			return $e->getMessage();
 		}
 		$groups = array();
@@ -33,7 +33,7 @@ class linksdb extends ghotidb{
 						$links = $this->queryArray("select links.name,links.url,links.id,links.grp,users.userName from users,links where links.userId = users.userId and links.grp = ?;",array($group));
 			}
 		}catch (Throwable $e){
-			ghoti::log("links.db.php ".$e->getMessage());
+			ghoti::logException("links.db.php:getLinks", $e);
 			return $e->getMessage();
 		}
 		$formattedLinks = array();
@@ -52,7 +52,7 @@ class linksdb extends ghotidb{
 		try{
 			$this->query("insert into links(userId,name,url,grp) values(?,?,?,?)",array((int)$userId,$name,$url,$group));
 		}catch (Throwable $e){
-			ghoti::log("links.db.php ".$e->getMessage());
+			ghoti::logException("links.db.php:addLink", $e);
 			return false;
 		}
 		return true;
@@ -61,7 +61,7 @@ class linksdb extends ghotidb{
 		try{
 			$query = $this->query("select count(name) from links where name = ? or url = ?",array($name,$url));
 		}catch (Throwable $e){
-			ghoti::log("links.db.php ".$e->getMessage());
+			ghoti::logException("links.db.php:checkDupe", $e);
 			return false;
 		}
 		if($query->fields[0] > 0){ //if number of records returned is greater than 0
@@ -74,7 +74,7 @@ class linksdb extends ghotidb{
 		try{
 			$this->query("update links set name=?,url=?,grp=? where id=?",array($name,$url,$grp,$id));
 		}catch (Throwable $e){
-			ghoti::log("links.db.php ".$e->getMessage());
+			ghoti::logException("links.db.php:editLink", $e);
 			return false;
 		}
 		return true;
@@ -83,7 +83,7 @@ class linksdb extends ghotidb{
 		try{
 			$this->query("delete from links where id=?",array($id));
 		}catch (Throwable $e){
-			ghoti::log("links.db.php ".$e->getMessage());
+			ghoti::logException("links.db.php:deleteLink", $e);
 			return false;
 		}
 	}

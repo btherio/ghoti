@@ -9,6 +9,14 @@ db.provisioned.json
 # Untracked so each installation keeps its own; delete to fall back to defaults.
 ghoti.settings.json
 
+# Runtime log + rotated generations (ghoti.php). Contains usernames/IPs - keep
+# out of git and out of the web root.
+ghoti.log
+ghoti.log.*
+
+# Server-side login throttling state (mod/login/login.async.php).
+login.throttle.json
+
 # Local AI coding-agent instructions.
 agents.md
 AGENTS.md

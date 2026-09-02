@@ -36,21 +36,21 @@ function addLink($name,$url,$group){
 		$url   = $v->url($url, true, "link URL");
 		$group = $v->linkGroup($group, true);
 	}catch(Exception $e){
-		ghoti::log("links.async.php: ".$e->getMessage());
+		ghoti::logException("links.async.php:addLink", $e);
 		return $e->getMessage();
 	}
-	$_SESSION["ghotiObj"]->log("Adding a link to $name into the group $group. $url");
+	ghoti::logDebug("links.async.php:addLink", "Adding a link to $name into the group $group. $url");
 
 	if(!$_SESSION["linksObj"]->linksdb->checkDupe($name,$url)){
 		if(!$_SESSION["linksObj"]->linksdb->addLink($userId,$name,$url,$group)){
-			$_SESSION["ghotiObj"]->log("Failed to add link. $url");
+			ghoti::logError("links.async.php:addLink", "Failed to add link. $url");
 			return False;
 		}
 	}else{
-		$_SESSION["ghotiObj"]->log("Attempted to add duplicate link. $url");
+		ghoti::logWarn("links.async.php:addLink", "Attempted to add duplicate link. $url");
 		return False;
 	}
-	$_SESSION["ghotiObj"]->log("Added a link to $name into the group $group. $url");
+	ghoti::logInfo("links.async.php:addLink", "Added a link to $name into the group $group. $url");
 	return True;
 }
 
@@ -59,7 +59,7 @@ function deleteLink($id){
 	try{
 		$id = ghoti_validate()->id($id, "link id");
 	}catch(Exception $e){
-		ghoti::log("links.async.php: ".$e->getMessage());
+		ghoti::logException("links.async.php:deleteLink", $e);
 		return False;
 	}
 	$_SESSION["linksObj"]->linksdb->deleteLink($id);
@@ -74,10 +74,10 @@ function saveLink($id,$name,$url,$grp){
 		$url  = $v->url($url, true, "link URL"); // scheme-checked, see addLink()
 		$grp  = $v->linkGroup($grp, true);
 	}catch(Exception $e){
-		ghoti::log("links.async.php: ".$e->getMessage());
+		ghoti::logException("links.async.php:saveLink", $e);
 		return $e->getMessage();
 	}
-	$_SESSION["ghotiObj"]->log("Saving link($id:$name:$url:$grp)");
+	ghoti::logInfo("links.async.php:saveLink", "Saving link($id:$name:$url:$grp)");
 	return $_SESSION["linksObj"]->linksdb->editLink($id,$name,$url,$grp);
 }
 

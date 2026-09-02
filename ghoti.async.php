@@ -54,23 +54,39 @@ function ghoti_remote_addr(){
 }
 
 /*
- * If this request is an async call, return array($fn, $args); otherwise null
- * so the caller lets the normal page render.
+ * If this request is an async call, return array($fn, $args, $token); otherwise
+ * null so the caller lets the normal page render.
+ *
+ * Accepts both JSON bodies (the ghotiAsync wrapper) and form-encoded /
+ * multipart POSTs (used by file uploads, e.g. the gallery module, which can't
+ * send binary data as JSON). In the form-encoded case the payload fields come
+ * from $_POST - arguments must be posted as args[0], args[1], ... so PHP turns
+ * them into the same numeric array shape the JSON path produces.
  */
 function ghoti_async_read_request(){
 	if(ghoti_request_method() !== 'POST'){
 		return null;
 	}
 	$raw = file_get_contents('php://input');
-	if($raw === false || $raw === ''){
-		return null;
+	$payload = json_decode((string)$raw, true);
+	//Form-encoded/multipart fallback, scoped STRICTLY to file uploads: binary
+	//data can only arrive as multipart/form-data, and only the gallery and
+	//file-manager modules use that today (their clients send the CSRF token as
+	//a form field, which is verified before any endpoint runs). A plain
+	//urlencoded form POST - now or in the future - is never mistaken for an RPC
+	//call.
+	if(!is_array($payload)
+		&& !empty($_POST)
+		&& isset($_SERVER['CONTENT_TYPE'])
+		&& stripos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === 0){
+		$payload = $_POST;
 	}
-	$payload = json_decode($raw, true);
 	if(!is_array($payload) || empty($payload['__ghoti_async']) || !isset($payload['fn'])){
 		return null;
 	}
 	$args = (isset($payload['args']) && is_array($payload['args'])) ? array_values($payload['args']) : array();
-	return array((string)$payload['fn'], $args);
+	$token = isset($payload['token']) ? (string)$payload['token'] : '';
+	return array((string)$payload['fn'], $args, $token);
 }
 
 function ghoti_async_send_json($data, $status = 200){
@@ -79,8 +95,46 @@ function ghoti_async_send_json($data, $status = 200){
 		header('Content-Type: application/json; charset=utf-8');
 		header('Cache-Control: no-cache, no-store, must-revalidate');
 		header('Pragma: no-cache');
+		header('X-Content-Type-Options: nosniff');
 	}
 	echo json_encode($data, JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+}
+
+/* ================================================================== *
+ *  CSRF protection
+ *
+ *  Every state-changing async endpoint is protected by SameSite=Strict
+ *  cookies (see index.php) AND a per-session CSRF token. The token is
+ *  generated on page render, embedded in the JS wrapper (ghoti_async_emit_js)
+ *  and echoed back in the JSON body of every async POST. Requests without a
+ *  valid token are rejected with 403 before any endpoint runs - so a forged
+ *  cross-site POST (or a POST that never loaded the page) is a no-op even if
+ *  the SameSite cookie were bypassed.
+ * ================================================================== */
+
+//Get (or lazily create) the session's CSRF token.
+function ghoti_csrf_token(){
+	if(empty($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])){
+		$t = '';
+		if(function_exists('random_bytes')){
+			$t = bin2hex(random_bytes(32));
+		}elseif(function_exists('openssl_random_pseudo_bytes')){
+			$bytes = openssl_random_pseudo_bytes(32, $strong);
+			$t = ($bytes !== false && $strong) ? bin2hex($bytes) : '';
+		}
+		if($t === ''){
+			$t = md5(uniqid('ghoti', true)); // last-resort fallback, still random-ish
+		}
+		$_SESSION['csrf_token'] = $t;
+	}
+	return $_SESSION['csrf_token'];
+}
+
+//True only when $token matches the session token (constant-time compare).
+function ghoti_csrf_verify($token){
+	return is_string($token) && $token !== ''
+		&& isset($_SESSION['csrf_token']) && is_string($_SESSION['csrf_token'])
+		&& hash_equals($_SESSION['csrf_token'], $token);
 }
 
 /*
@@ -93,7 +147,7 @@ function ghoti_async_send_json($data, $status = 200){
  * pageId, theme, ...) is untouched.
  */
 function ghoti_free_request_objects(){
-	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','ghotidb') as $k){
+	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','ghotidb') as $k){
 		unset($_SESSION[$k]);
 	}
 }
@@ -108,10 +162,22 @@ function ghoti_async_handle_request(){
 	if($req === null){
 		return; // not an async call - carry on and render the page
 	}
-	list($fn, $args) = $req;
+	list($fn, $args, $token) = $req;
+	$startTime = microtime(true);
+	ghoti::logDebug("ghoti.async.php:dispatch", "-> fn='".ghoti_validate()->logLine($fn)."' argc=".count($args)." from ".ghoti_remote_addr());
+
+	//CSRF: reject anything without a valid session token before any endpoint
+	//runs. Registered-or-not is irrelevant - an invalid token is a 403.
+	if(!ghoti_csrf_verify($token)){
+		//logLine() strips CR/LF so an attacker-chosen fn can't forge log entries.
+		ghoti::logWarn("ghoti.async.php:dispatch", "rejected request without valid CSRF token ('".ghoti_validate()->logLine($fn)."') from ".ghoti_remote_addr());
+		ghoti_async_send_json(array('ok' => false, 'error' => 'Invalid request token'), 403);
+		ghoti_free_request_objects();
+		exit;
+	}
 
 	if(!ghoti_async_is_registered($fn) || !function_exists($fn)){
-		ghoti::log("ghoti.async.php: rejected call to '".$fn."' from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:dispatch", "rejected call to '".ghoti_validate()->logLine($fn)."' from ".ghoti_remote_addr());
 		ghoti_async_send_json(array('ok' => false, 'error' => 'Not callable'), 400);
 		ghoti_free_request_objects();
 		exit;
@@ -120,8 +186,10 @@ function ghoti_async_handle_request(){
 	try{
 		$result = call_user_func_array($fn, $args);
 		ghoti_async_send_json(array('ok' => true, 'result' => $result));
+		ghoti::logDebug("ghoti.async.php:dispatch", "<- fn='".ghoti_validate()->logLine($fn)."' ok in ".round((microtime(true)-$startTime)*1000,1)."ms");
 	}catch (Throwable $e){
-		ghoti::log("ghoti.async.php: exception in '".$fn."': ".$e->getMessage());
+		//logLine() strips CR/LF so an exception message can't forge log entries.
+		ghoti::logException("ghoti.async.php:dispatch", $e, "fn='".ghoti_validate()->logLine($fn)."'");
 		ghoti_async_send_json(array('ok' => false, 'error' => 'Server error'), 500);
 	}
 	ghoti_free_request_objects();
@@ -135,11 +203,13 @@ function ghoti_async_handle_request(){
  */
 function ghoti_async_emit_js(){
 	$endpointJs = json_encode(isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : 'index.php');
+	$csrfTokenJs = json_encode(ghoti_csrf_token());
 	$out = <<<JS
 // ghoti async layer - a tiny fetch() wrapper that replaces the SAJAX client.
 // x_<fn>(arg0, ..., callback) posts {fn,args} as JSON and hands the decoded
 // return value to the trailing callback (when the last argument is a function).
 var GHOTI_ASYNC_URL = {$endpointJs};
+var GHOTI_CSRF_TOKEN = {$csrfTokenJs};
 
 function ghotiAsync(fn, argList){
 	var args = Array.prototype.slice.call(argList);
@@ -149,11 +219,22 @@ function ghotiAsync(fn, argList){
 	}else if(args.length && args[args.length - 1] && typeof args[args.length - 1] === 'object' && typeof args[args.length - 1].callback === 'function'){
 		callback = args.pop().callback;
 	}
+	//Button feedback: if this call was triggered by a recent button press
+	//(see ghoti.js), show the spinner on it for the duration of the request.
+	var trigger = null;
+	if(typeof GHOTI_LAST_TRIGGER !== 'undefined' && GHOTI_LAST_TRIGGER && (Date.now() - GHOTI_LAST_TRIGGER_AT) < 700){
+		trigger = GHOTI_LAST_TRIGGER;
+		GHOTI_LAST_TRIGGER = null;
+		if(typeof ghotiButtonBusy === 'function'){ ghotiButtonBusy(trigger, true); }
+	}
+	function settle(){
+		if(trigger && typeof ghotiButtonBusy === 'function'){ ghotiButtonBusy(trigger, false); }
+	}
 	fetch(GHOTI_ASYNC_URL, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		credentials: 'same-origin',
-		body: JSON.stringify({ __ghoti_async: 1, fn: fn, args: args })
+		body: JSON.stringify({ __ghoti_async: 1, fn: fn, args: args, token: GHOTI_CSRF_TOKEN })
 	}).then(function(resp){
 		return resp.json();
 	}).then(function(data){
@@ -162,8 +243,10 @@ function ghotiAsync(fn, argList){
 		}else if(window.console){
 			console.error('ghotiAsync ' + fn + ': ' + (data && data.error));
 		}
+		settle();
 	}).catch(function(err){
 		if(window.console){ console.error('ghotiAsync ' + fn + ' failed', err); }
+		settle();
 	});
 	return true;
 }
@@ -175,6 +258,77 @@ JS;
 		}
 	}
 	echo $out;
+}
+
+/* ================================================================== *
+ *  Content shortcodes
+ *
+ *  Modules can register [tag:value] / [tag value] shortcodes that expand
+ *  inside page content (see the gallery module for a consumer). Expansion
+ *  runs in getPage(), which every public page view flows through.
+ * ================================================================== */
+
+$GLOBALS['ghoti_shortcode_handlers'] = array();
+
+//Register a handler (callable receiving the regex matches array) for a
+//[tag:value] / [tag value] shortcode. Returns true.
+function ghoti_register_shortcode($tag, $handler){
+	if(is_string($tag) && preg_match('/^[A-Za-z0-9_]+$/', $tag) && is_callable($handler)){
+		$GLOBALS['ghoti_shortcode_handlers'][$tag] = $handler;
+		return true;
+	}
+	return false;
+}
+
+//Expand every registered shortcode in $content. Shortcodes are regex-matched
+//with a single value argument, e.g. [gallery:summer] or [gallery summer].
+//Unknown shortcodes are left untouched; handlers decide what to emit.
+function ghoti_expand_shortcodes($content){
+	if(!is_string($content) || strpos($content, '[') === false){
+		return $content;
+	}
+	foreach($GLOBALS['ghoti_shortcode_handlers'] as $tag => $handler){
+		$pattern = '/\['.preg_quote($tag, '/').'(?::|\s+)([A-Za-z0-9_.-]+)\s*\]/i';
+		$content = preg_replace_callback($pattern, $handler, $content);
+	}
+	return $content;
+}
+
+/* ================================================================== *
+ *  Shared admin docs panel
+ *
+ *  The collapsible "how to" <details> panel used by every admin screen so
+ *  all documentation looks and behaves the same. $title/$hint are plain
+ *  text (escaped here); $sections is a list of:
+ *    array('heading' => '...', 'list' => array('<li>content</li>', ...))
+ *  or
+ *    array('heading' => '...', 'html' => '<p>content</p>')
+ *  List items / html are trusted static admin-facing markup (never user
+ *  data). The matching client-side helper is ghotiDocsHtml() in ghoti.js.
+ * ================================================================== */
+function ghoti_docs_panel($title, $hint, $sections){
+	$o  = "<details class=\"ghotiDocs\">\n";
+	$o .= "<summary><span class=\"ghotiDocsTitle\">".htmlspecialchars((string)$title, ENT_QUOTES)."</span><span class=\"ghotiDocsHint\">".htmlspecialchars((string)$hint, ENT_QUOTES)."</span></summary>\n";
+	$o .= "<div class=\"ghotiDocsBody\">\n";
+	foreach($sections as $section){
+		if(!is_array($section)){ continue; }
+		$heading = isset($section['heading']) ? htmlspecialchars((string)$section['heading'], ENT_QUOTES) : '';
+		if($heading !== ''){
+			$o .= "<h3>".$heading."</h3>\n";
+		}
+		if(isset($section['list']) && is_array($section['list'])){
+			$o .= "<ul>\n";
+			foreach($section['list'] as $item){
+				$o .= "<li>".$item."</li>\n";
+			}
+			$o .= "</ul>\n";
+		}elseif(isset($section['html'])){
+			$o .= $section['html'];
+		}
+	}
+	$o .= "</div>\n";
+	$o .= "</details>\n";
+	return $o;
 }
 
 /* ================================================================== *
@@ -206,7 +360,7 @@ function ghoti_require_admin(){
 	if($uid > 0 && function_exists('isAdmin') && isAdmin($uid)){
 		return true;
 	}
-	ghoti::log("ghoti.async.php denied privileged action (uid ".$uid.") from ".ghoti_remote_addr());
+	ghoti::logWarn("ghoti.async.php:ghoti_require_admin", "denied privileged action (uid ".$uid.") from ".ghoti_remote_addr());
 	return false;
 }
 
@@ -219,7 +373,7 @@ function getPage($content){
 	$_SESSION["ghotiObj"] = new ghoti();
 	$_SESSION["commentsObj"] = new comments();
 	$_SESSION["ghotiObj"]->ghotidb = new ghotidb();
-	$pageDisplay = $content;
+	$pageDisplay = ghoti_expand_shortcodes($content); // e.g. [gallery:name] -> inline gallery
 	//this next bit shows the comments for the current page
 	$pageComments = $_SESSION["commentsObj"]->commentsdb->getPageComments($_SESSION['pageId']);
 	$pageDisplay.= $_SESSION["commentsObj"]->commentsui->displayComments($pageComments,true);
@@ -228,14 +382,14 @@ function getPage($content){
 		$pageDisplay .= $_SESSION["commentsObj"]->commentsui->addCommentButton();
 	}
 	$content = "<div id=\"ghotiPageDisplay\">\n".$pageDisplay."</div>\n";
-	ghoti::debug("ghoti.async.php:getPage: Checking for session userId");
+	ghoti::logDebug("ghoti.async.php:getPage", "Checking for session userId");
 	$isAdminViewer = false;
 	if(isSet($_SESSION['userId'])){
-		ghoti::debug("ghoti.async.php:getPage: Found userId".$_SESSION['userId']);
-		ghoti::debug("ghoti.async.php:getPage: Checking user for admin priv");
+		ghoti::logDebug("ghoti.async.php:getPage", "Found userId".$_SESSION['userId']);
+		ghoti::logDebug("ghoti.async.php:getPage", "Checking user for admin priv");
 		if(isAdmin($_SESSION['userId'])){
 			$isAdminViewer = true;
-			ghoti::debug("ghoti.async.php:getPage: admin checked positive");
+			ghoti::logDebug("ghoti.async.php:getPage", "admin checked positive");
 			$content .= editPage($_SESSION['pageId']);
 		}
 	}
@@ -260,7 +414,7 @@ function getPageById($id){
 	//an id. getPageById returns [content,title,groupName].
 	$group = isset($content[0][2]) ? $content[0][2] : 'public';
 	if($group === 'private' && !ghoti_require_login()){
-		ghoti::log("ghoti.async.php denied private page $id to anon from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:getPage", "denied private page $id to anon from ".ghoti_remote_addr());
 		return "<p>You must be logged in to view this page.</p>";
 	}
 		//set the session page id so we can pull it up any time
@@ -275,7 +429,7 @@ function getPageByTitle($title){
 	if(!isset($content[0])){ return ""; }
 	$group = isset($content[0][3]) ? $content[0][3] : 'public';
 	if($group === 'private' && !ghoti_require_login()){
-		ghoti::log("ghoti.async.php denied private page title to anon from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:getPageTitle", "denied private page title to anon from ".ghoti_remote_addr());
 		return "<p>You must be logged in to view this page.</p>";
 	}
 	//set the session page id so we can pull it up any time
@@ -436,7 +590,7 @@ function savePageManagement($pages,$defaultPageId){
 	}
 	$settingsResult = ghoti::saveSettings(array('defaultPageTitle'=>$defaultTitle));
 	if($settingsResult !== true){
-		ghoti::log("ghoti.async.php page management saved but default title setting failed");
+		ghoti::logWarn("ghoti.async.php:savePageManagement", "saved but default title setting failed");
 		return "Pages were saved, but the default-page setting file could not be updated.";
 	}
 	return true;
@@ -459,21 +613,22 @@ function logToFile($line){
 	//Strip CR/LF and control chars so a client can't forge extra log lines, and
 	//cap the length.
 	$line = ghoti_validate()->logLine($line);
-	ghoti::log("(UID:".$_SESSION["userId"].")".$line);
-	return true;
-}
-function showGhotiLog(){
-	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::log("ghoti.async.php Unauthorized showGhotiLog attempt from ".ghoti_remote_addr());
-		return "<h1>Log</h1><p>Admin access required.</p>";
+	//Rate-limit writes per IP so an authenticated user can't fill the disk
+	//(the throttle store is defined by the login module, always loaded first).
+	if(function_exists('login_throttle_store')){
+		$throttle = login_throttle_store();
+		$key = 'log:'.(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
+		if($throttle->countWindow($key, 3600) >= 100){
+			return false;
+		}
+		$throttle->recordFailure($key, 200);
 	}
-	$_SESSION['ghotiObj'] = new ghoti();
-	$_SESSION["ghotiObj"]->ghotiui = new ghotiui();
-	return $_SESSION['ghotiObj']->ghotiui->showGhotiLog();
+	ghoti::logInfo("ghoti.async.php:appendUserLog", "(UID:".$_SESSION["userId"].") ".$line);
+	return true;
 }
 function clearGhotiLog(){
 	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::log("ghoti.async.php Unauthorized clearGhotiLog attempt from ".ghoti_remote_addr());
+		ghoti::logWarn("ghoti.async.php:clearGhotiLog", "Unauthorized clearGhotiLog attempt from ".ghoti_remote_addr());
 		return false;
 	}
 	//Truncate the log in PHP rather than via a shell redirect (portable, and no
@@ -560,7 +715,6 @@ ghoti_async_register(
 	"setPagePublic",
 	"setPagePrivate",
 	"clearGhotiLog",
-	"showGhotiLog",
 	"logToFile",
 	"printSiteSettingsForm",
 	"saveSiteSettings",
@@ -586,21 +740,6 @@ ghoti_async_register(
 class ghotiui{
 	public $output;
 
-	function showGhotiLog(){
-		$showGhotiLog = "<h1>Log</h1>\n";
-		$showGhotiLog .= "<h7><i>Log file appears reverse chronologically</i></h7>\n";
-		//Read + reverse in PHP. The old `tail -r ghoti.log` only exists on BSD/macOS
-		//(GNU/Linux tail has no -r), so this view was broken on the Linux servers
-		//this actually runs on. htmlspecialchars() stops logged user input (e.g. a
-		//crafted username) from injecting HTML into the admin log view.
-		$logPath = ghoti::$ghotiLog;
-		$lines = is_file($logPath) ? file($logPath, FILE_IGNORE_NEW_LINES) : array();
-		if(!is_array($lines)){ $lines = array(); }
-		$logText = htmlspecialchars(implode("\n", array_reverse($lines)), ENT_QUOTES);
-		$showGhotiLog .= "<br /><pre>".$logText."</pre><br />\n";
-		$showGhotiLog .= "<a href=\"#\"  onclick=\"clearGhotiLog();\" >Clear log</a>\n";
-		return $showGhotiLog;
-	}
 	function printPageList($pageList){
 		$this->output = "<ul class=\"navbar-nav text-light\" id=\"accordionSidebar\">\n";
 		foreach($pageList as $records => $row){
@@ -614,7 +753,19 @@ class ghotiui{
 		$esc = function($value){ return htmlspecialchars((string)$value,ENT_QUOTES); };
 		$o  = "<section id=\"ghotiPageManager\" class=\"ghotiAdminPanel\">\n";
 		$o .= "<div class=\"ghotiCrudHeader\"><div><h1>Manage Pages</h1><p class=\"ghotiHelpText\">Set navigation order, the home page, and who can view each page.</p></div>";
-		$o .= "<form id=\"ghotiAddPageForm\" class=\"ghotiPageAddForm\" action=\"javascript:addManagedPage();\"><input id=\"ghotiNewPageTitle\" type=\"text\" maxlength=\"24\" placeholder=\"Page title\" aria-label=\"New page title\" /><button type=\"submit\" class=\"ghotiButton\">Add page</button></form></div>\n";
+		$o .= "<form id=\"ghotiAddPageForm\" class=\"ghotiPageAddForm\" action=\"#\" onsubmit=\"addManagedPage(); return false;\"><input id=\"ghotiNewPageTitle\" type=\"text\" maxlength=\"24\" placeholder=\"Page title\" aria-label=\"New page title\" /><button type=\"submit\" class=\"ghotiButton\">Add page</button></form></div>\n";
+		$docs = ghoti_docs_panel("How to use pages", "order, home page, permissions", array(
+			array('heading' => 'Arrange your navigation',
+				'list' => array('Drag a row by its handle, or use the up/down arrows. The order shown here is the order in the menu.')),
+			array('heading' => 'Choose the home page',
+				'list' => array('Pick the <b>Home</b> radio on the page visitors should land on first.', 'The home page must be visible to <b>Everyone</b>.')),
+			array('heading' => 'Who can see a page',
+				'list' => array('<b>Everyone</b> &mdash; appears in the public menu.', '<b>Signed-in users</b> &mdash; appears in the private menu; requires login.')),
+			array('heading' => 'Edit page content',
+				'list' => array('Click a page title to edit it. Content is plain HTML.', 'Embed a photo gallery with <code>[gallery:name]</code> &mdash; see <b>Galleries</b> for details.')),
+			array('heading' => 'Add and remove pages',
+				'list' => array('Type a title in the box and press <b>Add page</b>.', 'Delete a page with its Delete button; the last page and the current home page cannot be deleted.'))
+		));
 		$o .= "<div class=\"ghotiPageManagerLabels\" aria-hidden=\"true\"><span>Order</span><span>Page</span><span>Default</span><span>Permission</span><span>Actions</span></div>\n";
 		$o .= "<div id=\"ghotiPageManagerRows\" class=\"ghotiPageManagerRows\">\n";
 		foreach($pages as $page){
@@ -631,6 +782,7 @@ class ghotiui{
 			$o .= "</div>\n";
 		}
 		$o .= "</div>\n<div class=\"ghotiPageManagerFooter\"><p class=\"ghotiHelpText\">Private pages appear in the signed-in menu.</p><button type=\"button\" class=\"ghotiButton\" onclick=\"savePageManagement();\"><img src=\"gfx/save.png\" alt=\"\" />Save changes</button></div>\n";
+		$o .= $docs;
 		$o .= "</section>\n";
 		return $o;
 	}
@@ -708,8 +860,16 @@ class ghotiui{
 		sort($themes);
 
 		$o  = "<div id=\"ghotiSiteSettings\">\n<h1>Site Settings</h1>\n";
+		$docs = ghoti_docs_panel("How to use site settings", "what each option does", array(
+			array('heading' => 'What you can change',
+				'list' => array('<b>Site title</b> &mdash; shown in the browser and the theme.', '<b>Default page title</b> &mdash; the page shown first; it must exist and be visible to everyone.', '<b>Default theme</b> and <b>header image</b> &mdash; apply on the next page load.')),
+			array('heading' => 'Options',
+				'list' => array('<b>Allow new user registration</b> &mdash; opens the register form to visitors (off by default).', '<b>Show the theme-changer dropdown</b> &mdash; lets visitors switch themes.', '<b>Enable debug logging</b> &mdash; verbose <code>DEBUG:</code> lines in the log.')),
+			array('heading' => 'Where settings live',
+				'list' => array('Saved to <code>ghoti.settings.json</code>; delete that file to fall back to the built-in defaults.'))
+		));
 		$o .= "<p class=\"ghotiHelpText\"><i>These were previously edited in ghoti.php; changes here are saved to ghoti.settings.json.</i></p>\n";
-		$o .= "<form id=\"siteSettingsForm\" class=\"ghotiForm\" action=\"javascript:saveSiteSettings();\">\n";
+		$o .= "<form id=\"siteSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveSiteSettings(); return false;\">\n";
 
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= "<label class=\"ghotiField\"><span>Site title</span><input type=\"text\" id=\"set-siteTitle\" size=\"40\" maxlength=\"120\" value=\"".$esc(ghoti::$siteTitle)."\" /></label>\n";
@@ -730,9 +890,10 @@ class ghotiui{
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableThemeChanger\"".$chk(ghoti::$enableThemeChanger)." /> Show the theme-changer dropdown</label>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableDebug\"".$chk(ghoti::$enableDebug)." /> Enable debug logging</label>\n";
 
-		$o .= "<div class=\"ghotiFormActions\"><input type=\"button\" value=\"Save Settings\" onclick=\"saveSiteSettings();\" /></div>\n";
+		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveSiteSettings();\">Save Settings</button></div>\n";
 		$o .= "</form>\n";
 		$o .= "<p class=\"ghotiHelpText\"><i>Note: a changed default theme or header image takes effect on the next page load.</i></p>\n";
+		$o .= $docs;
 		$o .= "</div>\n";
 		return $o;
 	}

@@ -144,6 +144,10 @@ function login_cb(id){
 	}else if(id == 0){
 		$("#loginFeedback").html("Bad username or password!");
 		window.setTimeout(function(){ $("#loginFeedback").html(""); },3000);
+	}else if(typeof id === 'string' && id.length){
+		//Server-side message (e.g. "Too many login attempts. Please try again later.").
+		$("#loginFeedback").html(ghotiEscapeHtml(id));
+		window.setTimeout(function(){ $("#loginFeedback").html(""); },3000);
 	}
 }
 function changePassword_cb(result){

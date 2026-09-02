@@ -15,7 +15,7 @@ class commentsdb extends ghotidb{
 		try{
 			$dbresult = $this->query("insert into comments(userId,pageId,comment) values(?,?,?)",array($comment->m_userId,$comment->m_pageId,$comment->m_comment));
 		}catch (Throwable $e){
-			ghoti::log("comments.db.php ".$e->getMessage());
+			ghoti::logException("comments.db.php:addComment", $e);
 			return false;
 		}
 		//ghoti::debug("comments.db.php.addComment result: ".$dbresult->fields[0]);
@@ -28,7 +28,7 @@ class commentsdb extends ghotidb{
 		try{
 			$dbresult = $this->query("SELECT comments.commentId,users.userName,comments.comment,comments.userId FROM `comments`,`users` where users.userId = comments.userId AND pageId = ? order by commentId;",array($pageId));
 		}catch (Throwable $e){
-			ghoti::log("comments.db.php ".$e->getMessage());
+			ghoti::logException("comments.db.php:getPageComments", $e);
 			return false;
 		}
 		return $dbresult;
@@ -38,7 +38,7 @@ class commentsdb extends ghotidb{
 		try{
 			$dbresult = $this->query("delete from comments where commentId = ?",array($commentId));
 		}catch (Throwable $e){
-			ghoti::log("comments.db.php ".$e->getMessage());
+			ghoti::logException("comments.db.php:deleteComment", $e);
 			return false;
 		}
 		return $dbresult;
@@ -50,7 +50,7 @@ class commentsdb extends ghotidb{
 		try{
 			$dbresult = $this->queryArray("select userId from comments where commentId = ?",array((int)$commentId));
 		}catch (Throwable $e){
-			ghoti::log("comments.db.php ".$e->getMessage());
+			ghoti::logException("comments.db.php:getCommentOwner", $e);
 			return false;
 		}
 		return isset($dbresult[0][0]) ? (int)$dbresult[0][0] : false;

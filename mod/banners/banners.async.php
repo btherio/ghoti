@@ -23,7 +23,7 @@ function bannersRemoteAddr(){
 
 function bannersRequireAdmin(){
 	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::log("banners.async.php Unauthorized banner management attempt from ".bannersRemoteAddr());
+		ghoti::logWarn("banners.async.php", "Unauthorized banner management attempt from ".bannersRemoteAddr());
 		return false;
 	}
 	return true;
@@ -111,12 +111,12 @@ ghoti_async_register(
 
 class bannersui{
 	public function addBannerForm(){
-		$addBannerForm = "<form id=\"addBannerForm\" class=\"ghotiForm\" action=\"javascript:addBanner();\">\n";
+		$addBannerForm = "<form id=\"addBannerForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"addBanner(); return false;\">\n";
 		$addBannerForm .= "<label class=\"ghotiField\"><span>Banner description</span><input type=\"text\" id=\"bannerDesc\" name=\"bannerDesc\" size=\"24\" /></label>\n";
 		$addBannerForm .= "<label class=\"ghotiField\"><span>Image URL</span><input type=\"text\" id=\"bannerImgUrl\" name=\"bannerImgUrl\" size=\"32\" /></label>\n";
 		$addBannerForm .= "<label class=\"ghotiField\"><span>Link URL</span><input type=\"text\" id=\"bannerLinkUrl\" name=\"bannerLinkUrl\" size=\"32\" /></label>\n";
 		$addBannerForm .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"bannerSmallBanner\" name=\"bannerSmallBanner\" value=\"true\" /> Small banner</label>\n";
-		$addBannerForm .= "<div class=\"ghotiFormActions\"><input type=\"submit\" value=\"Add Banner\" /></div>\n";
+		$addBannerForm .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Add Banner</button></div>\n";
 		$addBannerForm .= "<span id=\"addBannerMessages\"></span></form>\n";
 		return $addBannerForm;
 	}
@@ -138,6 +138,14 @@ class bannersui{
 	public function manageBanners($dbresult){
 		$manageBanners = "<section id=\"ghotiManageBanners\" class=\"ghotiAdminPanel\">\n";
 		$manageBanners .= "<div class=\"ghotiCrudHeader\"><h1>Manage Banners</h1><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"addBannerForm();\">Add Banner</button></div>\n";
+		$docs = ghoti_docs_panel("How to use banners", "add, edit, remove", array(
+			array('heading' => 'Add a banner',
+				'list' => array('Press <b>Add Banner</b> and fill in a description, image URL and link URL.', 'Use direct http(s) image links; tick <b>Small banner</b> for the compact size.')),
+			array('heading' => 'Edit or remove',
+				'list' => array('Change any field and press <b>Save</b>.', '<b>Delete</b> removes the banner everywhere.')),
+			array('heading' => 'Where banners appear',
+				'list' => array('Banners are picked at random from this list and shown to every visitor by the theme.'))
+		));
 		$manageBanners .= "<div class=\"ghotiForm ghotiCrudList\">\n";
 		foreach($dbresult as $x => $y){
 			$id = (int)$y[0];
@@ -164,7 +172,9 @@ class bannersui{
 		if(!$dbresult){
 			$manageBanners .= "<p class=\"ghotiEmptyState\">No banners found.</p>\n";
 		}
-		$manageBanners .="</div></section>\n";
+		$manageBanners .= "</div>\n";
+		$manageBanners .= $docs;
+		$manageBanners .= "</section>\n";
 		return $manageBanners;
 	}
 }

@@ -12,6 +12,8 @@ require_once __DIR__.'/analytics.db.php';
 $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 @ini_set('session.cookie_httponly', 1);
 @ini_set('session.cookie_secure', $secure ? 1 : 0);
+@ini_set('session.use_only_cookies', 1);
+@ini_set('session.use_strict_mode', 1);
 if (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70300) {
     @ini_set('session.cookie_samesite', 'Strict');
 }
@@ -30,6 +32,12 @@ if(!isset($_SESSION['loggedIn']) || $_SESSION['loggedIn'] !== true || !isset($_S
     analyticsExportDeny();
 }
 
+//CSRF: the export link is generated server-side with the session token
+//(analyticsui::printDashboard), so a cross-site GET can't trigger a download.
+if(!ghoti_csrf_verify(isset($_GET['token']) ? (string)$_GET['token'] : '')){
+    analyticsExportDeny();
+}
+
 $logindb = new logindb();
 if(!$logindb->isAdmin($_SESSION['userId'])){
     analyticsExportDeny();
@@ -39,7 +47,7 @@ $days = isset($_GET['days']) ? (int)$_GET['days'] : 30;
 if($days < 1) $days = 1;
 if($days > 3650) $days = 3650;
 
-ghoti::log("Analytics CSV exported by userId ".$_SESSION['userId']." from ".($_SERVER['REMOTE_ADDR'] ?? ''));
+ghoti::logInfo("analytics.export.php", "Analytics CSV exported by userId ".$_SESSION['userId']." from ".($_SERVER['REMOTE_ADDR'] ?? ''));
 
 $analyticsdb = new analyticsdb();
 $rows = $analyticsdb->getExportRows($days);
