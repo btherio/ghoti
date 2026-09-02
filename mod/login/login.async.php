@@ -571,7 +571,7 @@ class loginui{
 		if(ghoti::$allowRegister == true){
 			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"printRegisterForm();\">Register</button>\n";
 		}
-		$this->output .= "</div></form><span id=\"loginFeedback\"></span></div>\n";
+		$this->output .= "</div><p><a href=\"password-reset.php\">Forgot your password?</a></p></form><span id=\"loginFeedback\"></span></div>\n";
 		return $this->output;
 	}
 
