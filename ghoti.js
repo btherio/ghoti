@@ -434,7 +434,6 @@ function showSiteSettings(){
 function saveSiteSettings(){
 	var settings = {
 		siteTitle: $("#set-siteTitle").val(),
-		defaultPageTitle: $("#set-defaultPageTitle").val(),
 		defaultTheme: $("#set-defaultTheme").val(),
 		headerImg: $("#set-headerImg").val(),
 		allowRegister: $("#set-allowRegister").is(":checked") ? 1 : 0,

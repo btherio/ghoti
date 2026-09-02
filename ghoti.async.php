@@ -862,7 +862,7 @@ class ghotiui{
 		$o  = "<div id=\"ghotiSiteSettings\">\n<h1>Site Settings</h1>\n";
 		$docs = ghoti_docs_panel("How to use site settings", "what each option does", array(
 			array('heading' => 'What you can change',
-				'list' => array('<b>Site title</b> &mdash; shown in the browser and the theme.', '<b>Default page title</b> &mdash; the page shown first; it must exist and be visible to everyone.', '<b>Default theme</b> and <b>header image</b> &mdash; apply on the next page load.')),
+				'list' => array('<b>Site title</b> &mdash; shown in the browser and the theme.', '<b>Default theme</b> and <b>header image</b> &mdash; apply on the next page load. The home page is set from <b>Manage Pages</b>.')),
 			array('heading' => 'Options',
 				'list' => array('<b>Allow new user registration</b> &mdash; opens the register form to visitors (off by default).', '<b>Show the theme-changer dropdown</b> &mdash; lets visitors switch themes.', '<b>Enable debug logging</b> &mdash; verbose <code>DEBUG:</code> lines in the log.')),
 			array('heading' => 'Where settings live',
@@ -873,9 +873,7 @@ class ghotiui{
 
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= "<label class=\"ghotiField\"><span>Site title</span><input type=\"text\" id=\"set-siteTitle\" size=\"40\" maxlength=\"120\" value=\"".$esc(ghoti::$siteTitle)."\" /></label>\n";
-		$o .= "<label class=\"ghotiField\"><span>Default page title</span><input type=\"text\" id=\"set-defaultPageTitle\" size=\"40\" maxlength=\"120\" value=\"".$esc(ghoti::$defaultPageTitle)."\" /></label>\n";
 		$o .= "</div>\n";
-		$o .= "<p class=\"ghotiHelpText\"><i>The default page must exist.</i></p>\n";
 
 		$o .= "<label class=\"ghotiField\"><span>Default theme</span><select id=\"set-defaultTheme\">\n";
 		foreach($themes as $t){

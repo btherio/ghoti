@@ -621,8 +621,8 @@ class loginui{
 			$nameField = "user-".$userId."-name";
 			$emailField = "user-".$userId."-email";
 			$this->output .= "<tr>";
-			$this->output .= "<td data-label=\"Username\"><input type=\"text\" id=\"".$nameField."\" value=\"".$userName."\" size=\"18\" /></td>\n";
-			$this->output .= "<td data-label=\"Email\"><input type=\"text\" id=\"".$emailField."\" value=\"".$userEmail."\" size=\"24\" /></td>\n";
+			$this->output .= "<td data-label=\"Username\"><input type=\"text\" id=\"".$nameField."\" value=\"".$userName."\" /></td>\n";
+			$this->output .= "<td data-label=\"Email\"><input type=\"text\" id=\"".$emailField."\" value=\"".$userEmail."\" /></td>\n";
 			if($row[3] == 1)
 				$this->output .= "<td data-label=\"Role\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/green-check.gif\" alt=\"\" />Admin</button></td>\n<td data-label=\"Actions\">";
 			else
