@@ -38,6 +38,7 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/analytics/analytics.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/gallery/gallery.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/filemanager/filemanager.js'); ?>"></script>
+<script type="text/javascript" src="<?php echo $ghotiAsset('mod/mail/mail.js'); ?>"></script>
 
 <?/*Main ghoti stylesheet*/?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('css/ghoti/ghoti.css'); ?>" />
