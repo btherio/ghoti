@@ -62,7 +62,7 @@ ghoti_async_register("showAnalytics");
  *
  *  Renders the analytics dashboard as one HTML blob: KPI tiles, chart
  *  placeholders, a raw data table, the raw error log, and a JSON payload
- *  that mod/analytics/analytics.js reads to draw the actual SVG charts
+ *  that mod/analytics/charts.js reads to draw the actual SVG charts
  *  client-side.
  * ---------------------------------------------------------------- */
 
@@ -141,7 +141,7 @@ class analyticsui{
 		$out .= $this->kpiTile('Avg. views/day', number_format($avgPerDay,1));
 		$out .= "</div>\n";
 
-		//Chart cards - drawn into these by analytics.js after this HTML is injected
+		//Chart cards - drawn into these by charts.js after this HTML is injected
 		$out .= "<div class=\"analytics-grid\">\n";
 		$out .= $this->chartCard('wide','Pageviews over time','chart-byday');
 		$out .= $this->chartCard('','Traffic by hour of day','chart-byhour');

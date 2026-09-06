@@ -1,7 +1,7 @@
 /*
  * mail.js - admin "Mail Settings" panel wiring.
  *
- * Follows the same shape as banners.js / analytics.js: showX() fetches +
+ * Follows the same shape as banners.js / charts.js: showX() fetches +
  * renders the panel, saveX() reads the form fields and posts them back.
  */
 function showMailSettings(){
