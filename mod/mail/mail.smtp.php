@@ -13,6 +13,15 @@
  * $_SESSION, ghotidb, or any other app state, so both the logged-in app
  * (mail.php) and the pre-auth password-reset.php script can construct one
  * directly from a settings array and send mail with it.
+ *
+ * TLS: certificates are VERIFIED by default. A mail server on the LAN often
+ * presents a self-signed certificate that the system CA store knows nothing
+ * about, and whose name does not match the IP you dial it on. Rather than
+ * turning verification off, point 'tlsCaFile' at that server's certificate
+ * (it is its own CA when self-signed) and set 'tlsPeerName' to the name in
+ * the certificate. Verification then succeeds for exactly that one server
+ * and nothing else. 'tlsVerify' => false exists as a last resort and is
+ * logged as insecure wherever it is surfaced to an admin.
  */
 
 class MailSmtpClient{
@@ -23,6 +32,9 @@ class MailSmtpClient{
 	private $password;
 	private $fromAddress;
 	private $fromName;
+	private $tlsVerify;    // bool - verify the server certificate (default true)
+	private $tlsCaFile;    // path to a CA/self-signed cert to trust, or ''
+	private $tlsPeerName;  // certificate name to expect, or '' to use the host
 	private $timeout;
 	public $lastError = '';
 
@@ -34,6 +46,11 @@ class MailSmtpClient{
 		$this->password     = isset($settings['smtpPassword']) ? (string)$settings['smtpPassword'] : '';
 		$this->fromAddress  = isset($settings['fromAddress']) ? (string)$settings['fromAddress'] : '';
 		$this->fromName     = isset($settings['fromName']) ? (string)$settings['fromName'] : '';
+		//Default to verifying: an install that predates these settings (no key
+		//present) should get the safe behaviour, not the permissive one.
+		$this->tlsVerify    = isset($settings['tlsVerify']) ? (bool)$settings['tlsVerify'] : true;
+		$this->tlsCaFile    = isset($settings['tlsCaFile']) ? (string)$settings['tlsCaFile'] : '';
+		$this->tlsPeerName  = isset($settings['tlsPeerName']) ? (string)$settings['tlsPeerName'] : '';
 		$this->timeout      = max(3, (int)$timeoutSeconds);
 	}
 
@@ -57,8 +74,15 @@ class MailSmtpClient{
 			if($this->encryption === 'tls'){
 				$this->command($socket, "STARTTLS");
 				$this->expect($socket, 220, 'STARTTLS');
-				if(!@stream_socket_enable_crypto($socket, true, $this->cryptoMethod())){
-					throw new Exception('STARTTLS negotiation failed.');
+				//Capture OpenSSL's reason instead of discarding it with @ - a bare
+				//"negotiation failed" gives an admin nothing to act on, whereas
+				//"certificate verify failed" points straight at tlsCaFile/tlsPeerName.
+				$cryptoError = '';
+				set_error_handler(function($no, $str) use (&$cryptoError){ $cryptoError = $str; return true; });
+				$crypto = stream_socket_enable_crypto($socket, true, $this->cryptoMethod());
+				restore_error_handler();
+				if($crypto !== true){
+					throw new Exception('STARTTLS negotiation failed'.($cryptoError !== '' ? ': '.$this->tidyTlsError($cryptoError) : '.'));
 				}
 				//RFC 3207: state resets after STARTTLS, must re-EHLO.
 				$this->command($socket, "EHLO ".$localHost);
@@ -110,12 +134,57 @@ class MailSmtpClient{
 	private function connect(){
 		$scheme = ($this->encryption === 'ssl') ? 'ssl://' : '';
 		$errno = 0; $errstr = '';
-		$socket = @stream_socket_client($scheme.$this->host.":".$this->port, $errno, $errstr, $this->timeout);
+		//The context matters for 'ssl' (implicit TLS), where the handshake happens
+		//inside stream_socket_client; for 'tls'/'none' it is harmless, and for
+		//'tls' the same context is reused by stream_socket_enable_crypto().
+		$socket = @stream_socket_client(
+			$scheme.$this->host.":".$this->port,
+			$errno, $errstr, $this->timeout,
+			STREAM_CLIENT_CONNECT,
+			$this->streamContext()
+		);
 		if($socket === false){
-			throw new Exception("Could not connect to $this->host:$this->port ($errstr)");
+			$detail = trim((string)$errstr);
+			if($detail === '' && $errno !== 0){ $detail = 'errno '.$errno; }
+			throw new Exception("Could not connect to $this->host:$this->port".($detail !== '' ? " (".$this->tidyTlsError($detail).")" : ""));
 		}
 		stream_set_timeout($socket, $this->timeout);
 		return $socket;
+	}
+
+	//Builds the TLS stream context. Verification is ON unless an admin has
+	//explicitly disabled it; a pinned CA file and/or an expected certificate
+	//name are the supported way to talk to a self-signed LAN mail server
+	//without giving up verification altogether.
+	private function streamContext(){
+		$ssl = array(
+			'verify_peer'         => $this->tlsVerify,
+			'verify_peer_name'    => $this->tlsVerify,
+			'allow_self_signed'   => !$this->tlsVerify,
+			'disable_compression' => true,
+			'SNI_enabled'         => true,
+		);
+		$peerName = $this->tlsPeerName !== '' ? $this->tlsPeerName : $this->host;
+		if(filter_var($peerName, FILTER_VALIDATE_IP) !== false){
+			//An IP literal is not a legal SNI value and matches no certificate
+			//name, so don't send it as one. With verification on and no
+			//tlsPeerName configured this will (correctly) fail closed.
+			$ssl['SNI_enabled'] = false;
+		}else{
+			$ssl['peer_name'] = $peerName;
+		}
+		if($this->tlsVerify && $this->tlsCaFile !== '' && is_readable($this->tlsCaFile)){
+			$ssl['cafile'] = $this->tlsCaFile;
+		}
+		return stream_context_create(array('ssl' => $ssl));
+	}
+
+	//OpenSSL errors arrive as a multi-line blob with the PHP function name
+	//glued to the front. Flatten it so it fits on one log line.
+	private function tidyTlsError($message){
+		$message = preg_replace('/^[A-Za-z_]+\(\):\s*/', '', trim($message));
+		$message = preg_replace('/\s+/', ' ', $message);
+		return $message;
 	}
 
 	private function command($socket, $line){

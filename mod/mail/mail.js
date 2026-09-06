@@ -15,6 +15,9 @@ function saveMailSettings(){
 		encryption: $("#mail-encryption").val(),
 		smtpUsername: $("#mail-smtpUsername").val(),
 		smtpPassword: $("#mail-smtpPassword").val(),
+		tlsVerify: $("#mail-tlsVerify").is(":checked") ? 1 : 0,
+		tlsCaFile: $("#mail-tlsCaFile").val(),
+		tlsPeerName: $("#mail-tlsPeerName").val(),
 		fromAddress: $("#mail-fromAddress").val(),
 		fromName: $("#mail-fromName").val(),
 		enabled: $("#mail-enabled").is(":checked") ? 1 : 0

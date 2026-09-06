@@ -32,7 +32,7 @@ class maildb extends ghotidb{
 	//row is somehow missing (fresh install race, manual table edit, etc.).
 	public function getSettings(){
 		try{
-			$rows = $this->queryArray("select smtpHost,smtpPort,encryption,smtpUsername,smtpPassword,fromAddress,fromName,enabled,updatedAt from mail where id = 1 limit 1");
+			$rows = $this->queryArray("select smtpHost,smtpPort,encryption,smtpUsername,smtpPassword,tlsVerify,tlsCaFile,tlsPeerName,fromAddress,fromName,enabled,updatedAt from mail where id = 1 limit 1");
 			if(isset($rows[0])){
 				$row = $rows[0];
 				return array(
@@ -41,10 +41,13 @@ class maildb extends ghotidb{
 					'encryption'   => (string)$row[2],
 					'smtpUsername' => (string)$row[3],
 					'smtpPassword' => (string)$row[4],
-					'fromAddress'  => (string)$row[5],
-					'fromName'     => (string)$row[6],
-					'enabled'      => (int)$row[7] === 1,
-					'updatedAt'    => (int)$row[8],
+					'tlsVerify'    => (int)$row[5] === 1,
+					'tlsCaFile'    => (string)$row[6],
+					'tlsPeerName'  => (string)$row[7],
+					'fromAddress'  => (string)$row[8],
+					'fromName'     => (string)$row[9],
+					'enabled'      => (int)$row[10] === 1,
+					'updatedAt'    => (int)$row[11],
 				);
 			}
 		}catch (Throwable $e){
@@ -56,8 +59,9 @@ class maildb extends ghotidb{
 	public static function defaultSettings(){
 		return array(
 			'smtpHost' => '127.0.0.1', 'smtpPort' => 25, 'encryption' => 'none',
-			'smtpUsername' => '', 'smtpPassword' => '', 'fromAddress' => '',
-			'fromName' => '', 'enabled' => false, 'updatedAt' => 0,
+			'smtpUsername' => '', 'smtpPassword' => '',
+			'tlsVerify' => true, 'tlsCaFile' => '', 'tlsPeerName' => '',
+			'fromAddress' => '', 'fromName' => '', 'enabled' => false, 'updatedAt' => 0,
 		);
 	}
 
@@ -68,14 +72,17 @@ class maildb extends ghotidb{
 		$merged = array_merge($current, $settings);
 		try{
 			$this->query(
-				"insert into mail (id,smtpHost,smtpPort,encryption,smtpUsername,smtpPassword,fromAddress,fromName,enabled,updatedAt) values (1,?,?,?,?,?,?,?,?,?)
+				"insert into mail (id,smtpHost,smtpPort,encryption,smtpUsername,smtpPassword,tlsVerify,tlsCaFile,tlsPeerName,fromAddress,fromName,enabled,updatedAt) values (1,?,?,?,?,?,?,?,?,?,?,?,?)
 				 on duplicate key update smtpHost=values(smtpHost), smtpPort=values(smtpPort), encryption=values(encryption),
-				 smtpUsername=values(smtpUsername), smtpPassword=values(smtpPassword), fromAddress=values(fromAddress),
+				 smtpUsername=values(smtpUsername), smtpPassword=values(smtpPassword), tlsVerify=values(tlsVerify),
+				 tlsCaFile=values(tlsCaFile), tlsPeerName=values(tlsPeerName), fromAddress=values(fromAddress),
 				 fromName=values(fromName), enabled=values(enabled), updatedAt=values(updatedAt)",
 				array(
 					$merged['smtpHost'], $merged['smtpPort'], $merged['encryption'],
-					$merged['smtpUsername'], $merged['smtpPassword'], $merged['fromAddress'],
-					$merged['fromName'], $merged['enabled'] ? 1 : 0, time(),
+					$merged['smtpUsername'], $merged['smtpPassword'],
+					$merged['tlsVerify'] ? 1 : 0, $merged['tlsCaFile'], $merged['tlsPeerName'],
+					$merged['fromAddress'], $merged['fromName'],
+					$merged['enabled'] ? 1 : 0, time(),
 				)
 			);
 			return true;
