@@ -10,10 +10,16 @@ class logindb extends ghotidb{
 	 */
 	protected $result = array();
 	protected $passwordAlgo;
+	private static $passwordResetsSchemaReady = false;
 
 	public function __construct(){
 		parent::__construct();
 		parent::loadModuleSql("login");
+		// password_resets was added to login.sql after `login` may already be
+		// marked provisioned on an existing install (loadModuleSql() then
+		// skips re-running login.sql entirely) - so it needs its own
+		// idempotent bootstrap, same pattern as ghotidb::ensurePageSchema().
+		$this->ensurePasswordResetsSchema();
 		// NOTE: do NOT probe the password algorithm here. This constructor runs
 		// on every request (index.php always does `new login()`), and probing
 		// used to call password_hash() with Argon2id - a deliberately slow KDF
@@ -24,6 +30,36 @@ class logindb extends ghotidb{
 
 	public function __destruct(){
 		parent::__destruct();
+	}
+
+	//Creates the password_resets table if it is missing. CREATE TABLE IF NOT
+	//EXISTS is itself idempotent and cheap (MySQL/MariaDB just does a catalog
+	//lookup), so this runs once per request rather than needing its own
+	//provisioned-marker cache. Kept inline (not parsed from login.sql) so it
+	//can't silently pick up an unrelated edit to that file - same approach as
+	//ghotidb::ensurePageSchema()'s inline ALTER TABLE statements.
+	private function ensurePasswordResetsSchema(){
+		if(self::$passwordResetsSchemaReady){ return true; }
+		try{
+			$this->db()->exec("CREATE TABLE IF NOT EXISTS `password_resets` (
+				`resetId` int(11) NOT NULL auto_increment,
+				`userId` int(11) NOT NULL,
+				`tokenHash` char(64) NOT NULL,
+				`createdAt` int(11) NOT NULL default 0,
+				`expiresAt` int(11) NOT NULL default 0,
+				`usedAt` int(11) default NULL,
+				`requestIp` varchar(45) NOT NULL default '',
+				PRIMARY KEY  (`resetId`),
+				UNIQUE KEY `uq_password_resets_token` (`tokenHash`),
+				KEY `idx_password_resets_user` (`userId`),
+				KEY `idx_password_resets_expires` (`expiresAt`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			self::$passwordResetsSchemaReady = true;
+			return true;
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:ensurePasswordResetsSchema", $e);
+			return false;
+		}
 	}
 
 	//Resolve (and memoize for this request) the password hashing algorithm.
@@ -283,6 +319,166 @@ class logindb extends ghotidb{
 			return false;
 		}
 		return $query->fields[0];
+	}
+
+	/* ---------------------------------------------------------------- *
+	 *  Mail-based password recovery (password_resets table)
+	 *
+	 *  Design notes:
+	 *   - Only a SHA-256 hash of the token is ever stored; the raw token
+	 *     exists only in the emailed link and the requester's browser, the
+	 *     same principle used for session ids.
+	 *   - Tokens are single-use (usedAt) and short-lived (expiresAt).
+	 *   - Rate limiting lives here (per user AND per IP) rather than in
+	 *     password-reset.php, so it applies uniformly regardless of caller.
+	 *   - Every public-facing method here returns a normalized result and
+	 *     never reveals whether a given email address has an account -
+	 *     that information leak is exactly what the old password-reset.php
+	 *     (email + new password, no proof of mailbox ownership) was replaced
+	 *     to close.
+	 * ---------------------------------------------------------------- */
+
+	const RESET_TOKEN_TTL_SECONDS = 1800;      // 30 minutes
+	const RESET_MAX_PER_HOUR_PER_USER = 5;
+	const RESET_MAX_PER_HOUR_PER_IP = 10;
+
+	//Returns the userId for a (trimmed, case-insensitive) email address, or
+	//null if none/more-than-one account uses it. A duplicate is treated the
+	//same as "not found" - it never happens in normal operation (email is
+	//meant to be unique) but if it ever does, guessing which one to reset
+	//would be worse than refusing.
+	public function findUserIdByEmail($email){
+		$email = trim((string)$email);
+		if($email === ''){ return null; }
+		try{
+			$rows = $this->queryArray("select userId from users where LOWER(TRIM(email)) = LOWER(TRIM(?))", array($email));
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:findUserIdByEmail", $e);
+			return null;
+		}
+		return (count($rows) === 1) ? (int)$rows[0][0] : null;
+	}
+
+	public function getUserEmailById($userId){
+		try{
+			$rows = $this->queryArray("select email from users where userId = ?", array((int)$userId));
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:getUserEmailById", $e);
+			return null;
+		}
+		return isset($rows[0][0]) ? (string)$rows[0][0] : null;
+	}
+
+	//True if $userId or $ipAddress has requested "too many" resets in the
+	//past hour. Fails OPEN (returns false) on a DB error so a transient
+	//error never permanently locks a legitimate user out - the per-attempt
+	//uniqueness/expiry of tokens is the real security boundary; this is just
+	//abuse mitigation.
+	private function passwordResetIsRateLimited($userId, $ipAddress){
+		try{
+			$byUser = $this->queryArray(
+				"select count(*) from password_resets where userId = ? and createdAt >= ?",
+				array((int)$userId, time() - 3600)
+			);
+			if((int)($byUser[0][0] ?? 0) >= self::RESET_MAX_PER_HOUR_PER_USER){ return true; }
+
+			$byIp = $this->queryArray(
+				"select count(*) from password_resets where requestIp = ? and createdAt >= ?",
+				array((string)$ipAddress, time() - 3600)
+			);
+			if((int)($byIp[0][0] ?? 0) >= self::RESET_MAX_PER_HOUR_PER_IP){ return true; }
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:passwordResetIsRateLimited", $e);
+			return false;
+		}
+		return false;
+	}
+
+	//Issues a fresh reset token for $userId, unless rate-limited. Returns the
+	//RAW token string (to be placed in the emailed link and never stored),
+	//or null if the request should be silently dropped (rate limit hit -
+	//caller still reports success to the visitor either way).
+	public function createPasswordResetToken($userId, $ipAddress){
+		$userId = (int)$userId;
+		if($userId <= 0){ return null; }
+		if($this->passwordResetIsRateLimited($userId, $ipAddress)){
+			ghoti::logWarn("login.db.php:createPasswordResetToken", "rate-limited for userId $userId from $ipAddress");
+			return null;
+		}
+		try{
+			$token = bin2hex(random_bytes(32)); // 256 bits, hex so it's URL-safe as-is
+			$tokenHash = hash('sha256', $token);
+			$now = time();
+			$this->query(
+				"insert into password_resets (userId,tokenHash,createdAt,expiresAt,requestIp) values (?,?,?,?,?)",
+				array($userId, $tokenHash, $now, $now + self::RESET_TOKEN_TTL_SECONDS, (string)$ipAddress)
+			);
+			$this->pruneOldPasswordResets();
+			return $token;
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:createPasswordResetToken", $e);
+			return null;
+		}
+	}
+
+	//Validates a raw token from the emailed link. Returns the associated
+	//userId on success, or null if the token is missing/expired/already used.
+	//Does NOT consume the token - call consumePasswordResetToken() once the
+	//new password has actually been set, so a token stays usable if the
+	//user's first submission fails validation (e.g. password too short).
+	public function validatePasswordResetToken($token){
+		$token = (string)$token;
+		if($token === '' || !preg_match('/^[0-9a-f]{64}$/', $token)){ return null; }
+		$tokenHash = hash('sha256', $token);
+		try{
+			$rows = $this->queryArray(
+				"select userId,expiresAt,usedAt from password_resets where tokenHash = ? limit 1",
+				array($tokenHash)
+			);
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:validatePasswordResetToken", $e);
+			return null;
+		}
+		if(empty($rows)){ return null; }
+		$row = $rows[0];
+		if($row[2] !== null){ return null; }              // already used
+		if((int)$row[1] < time()){ return null; }          // expired
+		return (int)$row[0];
+	}
+
+	//Sets a new password for the account tied to $token and marks the token
+	//used (single-use). Returns true, or an error message string.
+	public function resetPasswordWithToken($token, $newPassword){
+		$userId = $this->validatePasswordResetToken($token);
+		if($userId === null){
+			return "This password reset link is invalid or has expired. Request a new one.";
+		}
+		try{
+			$tokenHash = hash('sha256', (string)$token);
+			$hashedPassword = $this->hashPassword($newPassword);
+			$this->query("update users set password = ? where userId = ?", array($hashedPassword, $userId));
+			$this->query("update password_resets set usedAt = ? where tokenHash = ?", array(time(), $tokenHash));
+			// Invalidate any other outstanding tokens for this account - a
+			// successful reset should retire every link that was emailed.
+			$this->query("update password_resets set usedAt = ? where userId = ? and usedAt is null", array(time(), $userId));
+			ghoti::logInfo("login.db.php:resetPasswordWithToken", "password reset via token for userId $userId");
+			return true;
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:resetPasswordWithToken", $e);
+			return "The password could not be reset. Try again.";
+		}
+	}
+
+	//Best-effort cleanup of rows older than 30 days (used tokens and expired-
+	//but-never-consumed ones alike). Runs probabilistically like the app's
+	//existing throttling table, so it stays cheap on the common request path.
+	private function pruneOldPasswordResets(){
+		if(random_int(1,50) !== 1){ return; }
+		try{
+			$this->db()->exec("delete from password_resets where createdAt < ".(time() - 30*86400));
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:pruneOldPasswordResets", $e);
+		}
 	}
 }
 ?>

@@ -48,7 +48,7 @@ class ghotidb{
     private static $pdo = null;
 
     /* Module names allowed to be auto-provisioned via loadModuleSql(). */
-    private static $validModules = array('pages','banners','comments','links','login','analytics','gallery');
+    private static $validModules = array('pages','banners','comments','links','login','analytics','gallery','mail');
     private static $moduleInitState = array();
     private static $pageSchemaReady = false;
     const PAGE_SCHEMA_VERSION = 1;

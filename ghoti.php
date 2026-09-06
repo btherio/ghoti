@@ -20,7 +20,7 @@ class ghoti {
 
 	public static $siteTitle = "ghoti";	        //title of the website          [UI]
 	public static $defaultPageTitle = "Home"; 		//this page must exist          [UI]
-	public static $defaultTheme = "prosimii";		//default theme                 [UI]
+	public static $defaultTheme = "ghoticms";		//default theme                 [UI]
 	public static $allowRegister = True; 			//allow or disallow new registrations [UI]
 	public static $headerImg = "gfx/ghoti-5s.png"; //header image to use            [UI]
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
