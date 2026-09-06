@@ -11,6 +11,9 @@ create table if not exists mail(
 	`encryption` varchar(10) not null default 'none',   -- 'none' | 'tls' (STARTTLS) | 'ssl' (implicit TLS)
 	`smtpUsername` varchar(255) not null default '',
 	`smtpPassword` varchar(255) not null default '',    -- see mail.db.php for why this is stored as-is
+	`tlsVerify` int(1) not null default 1,              -- verify the server certificate (leave on)
+	`tlsCaFile` varchar(255) not null default '',       -- CA/self-signed cert to trust, for a LAN mail server
+	`tlsPeerName` varchar(255) not null default '',     -- certificate name to expect, if not the host
 	`fromAddress` varchar(255) not null default '',
 	`fromName` varchar(120) not null default '',
 	`enabled` int(1) not null default 0,

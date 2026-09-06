@@ -73,7 +73,7 @@ function bindGhotiMenuLinks(){
 
 /*
  * Admin-menu actions that live in module scripts (banners.js, links.js,
- * login.js, analytics.js) are called through this guard. Those scripts load
+ * login.js, charts.js) are called through this guard. Those scripts load
  * right after ghoti.js, but a partial deployment or a blocked request can
  * leave one of them unloaded - in which case the old inline onclick produced
  * a bare "showAnalytics is not defined" console error and a dead menu item.
@@ -87,6 +87,16 @@ function ghotiModuleAction(name){
 	}
 	pageFeedBack("The '" + name + "' script did not load - reload the page to retry.");
 	return false;
+}
+
+function ghotiTogglePassword(button){
+	var input = button.parentNode.querySelector('input');
+	if(!input){ return; }
+	var show = input.type === 'password';
+	input.type = show ? 'text' : 'password';
+	button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+	button.setAttribute('title', show ? 'Hide password' : 'Show password');
+	button.setAttribute('aria-pressed', show ? 'true' : 'false');
 }
 
 /*
