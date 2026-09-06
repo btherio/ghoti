@@ -34,13 +34,24 @@ function register(){
 
 	if(!username || !password || !password1 || !email || !captchaAnswer){
 		popupFeedBack("Required field missing.");
+		refreshRegisterCaptcha();
 	}else if(password != password1){
 		popupFeedBack("New passwords don't match.");
+		refreshRegisterCaptcha();
 	}else if(password.length < 8){
 		popupFeedBack("New password is too short.");
+		refreshRegisterCaptcha();
 	}else{
 		x_addUser(username,email,password,captchaAnswer,register_cb);
 	}
+}
+
+function refreshRegisterCaptcha(){
+	x_refreshRegisterCaptcha(function(content){
+		if(typeof content === 'string'){
+			$("#loginCaptcha-register").replaceWith(content);
+		}
+	});
 }
 
 function printRegisterForm(){
@@ -186,6 +197,7 @@ function printAdminMenu_cb(adminMenu){
 	bindGhotiMenuLinks();
 }
 function register_cb(resultMessage){
+	refreshRegisterCaptcha();
 	if(resultMessage == true){
 		pageFeedBack("Registered successfully. Please login to continue.");
 	}else{

@@ -288,6 +288,7 @@ label span{display:block;font-size:.82rem;color:var(--muted);margin-bottom:4px}
 input,select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;
 	background:var(--surface-2);color:var(--text);font-size:.95rem;outline:none}
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(42,120,214,.25)}
+.password-input{display:flex}.password-input input{border-radius:9px 0 0 9px}.password-toggle{width:34px;flex:0 0 34px;padding:0;border-left:0;border-radius:0 9px 9px 0;font-size:.78rem;opacity:.65}.password-toggle:hover,.password-toggle:focus-visible{opacity:1}
 .row{display:flex;gap:12px}
 .row .grow{flex:1}
 .row .port{width:110px}
@@ -344,7 +345,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:5px}
 			</div>
 			<label><span>Database name</span><input id="db-database" value="{$database}" autocomplete="off" spellcheck="false" /></label>
 			<label><span>Username</span><input id="db-username" value="{$username}" autocomplete="off" spellcheck="false" /></label>
-			<label><span>Password</span><input id="db-password" type="password" value="" autocomplete="off" /></label>
+			<label><span>Password</span><span class="password-input"><input id="db-password" type="password" value="" autocomplete="off" /><button type="button" class="password-toggle" onclick="togglePassword(this)" aria-label="Show password" title="Show password">&#128065;</button></span></label>
 			<label><span>Charset</span><input id="db-charset" value="{$charset}" autocomplete="off" spellcheck="false" /></label>
 			<div class="actions">
 				<button type="button" id="db-test">Test connection</button>
@@ -360,6 +361,14 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:5px}
 	var ENDPOINT = "{$endpoint}";
 	var CSRF_TOKEN = {$csrfJs};
 	var SETUP_KEY = {$keyJs};
+	window.togglePassword = function(button){
+		var input = button.parentNode.querySelector('input');
+		var show = input.type === 'password';
+		input.type = show ? 'text' : 'password';
+		button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+		button.setAttribute('title', show ? 'Hide password' : 'Show password');
+		button.setAttribute('aria-pressed', show ? 'true' : 'false');
+	};
 	function fields(){
 		return {
 			driver:   document.getElementById('db-driver').value,
