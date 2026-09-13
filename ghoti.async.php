@@ -857,11 +857,39 @@ class ghotiui{
 	//Admin "Site Settings" panel: reflects the current ghoti::$* values and posts
 	//them back through saveSiteSettings(). Values are escaped for display here;
 	//they are validated/sanitized again server-side in ghoti::saveSettings().
+	/*
+	 * The Site Settings panel.
+	 *
+	 * Grouped into one card per concern rather than a single long column: the
+	 * form has grown to fourteen settings, and "which of these affects what a
+	 * visitor sees" is the question an admin is actually answering.
+	 *
+	 * The #set-* ids are a contract with saveSiteSettings() in ghoti.js, which
+	 * reads each one by id. A renamed or dropped id does not error - saveSettings()
+	 * skips keys the client did not send - it just silently stops saving that
+	 * setting. Change an id here and there.
+	 *
+	 * Note defaultPageTitle is deliberately absent: the home page is chosen in
+	 * Manage Pages, which is where someone looking at a list of pages expects it.
+	 */
 	function printSiteSettingsForm(){
 		$esc = function($v){ return htmlspecialchars((string)$v, ENT_QUOTES); };
 		$chk = function($b){ return $b ? " checked=\"checked\"" : ""; };
 
-		//Discover installed themes (dirs under css/ that have a matching loader).
+		//Small builders so each row reads as the setting it is, instead of the
+		//markup it produces. Every field in this form goes through one of these.
+		$text = function($id, $label, $value, $type = "text", $hint = "", $attrs = "") use ($esc){
+			$o  = "<label class=\"ghotiField\"><span>".$label;
+			if($hint !== ""){ $o .= " <i>".$hint."</i>"; }
+			$o .= "</span><input type=\"".$type."\" id=\"set-".$id."\" value=\"".$esc($value)."\" ".$attrs."/></label>\n";
+			return $o;
+		};
+		$choice = function($id, $label, $checked, $describedBy = "") use ($chk){
+			$aria = $describedBy !== "" ? " aria-describedby=\"".$describedBy."\"" : "";
+			return "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-".$id."\"".$chk($checked).$aria." /> ".$label."</label>\n";
+		};
+
+		//Installed themes: a directory under css/ with a matching loader.
 		$themes = array();
 		foreach(glob("css/*", GLOB_ONLYDIR) as $dir){
 			$name = basename($dir);
@@ -869,64 +897,89 @@ class ghotiui{
 		}
 		sort($themes);
 
-		$o  = "<div id=\"ghotiSiteSettings\">\n<h1>Site Settings</h1>\n";
-		$docs = ghoti_docs_panel("How to use site settings", "what each option does", array(
-			array('heading' => 'What you can change',
-				'list' => array('<b>Site title</b> &mdash; shown in the browser and the theme.', '<b>Default theme</b> and <b>header image</b> &mdash; apply on the next page load. The home page is set from <b>Manage Pages</b>.')),
-			array('heading' => 'Options',
-				'list' => array('<b>Allow new user registration</b> &mdash; opens the register form to visitors (off by default).', '<b>Show the theme-changer dropdown</b> &mdash; lets visitors switch themes.', '<b>Enable debug logging</b> &mdash; verbose <code>DEBUG:</code> lines in the log.')),
-			array('heading' => 'Where settings live',
-				'list' => array('Saved to <code>ghoti.settings.json</code>; delete that file to fall back to the built-in defaults.'))
-		));
-		$o .= "<p class=\"ghotiHelpText\"><i>These were previously edited in ghoti.php; changes here are saved to ghoti.settings.json.</i></p>\n";
-		$o .= "<form id=\"siteSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveSiteSettings(); return false;\">\n";
-
-		$o .= "<div class=\"ghotiFormGrid\">\n";
-		$o .= "<label class=\"ghotiField\"><span>Site title</span><input type=\"text\" id=\"set-siteTitle\" size=\"40\" maxlength=\"120\" value=\"".$esc(ghoti::$siteTitle)."\" /></label>\n";
+		$o  = "<section id=\"ghotiSiteSettings\" class=\"ghotiAdminPanel\">\n";
+		$o .= "<div class=\"ghotiCrudHeader\">\n";
+		$o .= "<div><h1>Site Settings</h1>\n";
+		$o .= "<p class=\"ghotiHelpText\">Saved to <code>ghoti.settings.json</code>. Delete that file to fall back to the built-in defaults.</p></div>\n";
+		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveSiteSettings();\">Save Settings</button></div>\n";
 		$o .= "</div>\n";
 
+		$o .= "<form id=\"siteSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveSiteSettings(); return false;\">\n";
+		$o .= "<div class=\"siteSettingsGrid\">\n";
+
+		/* ---- Identity: what a visitor sees first ---- */
+		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide\"><legend>Identity</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">The name and look the site presents to everyone.</p>\n";
+		$o .= "<div class=\"ghotiFormGrid\">\n";
+		$o .= $text("siteTitle", "Site title", ghoti::$siteTitle, "text", "", "maxlength=\"120\" ");
 		$o .= "<label class=\"ghotiField\"><span>Default theme</span><select id=\"set-defaultTheme\">\n";
 		foreach($themes as $t){
-			$sel = ($t === ghoti::$defaultTheme) ? " selected=\"selected\"" : "";
-			$o .= "<option value=\"".$esc($t)."\"$sel>".$esc($t)."</option>\n";
+			$o .= "<option value=\"".$esc($t)."\"".($t === ghoti::$defaultTheme ? " selected=\"selected\"" : "").">".$esc($t)."</option>\n";
 		}
 		$o .= "</select></label>\n";
-
-		$o .= "<label class=\"ghotiField\"><span>Header image</span><input type=\"text\" id=\"set-headerImg\" size=\"40\" maxlength=\"200\" value=\"".$esc(ghoti::$headerImg)."\" /></label>\n";
-
-		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-allowRegister\"".$chk(ghoti::$allowRegister)." /> Allow new user registration</label>\n";
-		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableThemeChanger\"".$chk(ghoti::$enableThemeChanger)." /> Show the theme-changer dropdown</label>\n";
-		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-hideLoginButton\"".$chk(ghoti::$hideLoginButton)." /> Hide the login button</label>\n";
-		$o .= "<p class=\"ghotiHelpText\">Applies on the next page load. To sign in while hidden, open <a href=\"?theme=login\">?theme=login</a> on your site. This reveals the login button for that visit and keeps your current theme.</p>\n";
-		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableDebug\"".$chk(ghoti::$enableDebug)." /> Enable debug logging</label>\n";
-
-		$o .= '<fieldset><legend>Optional server management</legend>';
-		$o .= '<label class="ghotiInlineChoice"><input type="checkbox" id="set-enableVhosts"'.$chk(ghoti::$enableVhosts).' /> Enable Apache Vhosts module</label>';
-		$o .= '<p class="ghotiHelpText">Disabled by default. Save and reload to show or hide Apache Vhosts in the workspace. Enabling loads the module; its separate Allow changes setting and privileged helper control writes. Existing vhost settings are retained when this module is disabled.</p>';
-		$o .= ghoti_docs_panel('How to enable Apache Vhosts', 'optional setup guide', array(
-			array('heading'=>'Enable in stages', 'list'=>array(
-				'Enable this option, save Site Settings, and reload the page.',
-				'Open Workspace &rarr; Apache Vhosts &rarr; Settings. Verify paths; leave Allow changes off while inspecting.',
-				'If you need writes, follow the <a href="docs/vhosts-enablement.md">server setup guide</a> to install the root-owned helper and its sudoers rule, validate Apache configuration, then turn on Allow changes.',
-				'Certificate monitoring and notifications require separate setup. Disabling this option stops the CMS module and its certificate watcher; existing Apache sites keep running.'
-			))
-		));
-		$o .= '</fieldset>';
-		$o .= '<fieldset><legend>Critical log alerts</legend>';
-		$o .= '<label class="ghotiInlineChoice"><input type="checkbox" id="set-enableCriticalAlerts"'.$chk(ghoti::$enableCriticalAlerts).' /> Email critical log alerts</label>';
-		$o .= '<label class="ghotiField"><span>Alert recipient email</span><input type="email" id="set-criticalAlertEmail" value="'.$esc(ghoti::$criticalAlertEmail).'" /></label>';
-		$o .= '<p class="ghotiHelpText">Uses Mail Settings. Sends an alert for an application error, or 5 failed-login or suspicious-access events within 15 minutes. Each category is limited to one delivery attempt per 15 minutes. Emails contain a summary, not raw logs or credentials. These signals are not a full intrusion-detection system.</p></fieldset>';
-		$o .= "<fieldset><legend>Privacy and accessibility contact</legend>";
-		foreach(array('privacyOperator' => 'Legal operator name', 'privacyEmail' => 'Public privacy / accessibility email', 'privacyRegion' => 'Province or territory') as $key => $label){
-			$type = $key === 'privacyEmail' ? 'email' : 'text';
-			$o .= '<label class="ghotiField"><span>'.$label.'</span><input type="'.$type.'" id="set-'.$key.'" value="'.$esc(ghoti::$$key).'" /></label>';
-		}
-		$o .= '<p class="ghotiHelpText">These details are published in the footer privacy policy and accessibility notice. Complete them before relying on those notices.</p></fieldset>';
-		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveSiteSettings();\">Save Settings</button></div>\n";
-		$o .= "</form>\n";
-		$o .= "<p class=\"ghotiHelpText\"><i>Note: a changed default theme or header image takes effect on the next page load.</i></p>\n";
-		$o .= $docs;
+		$o .= $text("headerImg", "Header image", ghoti::$headerImg, "text", "(path)", "maxlength=\"200\" placeholder=\"gfx/ghoti-logo.png\" ");
 		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\">Theme and header image apply on the next page load. The home page is chosen in <b>Manage Pages</b>.</p>\n";
+		$o .= "</fieldset>\n";
+
+		/* ---- Visitor access ---- */
+		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Visitor access</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">What visitors may do without an account.</p>\n";
+		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= $choice("allowRegister", "Allow new user registration", ghoti::$allowRegister);
+		$o .= $choice("enableThemeChanger", "Show the theme-changer dropdown", ghoti::$enableThemeChanger);
+		$o .= $choice("hideLoginButton", "Hide the login button", ghoti::$hideLoginButton, "set-hideLoginButton-help");
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-hideLoginButton-help\">With the login button hidden, sign in via <a href=\"?theme=login\">?theme=login</a> &mdash; that reveals it for one visit and keeps your theme.</p>\n";
+		$o .= "</fieldset>\n";
+
+		/* ---- Privacy and accessibility ---- */
+		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Privacy &amp; accessibility</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">Published in the footer policy and accessibility notice.</p>\n";
+		$o .= "<div class=\"ghotiFormGrid\">\n";
+		$o .= $text("privacyOperator", "Legal operator name", ghoti::$privacyOperator, "text", "", "maxlength=\"120\" placeholder=\"Example Media Ltd.\" ");
+		$o .= $text("privacyEmail", "Public contact e-mail", ghoti::$privacyEmail, "email", "", "maxlength=\"190\" placeholder=\"privacy@example.com\" ");
+		$o .= $text("privacyRegion", "Province or territory", ghoti::$privacyRegion, "text", "", "maxlength=\"120\" placeholder=\"Alberta, Canada\" ");
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\">Leave blank to omit the notice rather than publish a placeholder.</p>\n";
+		$o .= "</fieldset>\n";
+
+		/* ---- Logging and alerts. criticalAlertEmail is the dependent field of
+		 * the checkbox above it, so it is nested rather than left floating
+		 * alongside unrelated options. ---- */
+		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Logging &amp; alerts</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">Diagnostics, and who hears about incidents.</p>\n";
+		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= $choice("enableDebug", "Enable debug logging", ghoti::$enableDebug);
+		$o .= $choice("enableCriticalAlerts", "E-mail critical log alerts", ghoti::$enableCriticalAlerts);
+		$o .= "</div>\n";
+		$o .= "<div class=\"settingsDependent\"".(ghoti::$enableCriticalAlerts ? "" : " data-inactive=\"true\"").">\n";
+		$o .= $text("criticalAlertEmail", "Alert recipient", ghoti::$criticalAlertEmail, "email", "", "maxlength=\"190\" placeholder=\"admin@example.com\" ");
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\">Sent through <b>Mail Settings</b>. Covers application errors, and 5 failed-login or suspicious-access events within 15 minutes &mdash; one delivery per category per 15 minutes.</p>\n";
+		$o .= "</fieldset>\n";
+
+		/* ---- Optional modules ---- */
+		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide\"><legend>Optional modules</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">Off by default. Turning one off leaves its saved configuration alone.</p>\n";
+		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= $choice("enableVhosts", "Apache Vhosts &mdash; manage virtual hosts and TLS certificates", ghoti::$enableVhosts);
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\">Save and reload to show or hide it in the workspace. It opens read-only; writing to Apache needs a root-owned helper installed first.</p>\n";
+		$o .= ghoti_docs_panel("Enabling Apache Vhosts", "optional, staged setup", array(
+			array('heading' => 'In stages',
+				'list' => array('Tick the box, save, and reload the page.',
+					'Open <b>Apache Vhosts &rarr; Settings</b> and check the paths. Leave <b>Allow changes</b> off while you look around.',
+					'For writes, follow the <a href="docs/vhosts-enablement.md">server setup guide</a> to install the root-owned helper and its sudoers rule, confirm <code>apachectl configtest</code> passes, then turn on <b>Allow changes</b>.',
+					'Certificate monitoring is set up separately. Disabling this stops the module and its certificate watcher; the Apache sites themselves keep running.'))
+		));
+		$o .= "</fieldset>\n";
+
+		$o .= "</div>\n"; //siteSettingsGrid
+		$o .= "<div class=\"ghotiFormActions siteSettingsFooterActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveSiteSettings();\">Save Settings</button>\n";
+		$o .= "<span class=\"ghotiHelpText\">Most changes apply on the next page load.</span></div>\n";
+		$o .= "</form>\n";
+		$o .= "</section>\n";
 		return $o;
 	}
 }
