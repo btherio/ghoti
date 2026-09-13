@@ -37,8 +37,18 @@ function importVhosts(){
 	vhostsOutput("Importing - this runs configtest and reloads Apache, give it a moment...");
 	x_importVhosts(importVhosts_cb);
 }
+/* Re-render the pane before showing the result. The import returns a message
+ * either way (not true/false), so there is nothing to branch on - and a stale
+ * plan table is the worse outcome: on success it would still list every file as
+ * pending, and a second click would hit the helper's "already exists" guard and
+ * report an error for an operation that worked. Re-rendering is right in both
+ * cases: on failure the plan is unchanged, on success it becomes "nothing to
+ * import". */
 function importVhosts_cb(result){
-	vhostsOutput(result);
+	x_printVhostImport(function(html){
+		printPage(html);
+		vhostsOutput(result);
+	});
 }
 
 function showVhostsSettings(){
