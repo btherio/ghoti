@@ -1,5 +1,6 @@
 (function ($) {
   'use strict';
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
 
   var $bgImage = $('.bg-layer__image');
   var $bgVeil = $('.bg-layer__veil');

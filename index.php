@@ -83,11 +83,13 @@ ghoti_async_handle_request();
 //tightening that further is a JS-refactor project; the rest of the policy
 //still blocks plugin injection, base-tag hijack, clickjacking and form CSRF.
 if(!headers_sent()){
+	header('Cache-Control: private, no-store');
+	if(($_GET['view'] ?? null) === 'sitemap'){ header('X-Robots-Tag: noindex, nofollow'); }
 	header('X-Content-Type-Options: nosniff');
 	header('X-Frame-Options: DENY');
 	header('Referrer-Policy: strict-origin-when-cross-origin');
 	header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-	header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: http: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+	header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:; img-src 'self' data: http: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
 }
 
 //process GET & SESSION variables
@@ -106,7 +108,7 @@ if(isset($_SESSION['theme'])){ //if a session theme var is set, we want to use t
 }
 
 if($_GET){
-	if(isset($_GET['theme'])){ //if this is set, it overrides the session variable
+	if(isset($_GET['theme']) && $_GET['theme'] !== 'login'){ //login reveals sign-in without switching themes
 		if($isValidTheme($_GET['theme'])){
 			ghoti::$defaultTheme = $_GET['theme']; //then set it as default theme
 			$_SESSION['theme'] = $_GET['theme']; //and save it to the session

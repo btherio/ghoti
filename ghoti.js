@@ -5,7 +5,11 @@ $(document).ready(function(){
 	
 	//getDefaultPage(); //gets the def
 	
-	x_getDefaultPage(printPage);
+	if(!document.querySelector('#ghotiContent[data-server-rendered]')){
+		var initialPage = new URLSearchParams(window.location.search).get('page');
+		if(initialPage && /^[1-9][0-9]*$/.test(initialPage)){ x_getPageById(initialPage, printPage); }
+		else { x_getDefaultPage(printPage); }
+	}
 	x_getLinks(getLinks_cb); //loads the links pane once; it now refreshes on change instead of polling every 3s.
 	bindGhotiMenuLinks();
 
@@ -197,10 +201,31 @@ function ghotiButtonBusy(el, busy){
 	}
 }
 
+var ghotiPopupReturnFocus = null;
+var ghotiLastPageFocus = null;
+document.addEventListener('focusin', function(event){
+ if(event.target !== document.body && !event.target.closest('#popup-bg')) ghotiLastPageFocus = event.target;
+});
+var ghotiPopupInert = [];
 function showPopup() {
 	var $bg = $("#popup-bg");
 	var $popup = $("#popup");
+	if(!$bg.is(':visible')){
+		ghotiPopupReturnFocus = document.activeElement === document.body ? ghotiLastPageFocus : document.activeElement;
+		var branch = $bg[0];
+		while(branch && branch.parentElement){
+			Array.from(branch.parentElement.children).forEach(function(sibling){
+				if(sibling !== branch && !sibling.inert){ sibling.inert = true; ghotiPopupInert.push(sibling); }
+			});
+			branch = branch.parentElement;
+			if(branch === document.body) break;
+		}
+	}
 	$bg.css('display','flex');
+	setTimeout(function(){
+		var first = document.querySelector('#popup-content input:not([type=hidden]), #popup-content button, #popup-content a[href]');
+		(first || $popup[0]).focus();
+	}, 20);
 	// ensure popup has 'show' class to trigger CSS transition
 	setTimeout(function(){
 		$popup.addClass('show');
@@ -218,6 +243,9 @@ function cancelPopup(name) {
 	setTimeout(function(){
 		$("#popup-bg").hide();
 		$("#popup-content").html("");
+		ghotiPopupInert.forEach(function(node){ node.inert = false; });
+		ghotiPopupInert = [];
+		if(ghotiPopupReturnFocus && ghotiPopupReturnFocus.isConnected){ ghotiPopupReturnFocus.focus(); }
 	}, 300);
 }
 function hideMenu() {
@@ -444,10 +472,14 @@ function showSiteSettings(){
 function saveSiteSettings(){
 	var settings = {
 		siteTitle: $("#set-siteTitle").val(),
+		privacyOperator: $("#set-privacyOperator").val(),
+		privacyEmail: $("#set-privacyEmail").val(),
+		privacyRegion: $("#set-privacyRegion").val(),
 		defaultTheme: $("#set-defaultTheme").val(),
 		headerImg: $("#set-headerImg").val(),
 		allowRegister: $("#set-allowRegister").is(":checked") ? 1 : 0,
 		enableThemeChanger: $("#set-enableThemeChanger").is(":checked") ? 1 : 0,
+		hideLoginButton: $("#set-hideLoginButton").is(":checked") ? 1 : 0,
 		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0
 	};
 	x_saveSiteSettings(settings, saveSiteSettings_cb);
@@ -495,8 +527,7 @@ function printPage(content) {
 function popup_cb(contents){
 	$("#popup-content").html(contents);
 	// show overlay and animated popup
-	$("#popup-bg").css('display','flex');
-	setTimeout(function(){ $("#popup").addClass('show'); }, 10);
+	showPopup();
 }
 function savePage_cb(result){
 	if(result == true){
@@ -533,3 +564,22 @@ function refreshPrivateMenu_cb(content){
 }
 
 // -->
+
+function ghotiSetPrivacyChoice(allow){
+ x_setPrivacyChoice(allow, function(message){
+  var status = document.getElementById('ghotiPrivacyStatus');
+  if(status) status.textContent = message;
+ });
+}
+
+document.addEventListener('keydown', function(event){
+ var popup = document.getElementById('popup');
+ if(!popup || !popup.classList.contains('show')) return;
+ if(event.key === 'Escape'){ event.preventDefault(); cancelPopup('popup-bg'); }
+ if(event.key !== 'Tab') return;
+ var items = Array.from(popup.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]')).filter(function(el){return el.getClientRects().length > 0;});
+ var first = items[0], last = items[items.length-1];
+ if(!first){ event.preventDefault(); popup.focus(); }
+ else if(event.shiftKey && (document.activeElement === first || document.activeElement === popup)){event.preventDefault();last.focus();}
+ else if(!event.shiftKey && document.activeElement === last){event.preventDefault();first.focus();}
+});

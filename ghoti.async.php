@@ -413,7 +413,7 @@ function getPageById($id){
 	//Private pages must not be readable by anonymous visitors just by guessing
 	//an id. getPageById returns [content,title,groupName].
 	$group = isset($content[0][2]) ? $content[0][2] : 'public';
-	if($group === 'private' && !ghoti_require_login()){
+	if(!ghoti_can_view_page($group)){
 		ghoti::logWarn("ghoti.async.php:getPage", "denied private page $id to anon from ".ghoti_remote_addr());
 		return "<p>You must be logged in to view this page.</p>";
 	}
@@ -428,7 +428,7 @@ function getPageByTitle($title){
 	$content = $_SESSION['ghotiObj']->ghotidb->getPageByTitle($title);
 	if(!isset($content[0])){ return ""; }
 	$group = isset($content[0][3]) ? $content[0][3] : 'public';
-	if($group === 'private' && !ghoti_require_login()){
+	if(!ghoti_can_view_page($group)){
 		ghoti::logWarn("ghoti.async.php:getPageTitle", "denied private page title to anon from ".ghoti_remote_addr());
 		return "<p>You must be logged in to view this page.</p>";
 	}
@@ -790,7 +790,7 @@ class ghotiui{
 	function printFooter(){
 		//Read the VERSION file directly instead of spawning `cat` on every render.
 		$version = @file_get_contents("VERSION");
-		return "GhotiCMS ".trim((string)$version);
+		return "<span>GhotiCMS ".htmlspecialchars(trim((string)$version), ENT_QUOTES, 'UTF-8')."</span>".ghoti_footer_links();
 	}
 
 	function printCloseButton($popupName){
@@ -886,8 +886,16 @@ class ghotiui{
 
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-allowRegister\"".$chk(ghoti::$allowRegister)." /> Allow new user registration</label>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableThemeChanger\"".$chk(ghoti::$enableThemeChanger)." /> Show the theme-changer dropdown</label>\n";
+		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-hideLoginButton\"".$chk(ghoti::$hideLoginButton)." /> Hide the login button</label>\n";
+		$o .= "<p class=\"ghotiHelpText\">Applies on the next page load. To sign in while hidden, open <a href=\"?theme=login\">?theme=login</a> on your site. This reveals the login button for that visit and keeps your current theme.</p>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableDebug\"".$chk(ghoti::$enableDebug)." /> Enable debug logging</label>\n";
 
+		$o .= "<fieldset><legend>Privacy and accessibility contact</legend>";
+		foreach(array('privacyOperator' => 'Legal operator name', 'privacyEmail' => 'Public privacy / accessibility email', 'privacyRegion' => 'Province or territory') as $key => $label){
+			$type = $key === 'privacyEmail' ? 'email' : 'text';
+			$o .= '<label class="ghotiField"><span>'.$label.'</span><input type="'.$type.'" id="set-'.$key.'" value="'.$esc(ghoti::$$key).'" /></label>';
+		}
+		$o .= '<p class="ghotiHelpText">These details are published in the footer privacy policy and accessibility notice. Complete them before relying on those notices.</p></fieldset>';
 		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveSiteSettings();\">Save Settings</button></div>\n";
 		$o .= "</form>\n";
 		$o .= "<p class=\"ghotiHelpText\"><i>Note: a changed default theme or header image takes effect on the next page load.</i></p>\n";

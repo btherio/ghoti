@@ -1,0 +1,11 @@
+Generated using the built-in image_gen tool.
+Source: ghoti-logo-source.png. Website: ghoti-logo.png.
+Matching icons: ghoti-favicon.png and ../favicon.ico (16, 32, 48 px).
+
+Use case: logo-brand
+Asset type: square website logo emblem and matching favicon for ghoti CMS.
+Primary request: Create a polished, distinctive fish emblem subtly shaped like a lowercase g. A single bold, flowing geometric fish silhouette with a curled circular body, a simple tail and one clearly defined eye, readable at 16 pixels. Minimal, confident, friendly developer-tool identity.
+Style/medium: flat vector-like raster logo, crisp smooth edges, generous substantial forms.
+Color palette: mint green #78ffc8 emblem on solid very dark navy #07080c background, matching the existing site.
+Composition: one centered emblem filling about 80 percent of a square canvas, balanced margins. Background fully solid and uniform edge to edge.
+Constraints: no lettering, no words, no gradients, no mockup, no texture, no shadows, no border, no extra symbols. Deliver a single finished square logo.

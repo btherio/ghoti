@@ -586,6 +586,7 @@ class loginui{
 	}
 
 	public function printPopupLogin(){
+		if(!ghoti::showLoginButton()){ return "<div id=\"ghotiLogin\"></div>\n"; }
 		$this->output = "<div id=\"ghotiLogin\"><a class=\"dropdown-item\" href=\"#\" onclick=\"popupLogin();\">Login</a></div>\n";
 		return $this->output;
 	}
@@ -596,6 +597,7 @@ class loginui{
 		$this->output .= "<label class=\"ghotiField\"><span>E-mail</span><input type=\"email\" name=\"email\" id=\"registerForm-email\" size=\"20\" autocomplete=\"email\" /></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password\" id=\"registerForm-password\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password again</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password1\" id=\"registerForm-password1\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
+		$this->output .= '<p>We use your username and email to provide your account. Read the <a href="?view=privacy">privacy policy</a> before registering. Optional analytics is a separate choice.</p>';
 		$this->output .= loginCaptchaHtml('register','registerForm-captcha');
 		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Register</button></div>\n";
 		$this->output .= "</form><span id=\"loginFeedback\"></span></div>\n";

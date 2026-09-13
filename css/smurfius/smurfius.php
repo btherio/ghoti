@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php print ghoti::$siteTitle;?></title>
   <meta name="description" content="Portfolio of a designer operating at the intersection of craft, systems, and code.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/smurfius/style.css">
+  <link href="lib/fonts/smurfius.css" rel="stylesheet">
+  <link rel="stylesheet" href="./css/smurfius/style.css?v=<?php echo filemtime(__DIR__.'/style.css'); ?>">
   <?php include_once "ghoti.header.php"; ?>
 </head>
-<body>
+<body class="smurfius-theme">
+  <a class="ghotiSkip" href="#ghotiContent">Skip to content</a>
+  <div class="smurfius-aurora" aria-hidden="true"></div>
   <div class="bg-layer" aria-hidden="true">
     <img src="./css/smurfius/background.png" alt="" class="bg-layer__image" width="1920" height="1080">
     <div class="bg-layer__veil"></div>
@@ -23,19 +23,50 @@
     <div class="header-layout">
       <a href="/" class="header-brand" aria-label="Smurfius — home">
         <span class="brand-logo">
-          <img src="<?php print ghoti::$headerImg;?>" alt="Smurfius" class="brand-logo__img" width="200" height="200">
+          <img src="<?php print htmlspecialchars(ghoti::$headerImg, ENT_QUOTES, 'UTF-8');?>" alt="" class="brand-logo__img" width="256" height="256">
         </span>
-        <span class="brand-name">cms</span>
+        <span class="brand-name">smurfius <small>cms</small></span>
       </a>
 
       <nav class="menu-cluster menu-cluster--primary" aria-label="Public navigation">
         <?php print $_SESSION['ghotiObj']->printPageMenu(); ?>
       </nav>
       <div class="header-actions">
-        <div class="telemetry-readout" aria-hidden="true">
-          <span class="telemetry-item" data-telemetry="fps">fps —</span>
-          <span class="telemetry-item" data-telemetry="time">00:00:00</span>
-        </div>
+        <button type="button" class="account-signin" id="account-signin" data-login-visible="<?php echo ghoti::showLoginButton() ? 'true' : 'false'; ?>"<?php if (ghoti_require_login() || !ghoti::showLoginButton()) { echo ' hidden'; } ?> onclick="popupLogin();">Sign in <span aria-hidden="true">↗</span></button>
+        <details class="workspace-menu" id="workspace-menu"<?php if (!ghoti_require_login() && !ghoti::$enableThemeChanger) { echo ' hidden'; } ?>>
+          <summary class="workspace-trigger" aria-controls="workspace-panel">
+            <span class="account-avatar" aria-hidden="true">s</span>
+            <span id="workspace-trigger-label">Account</span>
+            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="m6 8 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </summary>
+          <div class="workspace-panel" id="workspace-panel" data-lenis-prevent>
+            <div class="workspace-heading">
+              <div><span class="workspace-eyebrow">smurfius / workspace</span><h2>Your space.</h2></div>
+              <button type="button" class="workspace-close" aria-label="Close account menu">×</button>
+            </div>
+            <section class="workspace-section" id="workspace-admin"<?php if (!ghoti_require_login() || !isAdmin(ghoti_current_user_id())) { echo ' hidden'; } ?>>
+              <div class="workspace-section-heading"><h3>Manage your site</h3><span class="workspace-badge">Admin</span></div>
+              <label class="workspace-search"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5"/></svg><input type="search" id="workspace-search" placeholder="Find a tool…" aria-label="Find an administration tool" autocomplete="off"></label>
+              <nav id="ghotiAdminMenu" aria-label="Site administration"><?php if (ghoti_require_login() && isAdmin(ghoti_current_user_id())) { echo printAdminMenu(); } ?></nav>
+              <p class="workspace-empty" id="workspace-empty" hidden>No matching tools. Try another name.</p>
+            </section>
+            <section class="workspace-section" id="workspace-private"<?php if (!ghoti_require_login()) { echo ' hidden'; } ?>>
+              <div class="workspace-section-heading"><h3>Private pages</h3><span class="workspace-section-note">Members only</span></div>
+              <nav id="ghotiPrivateMenu" aria-label="Private pages"><?php if (ghoti_require_login()) { echo refreshPrivateMenu(); } ?></nav>
+            </section>
+            <?php if (ghoti::$enableThemeChanger) { ?>
+            <section class="workspace-section workspace-appearance" id="workspace-appearance">
+              <div class="workspace-section-heading"><h3>Appearance</h3></div>
+              <?php echo $_SESSION['ghotiObj']->themeChanger(); ?>
+            </section>
+            <?php } ?>
+            <section class="workspace-section workspace-account">
+              <div class="workspace-section-heading"><h3>Your account</h3></div>
+              <div id="ghotiLogin"><?php if (ghoti_require_login()) { echo $_SESSION['loginObj']->loginui->printSystemMenu(); } ?></div>
+            </section>
+            <div class="workspace-footnote"><span class="workspace-status-dot" aria-hidden="true"></span>Connected to ghoti <kbd>⌘ / Ctrl K</kbd></div>
+          </div>
+        </details>
       </div>
     </div>
     <div class="scroll-progress" aria-hidden="true"><span class="scroll-progress__bar"></span></div>
@@ -52,12 +83,6 @@
       
     </section>
           
-    <nav class="menu-cluster menu-cluster--secondary" aria-label="Authenticated navigation">        
-     <section class="capabilities content-panel" data-animate="section">
-      <div id="ghotiPrivateMenu"></div>
-      <div id="ghotiAdminMenu">Admin</div>
-     </section>
-    </nav>
   </main>
   
   <section class="capabilities content-panel" data-animate="section">
@@ -67,9 +92,7 @@
       <ul class="hero-specs">
         <li><strong>focus</strong> programming · electronics · refrigeration</li>
         <li><strong>status</strong> <span class="status-pulse">available for select projects</span></li>
-        <li><strong>theme</strong><?php print $_SESSION['ghotiObj']->themeChanger(); ?> </li>
-        <li><strong>user</strong><span class="cursor-blink"><b>:</b></span>
-        <?php print $_SESSION['loginObj']->loginui->printPopupLogin();?></span></li>
+
       </ul>
 
   </section>
@@ -79,10 +102,11 @@
     <?php print $_SESSION['ghotiObj']->ghotiui->printFooter();?>
   </footer>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" integrity="sha384-Z3REaz79l2IaAZqJsSABtTbhjgOUYyV3p90XNnAPCSHg3EMTz1fouunq9WZRtj3d" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js" integrity="sha384-li4UtcFCH6QeUqR4JyV58/VgTprMuz9aauj+oWtew7V4Y7ZVjnvz5px9Y3UCG0Ea" crossorigin="anonymous"></script>
-  <script src="./css/smurfius/script.js"></script>
+  
+  <script src="<?php echo $ghotiAsset('lib/vendor/gsap.min.js'); ?>"></script>
+  <script src="<?php echo $ghotiAsset('lib/vendor/ScrollTrigger.min.js'); ?>"></script>
+  <script src="<?php echo $ghotiAsset('lib/vendor/lenis.min.js'); ?>"></script>
+  <script src="<?php echo $ghotiAsset('css/smurfius/workspace.js'); ?>"></script>
+  <script src="<?php echo $ghotiAsset('css/smurfius/script.js'); ?>"></script>
 </body>
 </html>

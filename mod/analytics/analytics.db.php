@@ -25,7 +25,7 @@ class analyticsdb extends ghotidb{
 			list($browser,$os,$deviceType) = self::parseUserAgent($userAgent);
 			$this->query(
 				"insert into analytics (pageId,pageTitle,sessionId,userId,ipAddress,userAgent,browser,os,deviceType,referrer,requestUri,isAdminView) values (?,?,?,?,?,?,?,?,?,?,?,?)",
-				array($pageId,$pageTitle,$sessionId,$userId,$ipAddress,$userAgent,$browser,$os,$deviceType,$referrer,$requestUri,$isAdminView?1:0)
+				array($pageId,$pageTitle,$sessionId,$userId,$ipAddress,'',$browser,$os,$deviceType,$referrer,$requestUri,$isAdminView?1:0)
 			);
 		}catch (Throwable $e){
 			ghoti::logException("analytics.db.php:logPageView", $e);
@@ -153,7 +153,7 @@ class analyticsdb extends ghotidb{
 		}
 		$counts = array();
 		foreach($rows as $row){
-			$host = parse_url($row[0], PHP_URL_HOST);
+			$host = parse_url(strpos($row[0], '://') === false ? 'https://'.$row[0] : $row[0], PHP_URL_HOST);
 			if(!$host) $host = 'Direct/Unknown';
 			$host = preg_replace('/^www\./i','',$host);
 			if(!isset($counts[$host])) $counts[$host] = 0;

@@ -18,6 +18,27 @@ function showVhostCertificates(){
 	x_printCertificates(popup_cb);
 	$("#popupTitle").text("Certificates");
 }
+function showVhostImport(){
+	x_printVhostImport(popup_cb);
+	$("#popupTitle").text("Import Vhosts");
+}
+/* Two-step, like deleteVhost: this rewrites every vhost file on the server, so
+ * a stray click should not start it. */
+function importVhosts(){
+	if(importVhosts.confirmed !== true){
+		importVhosts.confirmed = true;
+		setTimeout(function(){ importVhosts.confirmed = false; }, 8000);
+		vhostsOutput("This moves every vhost out of the shared config file into its own file, and reloads Apache.\nClick Import again within 8 seconds to go ahead.");
+		return;
+	}
+	importVhosts.confirmed = false;
+	vhostsOutput("Importing - this runs configtest and reloads Apache, give it a moment...");
+	x_importVhosts(importVhosts_cb);
+}
+function importVhosts_cb(result){
+	vhostsOutput(result);
+}
+
 function showVhostsSettings(){
 	x_printVhostsSettingsForm(popup_cb);
 	$("#popupTitle").text("Vhost Settings");
@@ -114,10 +135,14 @@ function saveVhostsSettings(){
 		docRootBase: $("#vh-docRootBase").val(),
 		logDir: $("#vh-logDir").val(),
 		certbotEmail: $("#vh-certbotEmail").val(),
+		notifyEmail: $("#vh-notifyEmail").val(),
+		notifyEnabled: $("#vh-notifyEnabled").is(":checked") ? 1 : 0,
 		enabled: $("#vh-enabled").is(":checked") ? 1 : 0
 	};
 	x_saveVhostsSettings(settings, saveVhostsSettings_cb);
 }
+function sendVhostsTestAlert(){ x_sendVhostsTestAlert(vhostsOutput); }
+
 function saveVhostsSettings_cb(result){
 	if(result === true){
 		pageFeedBack("Vhost settings saved.");

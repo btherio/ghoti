@@ -18,7 +18,7 @@
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --header-h: 4.5rem;
   --header-offset: 9rem;
-  --brand-logo-h: 6.8rem;
+  --brand-logo-h: 4rem;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --grid-unit: 8px;
 }
@@ -262,7 +262,7 @@ img {
 .brand-name {
   position: relative;
   z-index: 3;
-  margin-left: -2.75rem;
+  margin-left: 0.35rem;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 1.15rem;
@@ -276,13 +276,15 @@ img {
 
 @media (max-width: 900px) {
   :root {
-    --brand-logo-h: 5.2rem;
+    --brand-logo-h: 3.25rem;
   }
 
   .brand-name {
-    margin-left: -2rem;
+    margin-left: 0.25rem;
   }
 }
+
+.brand-name small { font-size: 0.6em; color: var(--accent); }
 
 /* ── Menu cluster — ul / ol / li architecture ─────────────────── */
 .menu-cluster {
@@ -915,3 +917,134 @@ ul.footer-links li a:hover {
     font-size: 0.64rem;
   }
 }
+
+/* Account navigation: one calm header, a focused workspace on demand. */
+.header-layout {
+  max-width: 1440px;
+  margin-inline: auto;
+  grid-template-rows: auto;
+  grid-template-areas: "brand primary actions";
+  gap: 1.5rem;
+  padding-block: .35rem .8rem;
+}
+.header-brand { grid-row: auto; align-self: center; padding: 0; }
+.site-header { background: rgba(7, 8, 12, .88); }
+.header-actions { justify-content: flex-end; }
+.header-actions [hidden], .workspace-panel [hidden] { display: none !important; }
+.account-signin, .workspace-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .65rem;
+  min-height: 44px;
+  padding: .5rem 1rem;
+  border: 1px solid rgba(120, 255, 200, .2);
+  border-radius: 999px;
+  font: 600 .8rem var(--font-mono);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.account-signin { background: var(--accent); color: #07080c; }
+.account-signin:hover { background: #a2ffda; box-shadow: 0 0 24px #78ffc820; }
+.account-signin span { margin-left: .35rem; font-size: 1.1rem; }
+.workspace-menu { position: relative; }
+.workspace-trigger { list-style: none; background: #ffffff06; color: #eef0f6; padding-left: .4rem; }
+.workspace-trigger::-webkit-details-marker { display: none; }
+.workspace-trigger:hover, .workspace-menu[open] .workspace-trigger { background: #78ffc80b; border-color: #78ffc860; }
+.workspace-trigger > svg { transition: transform .2s ease; }
+.workspace-menu[open] .workspace-trigger > svg { transform: rotate(180deg); }
+.account-avatar {
+  display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 50%; background: var(--accent); color: #07080c;
+  font: 800 1.2rem var(--font-display);
+}
+.workspace-panel {
+  position: absolute; top: calc(100% + 1.1rem); right: 0;
+  width: 390px; max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - var(--header-offset) - 2rem);
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 1.35rem;
+  background: linear-gradient(145deg, #18251f 0%, #111720 24%, #0e121b 80%);
+  color: #eef0f6;
+  border: 1px solid #9cebc52e; border-radius: 22px;
+  box-shadow: 0 24px 80px #0009, 0 0 0 1px #ffffff04 inset;
+  scrollbar-width: thin; scrollbar-color: #3a4b48 transparent;
+}
+.workspace-menu[open] .workspace-panel { animation: workspace-reveal .18s ease-out; }
+@keyframes workspace-reveal { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.workspace-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding-bottom: 1.25rem; }
+.workspace-eyebrow { color: #99b4a8; font: 500 .63rem var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.workspace-heading h2 { margin: .4rem 0 0; font: 600 1.8rem/1.1 var(--font-display); letter-spacing: -.055em; color: #f2faf6; }
+.workspace-close { display: grid; place-items: center; border: 1px solid #ffffff12; border-radius: 50%; width: 36px; height: 36px; padding: 0; color: #b2bdb9; background: #ffffff05; font-size: 1.5rem; cursor: pointer; }
+.workspace-close:hover { color: white; background: #ffffff10; }
+.workspace-section + .workspace-section { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid #ffffff0d; }
+.workspace-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; gap: .5rem; }
+.workspace-section-heading h3 { margin: 0; color: #b6c2be; font: 500 .72rem var(--font-mono); }
+.workspace-badge { padding: .2rem .5rem; border: 1px solid #78ffc82b; border-radius: 6px; color: #a1ffd5; font: 500 .58rem var(--font-mono); background: #78ffc809; }
+.workspace-section-note { font-size: .6rem; color: #8c9c96; }
+.workspace-search { display: flex; align-items: center; gap: .6rem; border: 1px solid #ffffff14; background: #0002; border-radius: 9px; padding: 0 .75rem; color: #8c9c96; margin-bottom: .65rem; }
+.workspace-search input { width: 100%; min-width: 0; min-height: 42px; border: 0; background: transparent; color: #eef0f6; padding: .6rem 0; font: .75rem var(--font-mono); outline: none; box-shadow: none; }
+.workspace-search input::placeholder { color: #8c9c96; }
+.workspace-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px #78ffc815; }
+.workspace-panel #ghotiAdminMenu, .workspace-panel #ghotiPrivateMenu, .workspace-panel #ghotiLogin {
+  display: block; visibility: visible; margin: 0; padding: 0;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+.workspace-panel #ghotiAdminMenu ul { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.workspace-panel #ghotiPrivateMenu ul, .workspace-panel #ghotiLogin ul { display: grid; grid-template-columns: 1fr; gap: .3rem; }
+.workspace-panel ul { list-style: none; padding: 0; margin: 0; }
+.workspace-panel li { display: block !important; min-width: 0; margin: 0; }
+.workspace-panel li[hidden] { display: none !important; }
+.workspace-panel #ghotiAdminMenu a, .workspace-panel #ghotiPrivateMenu a, .workspace-panel #ghotiLogin a {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .5rem; min-height: 44px; padding: .75rem;
+  border: 1px solid #ffffff08; border-radius: 10px;
+  background: #ffffff03; color: #dce5e1;
+  font: 500 .75rem/1.3 var(--font-mono); text-decoration: none; overflow-wrap: anywhere;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.workspace-panel #ghotiAdminMenu a::after { content: '↗'; color: #73877d; font-size: .9rem; }
+.workspace-panel #ghotiAdminMenu a:hover, .workspace-panel #ghotiPrivateMenu a:hover, .workspace-panel #ghotiLogin a:hover {
+  background: #78ffc80b; border-color: #78ffc82b; color: #a1ffd5;
+}
+.workspace-panel #ghotiLogin li:first-child a { color: #ffaab9; }
+.workspace-panel #ghotiLogin li:first-child a:hover { background: #ff6b9d0c; border-color: #ff6b9d33; }
+.workspace-empty { color: #aebcb5; padding: .75rem 0; font-size: .75rem; }
+.workspace-footnote { display: flex; align-items: center; gap: .4rem; margin-top: 1.25rem; color: #91a099; font: .58rem var(--font-mono); }
+.workspace-status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.workspace-footnote kbd { margin-left: auto; border: 1px solid #ffffff14; border-radius: 4px; padding: .2rem .35rem; color: #a7b5af; font: inherit; }
+.workspace-panel a:focus-visible, .workspace-panel button:focus-visible, .workspace-trigger:focus-visible, .account-signin:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 768px) {
+  .header-layout { grid-template-columns: 1fr auto; grid-template-areas: "brand actions" "primary primary"; gap: .4rem; padding-bottom: .6rem; }
+  .menu-cluster--primary { justify-content: center; }
+  .workspace-panel { position: fixed; top: calc(var(--header-offset) + .5rem); right: .75rem; width: min(390px, calc(100vw - 1.5rem)); max-width: none; padding: 1.1rem; max-height: calc(100dvh - var(--header-offset) - 1.25rem); }
+  .workspace-trigger, .account-signin { font-size: .72rem; padding-right: .75rem; }
+  .workspace-footnote kbd { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-menu[open] .workspace-panel { animation: none; }
+  .workspace-trigger, .workspace-trigger > svg, .account-signin, .workspace-panel a { transition: none; }
+}
+/* Keep account controls on the theme palette when shared CMS styles load. */
+.site-header { --accent: #78ffc8; color-scheme: dark; }
+.workspace-panel #ghotiLogin li:first-child { order: 1; }
+
+/* Theme preferences live with the other workspace controls. */
+.workspace-appearance .ghotiInlineForm, .workspace-appearance .ghotiInlineForm p { display: block; margin: 0; width: 100%; }
+.workspace-appearance select {
+  width: 100%; min-height: 44px; padding: .65rem .8rem;
+  border: 1px solid #ffffff20; border-radius: 10px;
+  background: #151b26; color: #eef0f6; font: .8rem var(--font-mono);
+  color-scheme: dark; cursor: pointer;
+}
+.workspace-appearance select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* Visitors retain access to appearance without needing to sign in. */
+.workspace-menu[data-guest] .workspace-trigger { width: 44px; padding: .4rem; }
+.workspace-menu[data-guest] .workspace-trigger > svg { display: none; }
+.workspace-menu[data-guest] #workspace-trigger-label {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.header-actions { gap: .5rem; }

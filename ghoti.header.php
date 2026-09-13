@@ -21,6 +21,9 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 };
 ?>
 
+<link rel="icon" type="image/x-icon" href="<?php echo $ghotiAsset('favicon.ico'); ?>" />
+<link rel="icon" type="image/png" sizes="32x32" href="<?php echo $ghotiAsset('gfx/ghoti-favicon.png'); ?>" />
+
 <script type="text/javascript">
 <?php ghoti_async_emit_js(); ?>
 </script>
@@ -50,3 +53,5 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/gallery/gallery.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/filemanager/filemanager.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/vhosts/vhosts.css'); ?>" />
+
+<link rel="stylesheet" href="<?php echo $ghotiAsset('css/ghoti/privacy.css'); ?>" />
