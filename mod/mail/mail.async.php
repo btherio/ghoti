@@ -135,7 +135,7 @@ class mailui{
 		$chk = function($b){ return $b ? " checked=\"checked\"" : ""; };
 		$selEnc = function($value, $current){ return $value === $current ? " selected=\"selected\"" : ""; };
 
-		$o  = "<div id=\"ghotiMailSettings\">\n<h1>Mail Settings</h1>\n";
+		$o  = "<div id=\"ghotiMailSettings\" class=\"ghotiAdminPanel\">\n<h1>Mail Settings</h1>\n";
 		$docs = ghoti_docs_panel("How to use mail settings", "SMTP host, port, encryption, credentials", array(
 			array('heading' => 'Local Arch Linux mail server (recommended)',
 				'list' => array('Host <code>127.0.0.1</code>, port <b>25</b>, encryption <b>None</b>, and no username/password work for a local Postfix/Exim relay that trusts connections from localhost.', 'Confirm the server is listening: <code>ss -tlnp | grep :25</code> and that it relays for your domain.')),
@@ -173,7 +173,7 @@ class mailui{
 		$o .= "</form>\n";
 		$o .= "<div class=\"ghotiFormActions ghotiMailTest\"><label class=\"ghotiField\"><span>Send a test message to</span><input type=\"email\" id=\"mail-testAddress\" size=\"30\" maxlength=\"190\" placeholder=\"you@example.com\" /></label>";
 		$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"sendTestMail();\">Send test message</button></div>\n";
-		$o .= "<span id=\"mailSettingsFeedback\"></span>\n";
+		$o .= "<span id=\"mailSettingsFeedback\" role=\"status\" aria-live=\"polite\"></span>\n";
 		$o .= $docs;
 		$o .= "</div>\n";
 		return $o;

@@ -62,105 +62,70 @@ function loginHashEquals($known,$user){
  *  session cookie. This store persists failure timestamps in a small JSON
  *  file (login.throttle.json, gitignored + web-denied) keyed by IP and by
  *  username, so a brute-force attempt is throttled even across sessions.
- *  It is best-effort: if the file can't be written the app still works,
- *  just without the cross-session throttle.
+ *  Unavailable or corrupt storage fails closed instead of silently disabling
+ *  the cross-session throttle.
  * ---------------------------------------------------------------- */
 class login_throttle{
 	private $file;
-	private $data = array();
+	public function __construct($file){ $this->file = $file; }
 
-	public function __construct($file){
-		$this->file = $file;
-		$this->load();
+	// Lock the same inode for the whole read/modify/write operation. Atomic
+	// rename alone loses updates when concurrent requests read stale data.
+	private function access($callback, $write = false){
+		$handle = @fopen($this->file, 'c+');
+		if($handle === false){ throw new RuntimeException('Login protection is unavailable. Please try again later.'); }
+		try{
+			if(!flock($handle, LOCK_EX)){ throw new RuntimeException('Login protection is unavailable. Please try again later.'); }
+			$raw = stream_get_contents($handle);
+			$data = $raw === '' ? array() : json_decode($raw, true);
+			if(!is_array($data)){ throw new RuntimeException('Login protection is unavailable. Please contact the site operator.'); }
+			$result = $callback($data);
+			if($write){
+				$cutoff = time() - 7200;
+				foreach($data as $key => $times){
+					$data[$key] = array_values(array_filter((array)$times, function($ts) use ($cutoff){ return (int)$ts >= $cutoff; }));
+					if(!$data[$key]){ unset($data[$key]); }
+				}
+				if(count($data) > 5000){
+					uasort($data, function($a,$b){ return max($b) <=> max($a); });
+					$data = array_slice($data, 0, 5000, true);
+				}
+				$json = json_encode($data, JSON_THROW_ON_ERROR);
+				rewind($handle);
+				if(fwrite($handle, $json) !== strlen($json) || !ftruncate($handle, strlen($json)) || !fflush($handle)){
+					throw new RuntimeException('Login protection is unavailable. Please try again later.');
+				}
+			}
+			return $result;
+		}finally{ fclose($handle); }
 	}
 
-	private function load(){
-		$raw = @file_get_contents($this->file);
-		if($raw === false){ return; }
-		$decoded = json_decode($raw, true);
-		if(is_array($decoded)){ $this->data = $decoded; }
-	}
-
-	private function save(){
-		$tmp = $this->file.'.tmp';
-		if(@file_put_contents($tmp, json_encode($this->data), LOCK_EX) === false){ return false; }
-		$ok = @rename($tmp, $this->file);
-		if($ok === false){ @unlink($tmp); }
-		return $ok;
-	}
-
-	/* Seconds still blocked for $key, or 0 if not blocked. Trims stale
-	 * timestamps for the key as a side effect (no save needed for that). */
 	public function isBlocked($key, $limit = 5, $window = 600){
-		if(!isset($this->data[$key]) || !is_array($this->data[$key])){ return 0; }
-		$cutoff = time() - $window;
-		$recent = array();
-		foreach($this->data[$key] as $ts){
-			if((int)$ts >= $cutoff){ $recent[] = (int)$ts; }
-		}
-		$this->data[$key] = $recent;
-		if(count($recent) >= $limit){
-			$remaining = (min($recent) + $window) - time();
-			return $remaining > 0 ? $remaining : 0;
-		}
-		return 0;
+		return $this->access(function($data) use ($key,$limit,$window){
+			$recent = array_filter((array)($data[$key] ?? array()), function($ts) use ($window){ return (int)$ts >= time() - $window; });
+			return count($recent) >= $limit ? max(0, min($recent) + $window - time()) : 0;
+		});
 	}
-
-	/* Append a failure timestamp. $max caps entries per key so a single key
-	 * can't grow the file unboundedly. */
 	public function recordFailure($key, $max = 20){
-		if(!isset($this->data[$key]) || !is_array($this->data[$key])){ $this->data[$key] = array(); }
-		$this->data[$key][] = time();
-		while(count($this->data[$key]) > $max){ array_shift($this->data[$key]); }
-		$this->prune();
-		$this->save();
+		$this->access(function(&$data) use ($key,$max){
+			$data[$key][] = time();
+			$data[$key] = array_slice($data[$key], -$max);
+		}, true);
 	}
-
-	/* Forget all failures for a key (e.g. on successful login). */
 	public function clear($key){
-		if(isset($this->data[$key])){ unset($this->data[$key]); }
-		$this->save();
+		$this->access(function(&$data) use ($key){ unset($data[$key]); }, true);
 	}
-
-	/* Count entries for $key within the last $window seconds (used for
-	 * rate-limiting non-login writes like logToFile). */
 	public function countWindow($key, $window){
-		$cutoff = time() - $window;
-		$n = 0;
-		if(isset($this->data[$key]) && is_array($this->data[$key])){
-			foreach($this->data[$key] as $ts){
-				if((int)$ts >= $cutoff){ $n++; }
-			}
-		}
-		return $n;
-	}
-
-	/* Drop entries older than 2h and cap the total number of keys. */
-	private function prune(){
-		$cutoff = time() - 7200;
-		foreach($this->data as $k => $times){
-			if(!is_array($times)){ unset($this->data[$k]); continue; }
-			$kept = array();
-			foreach($times as $ts){
-				if((int)$ts >= $cutoff){ $kept[] = (int)$ts; }
-			}
-			if(empty($kept)){ unset($this->data[$k]); }else{ $this->data[$k] = $kept; }
-		}
-		if(count($this->data) > 5000){
-			uasort($this->data, function($a, $b){
-				$am = is_array($a) ? max($a) : 0;
-				$bm = is_array($b) ? max($b) : 0;
-				return $am < $bm ? 1 : -1;
-			});
-			$this->data = array_slice($this->data, 0, 5000, true);
-		}
+		return $this->access(function($data) use ($key,$window){
+			return count(array_filter((array)($data[$key] ?? array()), function($ts) use ($window){ return (int)$ts >= time() - $window; }));
+		});
 	}
 }
 
 function login_throttle_store(){
 	static $instance = null;
 	if($instance === null){
-		$instance = new login_throttle(dirname(__DIR__).'/login.throttle.json');
+		$instance = new login_throttle(dirname(__DIR__, 2).'/login.throttle.json');
 	}
 	return $instance;
 }
@@ -276,13 +241,14 @@ function login($username,$password){
 	$_SESSION['login_last_attempt'] = $now;
 	$_SESSION['login_attempts'] = $attempts + 1;
 	ghoti::logInfo("login.async.php:login", "Login attempt($username) from ".loginRemoteAddr());
-	$id = $_SESSION["loginObj"]->logindb->authenticate($username,$password);
+	$fingerprint = null;
+	$id = $_SESSION["loginObj"]->logindb->authenticate($username,$password,$fingerprint);
 	ghoti::logDebug("login.async.php:login", "Login authentication result for '$username': ".var_export($id, true));
 	if ($id && $id > 0) {
 		$_SESSION['login_attempts'] = 0;
 		$_SESSION['login_last_attempt'] = 0;
-		//Clear the server-side throttle for this IP and username.
-		foreach($throttleKeys as $throttleKey){ $throttle->clear($throttleKey); }
+		//Clear only this username; a valid login must not reset IP failures.
+		$throttle->clear('user:'.strtolower($username)); // A valid account must not clear the IP bucket used to attack others.
 		// Establish the authenticated session HERE, immediately after we have
 		// verified the password. Previously the browser called setSessionVars()
 		// with an id of its choosing to elevate the session - which meant anyone
@@ -292,6 +258,7 @@ function login($username,$password){
 		// session fixation.
 		session_regenerate_id(true);
 		$_SESSION['loggedIn'] = true;
+		$_SESSION['credentialFingerprint'] = $fingerprint;
 		$_SESSION['userId'] = (int) $id;
 		$_SESSION['admin'] = isAdmin((int) $id);
 		$_SESSION['last_activity'] = time();
@@ -567,7 +534,9 @@ class loginui{
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showMailSettings');\">Mail Settings</a></li>\n";
+		if(ghoti::$enableVhosts){
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showVhosts');\">Apache Vhosts</a></li>\n";
+		}
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"showSiteSettings();\">Site Settings</a></li>\n";
 		$this->output .= "</ul>\n";
 		return $this->output;
@@ -586,6 +555,7 @@ class loginui{
 	}
 
 	public function printPopupLogin(){
+		if(!ghoti::showLoginButton()){ return "<div id=\"ghotiLogin\"></div>\n"; }
 		$this->output = "<div id=\"ghotiLogin\"><a class=\"dropdown-item\" href=\"#\" onclick=\"popupLogin();\">Login</a></div>\n";
 		return $this->output;
 	}
@@ -596,6 +566,7 @@ class loginui{
 		$this->output .= "<label class=\"ghotiField\"><span>E-mail</span><input type=\"email\" name=\"email\" id=\"registerForm-email\" size=\"20\" autocomplete=\"email\" /></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password\" id=\"registerForm-password\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password again</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password1\" id=\"registerForm-password1\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
+		$this->output .= '<p>We use your username and email to provide your account. Read the <a href="?view=privacy">privacy policy</a> before registering. Optional analytics is a separate choice.</p>';
 		$this->output .= loginCaptchaHtml('register','registerForm-captcha');
 		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Register</button></div>\n";
 		$this->output .= "</form><span id=\"loginFeedback\"></span></div>\n";

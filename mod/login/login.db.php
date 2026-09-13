@@ -123,13 +123,6 @@ class logindb extends ghotidb{
 				$this->query("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$hashedPassword,$email,0));
 				ghoti::logInfo("login.db.php:addUser", "insert succeeded for '$userName'");
 
-				$query = $this->query("select count(userId) from users;");
-				ghoti::logDebug("login.db.php:addUser", "count query returned ".var_export($query->fields, true));
-
-				if((int) $query->fields[0] === 1){
-					$this->query("update users set admin = ? where admin = 0",array(1));
-					ghoti::logInfo("login.db.php:addUser", "promoted first user to admin");
-				}
 			}catch (Throwable $e){
 				ghoti::logException("login.db.php:addUser", $e, "userName='$userName'");
 				return false;
@@ -195,7 +188,8 @@ class logindb extends ghotidb{
 		return false;
 	}
 
-	public function authenticate($userName,$password){
+	public function authenticate($userName,$password,&$credentialFingerprint = null){
+		$credentialFingerprint = null;
 		$userName = $this->normalizeValue($userName);
 		$password = (string) $password;
 		ghoti::logDebug("login.db.php:authenticate", "start for '$userName'");
@@ -211,8 +205,11 @@ class logindb extends ghotidb{
 			if (is_string($storedHash) && $storedHash !== '' && password_verify($password, $storedHash)) {
 				ghoti::logInfo("login.db.php:authenticate", "verified password hash for '$userName'");
 				if (password_needs_rehash($storedHash, $this->algo())) {
-					$this->query("update users set password = ? where userId = ?", array($this->hashPassword($password), $row[0]));
+					$newHash = $this->hashPassword($password);
+					$this->query("update users set password = ? where userId = ? and password = ?", array($newHash, $row[0], $storedHash));
+					$storedHash = $newHash;
 				}
+				$credentialFingerprint = hash('sha256', $storedHash);
 				return (string) $row[0];
 			}
 			//A stored value that is not a hash (legacy plaintext) must NOT
@@ -229,6 +226,16 @@ class logindb extends ghotidb{
 		}
 		ghoti::logWarn("login.db.php:authenticate", "failed for '$userName': no matching password hash");
 		return false;
+	}
+
+	public function credentialFingerprint($userId){
+		try{
+			$rows = $this->queryArray("select password from users where userId = ?", array((int)$userId));
+			return isset($rows[0][0]) ? hash('sha256', (string)$rows[0][0]) : null;
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:credentialFingerprint", $e);
+			return null;
+		}
 	}
 
 	public function getUserList(){
@@ -300,15 +307,30 @@ class logindb extends ghotidb{
 		return true;
 	}
 
+	// MySQL named locks also serialize legacy MyISAM installations. Consume
+	// reset links BEFORE the password write: a write failure requires a new
+	// link, but can never leave a successfully used link replayable.
+	private function withCredentialLock($userId, $callback){
+		$name = 'ghoti:'.substr(hash('sha256', (string)$this->queryArray('select database()')[0][0]), 0, 32).':'.(int)$userId;
+		$locked = $this->queryArray('select GET_LOCK(?, 5)', array($name));
+		if((int)($locked[0][0] ?? 0) !== 1){ throw new RuntimeException('Account is busy. Try again.'); }
+		try { return $callback(); }
+		finally { $this->queryArray('select RELEASE_LOCK(?)', array($name)); }
+	}
+
 	public function changePassword($userId,$password){
 		try{
+			$password = ghoti_validate()->password($password);
 			$hashedPassword = $this->hashPassword($password);
-			$this->query("update users set password = ? where userId = ?",array($hashedPassword,$userId));
+			return $this->withCredentialLock($userId, function() use ($userId, $hashedPassword){
+				$this->query("update password_resets set usedAt = ? where userId = ? and usedAt is null", array(time(), (int)$userId));
+				$this->query("update users set password = ? where userId = ?", array($hashedPassword,(int)$userId));
+				return true;
+			});
 		}catch (Throwable $e){
 			ghoti::logException("login.db.php:changePassword", $e);
 			return false;
 		}
-		return true;
 	}
 
 	public function getUserNameById($userId){
@@ -454,18 +476,21 @@ class logindb extends ghotidb{
 			return "This password reset link is invalid or has expired. Request a new one.";
 		}
 		try{
-			$tokenHash = hash('sha256', (string)$token);
+			$newPassword = ghoti_validate()->password($newPassword);
 			$hashedPassword = $this->hashPassword($newPassword);
-			$this->query("update users set password = ? where userId = ?", array($hashedPassword, $userId));
-			$this->query("update password_resets set usedAt = ? where tokenHash = ?", array(time(), $tokenHash));
-			// Invalidate any other outstanding tokens for this account - a
-			// successful reset should retire every link that was emailed.
-			$this->query("update password_resets set usedAt = ? where userId = ? and usedAt is null", array(time(), $userId));
-			ghoti::logInfo("login.db.php:resetPasswordWithToken", "password reset via token for userId $userId");
-			return true;
+			return $this->withCredentialLock($userId, function() use ($token, $userId, $hashedPassword){
+				// Recheck after acquiring the lock: another reset may have won.
+				if($this->validatePasswordResetToken($token) !== $userId){
+					return "This password reset link is invalid or has expired. Request a new one.";
+				}
+				$this->query("update password_resets set usedAt = ? where userId = ? and usedAt is null", array(time(), $userId));
+				$this->query("update users set password = ? where userId = ?", array($hashedPassword, $userId));
+				ghoti::logInfo("login.db.php:resetPasswordWithToken", "password reset via token for userId $userId");
+				return true;
+			});
 		}catch(Throwable $e){
 			ghoti::logException("login.db.php:resetPasswordWithToken", $e);
-			return "The password could not be reset. Try again.";
+			return "The password could not be reset. Request a new link and try again.";
 		}
 	}
 

@@ -5,8 +5,7 @@
  * renders the panel, saveX() reads the form fields and posts them back.
  */
 function showMailSettings(){
-	x_printMailSettingsForm(popup_cb);
-	$("#popupTitle").text("Mail Settings");
+	x_printMailSettingsForm(printPage);
 }
 function saveMailSettings(){
 	var settings = {
@@ -26,10 +25,9 @@ function saveMailSettings(){
 }
 function saveMailSettings_cb(result){
 	if(result === true){
-		pageFeedBack("Mail settings saved.");
-		showMailSettings(); //re-render with the saved values
+		$("#mailSettingsFeedback").text("Mail settings saved.");
 	}else{
-		pageFeedBack(result);
+		$("#mailSettingsFeedback").text(result);
 	}
 }
 function sendTestMail(){

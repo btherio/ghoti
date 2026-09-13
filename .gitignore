@@ -21,3 +21,6 @@ login.throttle.json
 agents.md
 AGENTS.md
 CLAUDE.md
+
+# Throttled operational alert counters; never commit runtime state.
+critical-alerts.json

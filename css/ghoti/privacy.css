@@ -1,0 +1,26 @@
+.ghotiFooterLinks { display: flex; flex-wrap: wrap; align-items: baseline; gap: .75rem 1.5rem; text-align: left; font: 1rem/1.6 system-ui, sans-serif; }
+.ghotiFooterLinks > a, .ghotiPrivacyChoices > summary { padding: .4rem 0; text-decoration: underline; text-underline-offset: .2em; color: inherit; cursor: pointer; }
+.ghotiPrivacyChoices { max-width: 34rem; }
+.ghotiPrivacyChoices p { font: inherit; color: inherit; }
+.ghotiPrivacyActions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.ghotiPrivacyActions button { padding: .7rem 1rem; border: 2px solid currentColor; border-radius: .5rem; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+body .ghotiLegal { box-sizing: border-box; max-width: 76ch; margin: 1rem auto; padding: clamp(1rem, 4vw, 3rem); border-radius: 1rem; background: #fffdf7; color: #20211e; font: 1rem/1.8 system-ui, sans-serif; overflow-wrap: anywhere; text-align: left; }
+body .ghotiLegal h1 { color: #20211e; font: 700 clamp(1.8rem, 4vw, 2.6rem)/1.2 system-ui, sans-serif; letter-spacing: -.03em; }
+body .ghotiLegal h2 { margin-top: 1.7em; color: #20211e; font: 700 1.3rem/1.4 system-ui, sans-serif; }
+body .ghotiLegal p, body .ghotiLegal li, body .ghotiLegal small { color: #20211e; font-family: system-ui, sans-serif; }
+body .ghotiLegal a { color: #174f76; text-decoration: underline; text-underline-offset: .2em; }
+body .ghotiLegal ul { padding-left: 1.5rem; }
+body .ghotiLegal li { margin: .6rem 0; }
+.ghotiFooterLinks :focus-visible, .ghotiLegal :focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
+.ghotiSkip { position: fixed; left: 1rem; top: -10rem; z-index: 100000; padding: .8rem 1.2rem; background: #fff; color: #111; }
+.ghotiSkip:focus { top: 1rem; }
+#ghotiContent { scroll-margin-top: calc(var(--header-offset, 0px) + 1rem); }
+@media (prefers-reduced-motion: reduce) {
+ *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+body .site-header .menu-cluster--primary a { color: #d5ded9; }
+body.prosimii-modern .site-header .menu-cluster--primary a { color: #303a30; }
+body .hero-coords { color: #dcebe3; background: #101914; }
+body.legacy-dark header nav a { color: #e0e0e0; }
+body .site-header #ghotiPageMenu a, body.legacy-dark header #ghotiPageMenu a, body.legacy-dark header #ghotiLogin a { color: #d5ded9; }
+body.prosimii-modern .site-header #ghotiPageMenu a { color: #303a30; }

@@ -39,7 +39,8 @@ if(!ghoti_csrf_verify(isset($_GET['token']) ? (string)$_GET['token'] : '')){
 }
 
 $logindb = new logindb();
-if(!$logindb->isAdmin($_SESSION['userId'])){
+ghoti_validate_session($logindb);
+if(!ghoti_require_login() || !$logindb->isAdmin($_SESSION['userId'])){
     analyticsExportDeny();
 }
 
@@ -53,6 +54,7 @@ $analyticsdb = new analyticsdb();
 $rows = $analyticsdb->getExportRows($days);
 
 $filename = "ghoti-analytics-".date('Y-m-d').".csv";
+header('Cache-Control: no-store');
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename="'.$filename.'"');
 header('X-Content-Type-Options: nosniff');
@@ -60,7 +62,7 @@ header('X-Content-Type-Options: nosniff');
 $out = fopen('php://output', 'w');
 fputcsv($out, array('id','createdAt','pageId','pageTitle','sessionId','userId','ipAddress','userAgent','browser','os','deviceType','referrer','requestUri','isAdminView'));
 foreach($rows as $row){
-    fputcsv($out, $row);
+    fputcsv($out, array_map('ghoti_csv_cell', $row), ',', '"', '');
 }
 fclose($out);
 exit;

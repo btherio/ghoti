@@ -7,6 +7,9 @@ include_once('ghoti.html.php');
 include_once('ghoti.async.php'); //async RPC layer + core endpoints + class ghotiui
 include_once('ghoti.db.php');
 include_once('ghoti.validate.php');
+include_once('ghoti.privacy.php');
+include_once(__DIR__.'/ghoti.security.php');
+include_once(__DIR__.'/ghoti.alerts.php');
 include_once('ghoti.setup.php'); //DB-unreachable fallback: setup screen + saveDbConfig
 
 class ghoti {
@@ -21,9 +24,16 @@ class ghoti {
 	public static $siteTitle = "ghoti";	        //title of the website          [UI]
 	public static $defaultPageTitle = "Home"; 		//this page must exist          [UI]
 	public static $defaultTheme = "ghoticms";		//default theme                 [UI]
-	public static $allowRegister = True; 			//allow or disallow new registrations [UI]
-	public static $headerImg = "gfx/ghoti-5s.png"; //header image to use            [UI]
+	public static $allowRegister = False; 			//allow or disallow new registrations [UI]
+	public static $headerImg = "gfx/ghoti-logo.png"; //header image to use            [UI]
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
+	public static $privacyOperator = "";
+	public static $privacyEmail = "";
+	public static $privacyRegion = "";
+	public static $hideLoginButton = False;       //hide public sign-in links      [UI]
+	public static $enableVhosts = False;          //optional privileged module [UI]
+	public static $enableCriticalAlerts = False;
+	public static $criticalAlertEmail = "";
 	public static $enableDebug = False;            //enable debug logging           [UI]
 
 	/* ---------------- Logging levels ----------------
@@ -63,7 +73,14 @@ class ghoti {
 		'headerImg'          => 'path',
 		'allowRegister'      => 'bool',
 		'enableThemeChanger' => 'bool',
+		'hideLoginButton'    => 'bool',
+		'privacyOperator'    => 'text',
+		'privacyEmail'       => 'email',
+		'privacyRegion'      => 'text',
 		'enableDebug'        => 'bool',
+		'enableVhosts'       => 'bool',
+		'enableCriticalAlerts' => 'bool',
+		'criticalAlertEmail'   => 'email',
 	);
 
 ################################################################
@@ -75,6 +92,11 @@ class ghoti {
 		$this->ghotiui = new ghotiui();
 		$this->validate = new validate();
 		$this->html = new html();
+	}
+	public static function enabledModules(){
+		$modules = array('links','login','banners','comments','analytics','gallery','filemanager','mail');
+		if(self::$enableVhosts){ $modules[] = 'vhosts'; }
+		return $modules;
 	}
 	public function loadModules($modules){
 		foreach ($modules as $moduleName){
@@ -160,18 +182,27 @@ class ghoti {
 		}
 		try{
 			self::rotateLogIfNeeded();
-			$fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
+			$fh = @fopen(ghoti::$ghotiLog, 'a');
+			if(!$fh){ throw new RuntimeException('Application log is not writable'); }
 			//Use PHP's date() instead of shelling out to `date` - the backtick spawned
 			//a process on every log line (slow), and on Windows `date` blocks waiting
 			//for interactive input, hanging the whole request.
 			fwrite($fh,"[".date('D M j g:i:s A T Y')."] ".$prefix.": ".$line."\n");
 			fclose($fh);
-		}catch (Exception $e){
-			return $e->getMessage();
+		}catch (Throwable $e){
+			error_log('Ghoti could not write the application log.');
+			ghoti_alert_log($level, $context, $line);
+			return false;
 		}
+		ghoti_alert_log($level, $context, $line);
 		return True;
 	}
 	/* ---------------- Site Settings (admin-editable) ---------------- */
+
+	//A request-only visibility override; authentication is still required.
+	public static function showLoginButton(){
+		return !self::$hideLoginButton || (isset($_GET['theme']) && $_GET['theme'] === 'login');
+	}
 
 	//Absolute path to the settings file, resolved next to this file.
 	public static function settingsPath(){
@@ -205,6 +236,12 @@ class ghoti {
 	public static function saveSettings($settings){
 		if(!is_array($settings)){ return "Invalid settings."; }
 
+		if(isset($settings['privacyEmail']) && $settings['privacyEmail'] !== '' && (!is_string($settings['privacyEmail']) || !filter_var($settings['privacyEmail'], FILTER_VALIDATE_EMAIL))){ return "Enter a valid privacy contact email."; }
+
+		$alertsEnabled = array_key_exists('enableCriticalAlerts', $settings) ? self::sanitizeSetting('bool', $settings['enableCriticalAlerts']) : self::$enableCriticalAlerts;
+		$alertEmail = $settings['criticalAlertEmail'] ?? self::$criticalAlertEmail;
+		if(($alertsEnabled || $alertEmail !== '') && (!is_string($alertEmail) || !filter_var($alertEmail, FILTER_VALIDATE_EMAIL))){ return "Enter a valid critical-alert recipient email."; }
+
 		//Give explicit feedback for a bad theme rather than silently ignoring it.
 		if(isset($settings['defaultTheme']) && $settings['defaultTheme'] !== ''
 			&& !self::isValidTheme($settings['defaultTheme'])){
@@ -233,6 +270,8 @@ class ghoti {
 	//skip (e.g. an invalid theme).
 	private static function sanitizeSetting($type, $value){
 		switch($type){
+			case 'email':
+				return is_string($value) && ($value === '' || filter_var($value, FILTER_VALIDATE_EMAIL)) ? $value : null;
 			case 'bool':
 				return (bool)(is_string($value) ? ($value !== '' && $value !== '0' && strtolower($value) !== 'false') : $value);
 			case 'theme':

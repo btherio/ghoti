@@ -44,7 +44,8 @@ if(!ghoti_csrf_verify(isset($_GET['token']) ? (string)$_GET['token'] : '')){
 }
 
 $logindb = new logindb();
-if(!$logindb->isAdmin($_SESSION['userId'])){
+ghoti_validate_session($logindb);
+if(!ghoti_require_login() || !$logindb->isAdmin($_SESSION['userId'])){
     filemanagerDownloadDeny('non-admin uid '.$_SESSION['userId']);
 }
 

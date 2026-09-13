@@ -30,7 +30,12 @@ function addComment($comment){
 }
 
 function getPageComments(){
-  return $_SESSION["commentsObj"]->commentsui->displayComments($_SESSION["commentsObj"]->commentsdb->getPageComments($_SESSION['pageId']));
+  // A page may have become private since this session last viewed it.
+  $pageId = (int)($_SESSION['pageId'] ?? 0);
+  if($pageId <= 0){ return ''; }
+  $page = $_SESSION['ghotiObj']->ghotidb->getPageById($pageId);
+  if(!isset($page[0][2]) || ($page[0][2] !== 'public' && !ghoti_require_login())){ return ''; }
+  return $_SESSION["commentsObj"]->commentsui->displayComments($_SESSION["commentsObj"]->commentsdb->getPageComments($pageId));
 }
 
 function addCommentForm(){

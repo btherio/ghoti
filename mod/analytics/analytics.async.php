@@ -28,16 +28,18 @@ function analyticsServerValue($key){
 
 /* Hooked from ghoti.async.php::getPage(), which runs on every page view. */
 function trackPageView($isAdminViewer=false){
+	if(!ghoti_analytics_allowed()){ return; }
 	try{
+		if(empty($_SESSION['analyticsVisitorId'])){ $_SESSION['analyticsVisitorId'] = bin2hex(random_bytes(16)); }
 		$_SESSION['analyticsObj']->analyticsdb->logPageView(
 			isset($_SESSION['pageId']) ? $_SESSION['pageId'] : null,
-			isset($_SESSION['userId']) ? $_SESSION['userId'] : null,
+			null,
 			$isAdminViewer,
-			analyticsServerValue('REMOTE_ADDR'),
+			'',
 			analyticsServerValue('HTTP_USER_AGENT'),
-			analyticsServerValue('HTTP_REFERER'),
-			analyticsServerValue('REQUEST_URI'),
-			session_id()
+			(string)(parse_url(analyticsServerValue('HTTP_REFERER'), PHP_URL_HOST) ?: ''),
+			'',
+			$_SESSION['analyticsVisitorId']
 		);
 	}catch (Throwable $e){
 		ghoti::logException("analytics.async.php:trackPageView", $e);
@@ -108,7 +110,7 @@ class analyticsui{
 			array('heading' => 'Exclude admin views',
 				'list' => array('Tick the checkbox to ignore pageviews recorded while an admin was viewing, for visitor-only numbers.')),
 			array('heading' => 'The tiles',
-				'list' => array('<b>Pageviews</b> &mdash; total page loads tracked.', '<b>Unique sessions</b> &mdash; distinct browser sessions (a new session starts after 30 minutes of inactivity).', '<b>Unique visitors</b> &mdash; distinct IP + user-agent combinations.', '<b>Pages viewed</b> &mdash; distinct pages hit.', '<b>Avg. views/day</b> &mdash; pageviews divided by the range.')),
+				'list' => array('<b>Pageviews</b> &mdash; total page loads tracked.', '<b>Unique sessions</b> &mdash; distinct browser sessions (a new session starts after 30 minutes of inactivity).', '<b>Visitor identification</b> &mdash; new analytics does not collect IP addresses or account identifiers. Counts include only sessions that opt in. Historical data may contain identifying fields.', '<b>Pages viewed</b> &mdash; distinct pages hit.', '<b>Avg. views/day</b> &mdash; pageviews divided by the range.')),
 			array('heading' => 'CSV export',
 				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range.')),
 			array('heading' => 'The log',
@@ -136,7 +138,7 @@ class analyticsui{
 		$out .= "<div class=\"analytics-kpis\">\n";
 		$out .= $this->kpiTile('Pageviews', number_format($totalViews));
 		$out .= $this->kpiTile('Unique sessions', number_format($uniqueSessions));
-		$out .= $this->kpiTile('Unique visitors', number_format($uniqueVisitors));
+		$out .= $this->kpiTile('Visitor identification', 'Not collected');
 		$out .= $this->kpiTile('Pages viewed', number_format($pagesViewed));
 		$out .= $this->kpiTile('Avg. views/day', number_format($avgPerDay,1));
 		$out .= "</div>\n";
@@ -175,7 +177,7 @@ class analyticsui{
 		$out .= "</div>\n"; //card
 
 		$out .= $docs;
-		$out .= "<script type=\"application/json\" id=\"analyticsData\">".json_encode($data)."</script>\n";
+		$out .= "<script type=\"application/json\" id=\"analyticsData\">".json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)."</script>\n";
 		$out .= "</div>\n"; //ghotiAnalytics
 
 		return $out;

@@ -5,6 +5,7 @@ require_once 'ghoti.php';
 
 //apply admin-managed Site Settings (ghoti.settings.json) over the defaults
 ghoti::loadSettings();
+ghoti_install_error_handlers();
 
 //initialize session
 $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
@@ -56,7 +57,7 @@ if(!ghotidb::isConfigured()){
 $_SESSION['ghotiObj'] = new ghoti();
 
 //load the modules add module name into array like "module1","module2"
-$modules = array("links","login","banners","comments","analytics","gallery","filemanager","mail","vhosts");
+$modules = ghoti::enabledModules();
 $_SESSION['ghotiObj']->loadModules($modules);
 
 //Initialize each module you want active
@@ -70,9 +71,12 @@ $_SESSION['analyticsObj'] = new analytics();
 $_SESSION['galleryObj'] = new gallery();
 $_SESSION['mailObj'] = new mail();
 $_SESSION['filemanagerObj'] = new filemanager();
-$_SESSION['vhostsObj'] = new vhosts();
+if(ghoti::$enableVhosts){ $_SESSION['vhostsObj'] = new vhosts(); }
+else { unset($_SESSION['vhostsObj']); }
 //(removed the unused $_SESSION['ghotidb'] = new ghotidb() - it was written every
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
+// Revoke deleted accounts and sessions created before a password change.
+ghoti_validate_session($_SESSION['loginObj']->logindb);
 //dispatch an async (fetch) call if this request is one; otherwise fall
 //through and render the page normally.
 ghoti_async_handle_request();
@@ -83,11 +87,13 @@ ghoti_async_handle_request();
 //tightening that further is a JS-refactor project; the rest of the policy
 //still blocks plugin injection, base-tag hijack, clickjacking and form CSRF.
 if(!headers_sent()){
+	header('Cache-Control: private, no-store');
+	if(($_GET['view'] ?? null) === 'sitemap'){ header('X-Robots-Tag: noindex, nofollow'); }
 	header('X-Content-Type-Options: nosniff');
 	header('X-Frame-Options: DENY');
 	header('Referrer-Policy: strict-origin-when-cross-origin');
 	header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-	header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: http: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+	header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:; img-src 'self' data: http: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
 }
 
 //process GET & SESSION variables
@@ -106,7 +112,7 @@ if(isset($_SESSION['theme'])){ //if a session theme var is set, we want to use t
 }
 
 if($_GET){
-	if(isset($_GET['theme'])){ //if this is set, it overrides the session variable
+	if(isset($_GET['theme']) && $_GET['theme'] !== 'login'){ //login reveals sign-in without switching themes
 		if($isValidTheme($_GET['theme'])){
 			ghoti::$defaultTheme = $_GET['theme']; //then set it as default theme
 			$_SESSION['theme'] = $_GET['theme']; //and save it to the session

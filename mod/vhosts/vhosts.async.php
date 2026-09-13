@@ -25,6 +25,7 @@ function vhostsRemoteAddr(){
 }
 
 function vhostsRequireAdmin(){
+	if(!ghoti::$enableVhosts){ return false; }
 	if(!ghoti_require_admin()){
 		ghoti::logWarn("vhosts.async.php", "Unauthorized vhosts access attempt from ".vhostsRemoteAddr());
 		return false;

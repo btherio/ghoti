@@ -172,7 +172,7 @@ function buildLinksHtml(linksArray){
 		if(!linksArray.hasOwnProperty(x)) continue;
 		var link = linksArray[x];
 		var url = linkField(link,'url');
-		if(!url) continue;
+		if(!url || !ghotiSafeLinkUrl(url)) continue;
 		var name = linkField(link,'name') || url;
 		html += "<li><a href=\""+ghotiEscapeHtmlAttr(url)+"\">"+ghotiEscapeHtml(name)+"</a></li>";
 	}
@@ -197,4 +197,11 @@ function getLinks_cb(links){
 // Pull a fresh copy of the default links pane after a mutation.
 function refreshLinks(){
 	x_getLinks(getLinks_cb);
+}
+
+// Validate legacy/imported stored URLs at rendering as well as on save.
+function ghotiSafeLinkUrl(url){
+	var probe = String(url).replace(/[\x00-\x20]/g, '');
+	var scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(probe);
+	return !scheme || /^(https?|mailto)$/i.test(scheme[1]);
 }

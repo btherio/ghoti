@@ -61,6 +61,7 @@ class VhostsHelper{
 	 * argument - that is how vhost config reaches `write`.
 	 */
 	public function run($verb, $args = array(), $stdin = null){
+		if(!ghoti::$enableVhosts){ return self::failure("The Apache Vhosts module is disabled in Site Settings."); }
 		if(!in_array($verb, self::$verbs, true)){
 			ghoti::logError("vhosts.helper.php:run", "refused unknown verb '".ghoti_validate()->logLine($verb)."'");
 			return self::failure("Unsupported operation.");
