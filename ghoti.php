@@ -8,6 +8,7 @@ include_once('ghoti.async.php'); //async RPC layer + core endpoints + class ghot
 include_once('ghoti.db.php');
 include_once('ghoti.validate.php');
 include_once('ghoti.privacy.php');
+include_once(__DIR__.'/ghoti.security.php');
 include_once('ghoti.setup.php'); //DB-unreachable fallback: setup screen + saveDbConfig
 
 class ghoti {
@@ -22,7 +23,7 @@ class ghoti {
 	public static $siteTitle = "ghoti";	        //title of the website          [UI]
 	public static $defaultPageTitle = "Home"; 		//this page must exist          [UI]
 	public static $defaultTheme = "ghoticms";		//default theme                 [UI]
-	public static $allowRegister = True; 			//allow or disallow new registrations [UI]
+	public static $allowRegister = False; 			//allow or disallow new registrations [UI]
 	public static $headerImg = "gfx/ghoti-logo.png"; //header image to use            [UI]
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
 	public static $privacyOperator = "";

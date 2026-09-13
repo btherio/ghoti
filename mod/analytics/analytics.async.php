@@ -177,7 +177,7 @@ class analyticsui{
 		$out .= "</div>\n"; //card
 
 		$out .= $docs;
-		$out .= "<script type=\"application/json\" id=\"analyticsData\">".json_encode($data)."</script>\n";
+		$out .= "<script type=\"application/json\" id=\"analyticsData\">".json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)."</script>\n";
 		$out .= "</div>\n"; //ghotiAnalytics
 
 		return $out;

@@ -73,6 +73,8 @@ $_SESSION['filemanagerObj'] = new filemanager();
 $_SESSION['vhostsObj'] = new vhosts();
 //(removed the unused $_SESSION['ghotidb'] = new ghotidb() - it was written every
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
+// Revoke deleted accounts and sessions created before a password change.
+ghoti_validate_session($_SESSION['loginObj']->logindb);
 //dispatch an async (fetch) call if this request is one; otherwise fall
 //through and render the page normally.
 ghoti_async_handle_request();

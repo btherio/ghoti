@@ -128,8 +128,8 @@ class bannersui{
 				//are scheme-validated at ingestion (addBanner/editBanner), but this
 				//view is shown to every visitor, so escape here too (defense in depth
 				//for any rows that predate the input validation).
-				$linkUrl = htmlspecialchars((string)$y[3], ENT_QUOTES);
-				$imgUrl  = htmlspecialchars((string)$y[2], ENT_QUOTES);
+				$linkUrl = ghoti_safe_url_attribute($y[3]);
+				$imgUrl  = ghoti_safe_url_attribute($y[2]);
 				$alt     = htmlspecialchars((string)$y[1], ENT_QUOTES);
 				$this->banner .= "<a href=\"".$linkUrl."\"><img src=\"".$imgUrl."\" alt=\"".$alt."\" class=\"ghotiBanner\" /></a>\n";
 		}
@@ -150,8 +150,8 @@ class bannersui{
 		foreach($dbresult as $x => $y){
 			$id = (int)$y[0];
 			$alt = htmlspecialchars((string)$y[1], ENT_QUOTES);
-			$imgUrl = htmlspecialchars((string)$y[2], ENT_QUOTES);
-			$linkUrl = htmlspecialchars((string)$y[3], ENT_QUOTES);
+			$imgUrl = ghoti_safe_url_attribute($y[2]);
+			$linkUrl = ghoti_safe_url_attribute($y[3]);
 			$small = (int)$y[4];
 			$manageBanners .= "<article class=\"ghotiCrudRow ghotiBannerRow\">\n";
 			$manageBanners .= "<a href=\"".$linkUrl."\"><img src=\"".$imgUrl."\" alt=\"".$alt."\" class=\"ghotiPreviewImage\" /></a>\n";
