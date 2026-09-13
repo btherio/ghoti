@@ -95,7 +95,8 @@ function printVhostForm($key){
 		}
 	}
 	if($match === null){ return "<p>That vhost no longer exists - reload the list.</p>"; }
-	return $mod->vhostsui->printVhostForm($match, $settings, $mod->helper->canWrite() && $match['managed']);
+	//Adopted files are deliberately NOT editable here - see VhostsParser::MARKER.
+	return $mod->vhostsui->printVhostForm($match, $settings, $mod->helper->canWrite() && $match['editable']);
 }
 
 /*
@@ -171,8 +172,10 @@ function saveVhost($vhost){
 		'logDir' => $logDir,
 	));
 
+	$notifier = vhostsNotifier($settings);
 	$result = $mod->helper->run('write', array($name), $config);
 	if(!$result['ok']){
+		$notifier->configRolledBack($name, $result['output']);
 		return "Apache rejected the change, so nothing was applied:\n".$result['output'];
 	}
 	vhostsAudit("saveVhost", "vhost '".$name."' (".$serverName.") written");
@@ -180,9 +183,13 @@ function saveVhost($vhost){
 	//Written and configtested; now make it live.
 	$reload = $mod->helper->run('reload');
 	if(!$reload['ok']){
+		//The file is on disk but the running server is still on the old config -
+		//that gap is exactly the case a person has to go close.
+		$notifier->reloadFailed($reload['output']);
 		return "Saved, but reloading Apache failed:\n".$reload['output'];
 	}
 	vhostsAudit("saveVhost", "apache reloaded for '".$name."'");
+	$notifier->vhostChanged($serverName, "was saved and Apache reloaded");
 	return true;
 }
 
@@ -194,16 +201,69 @@ function deleteVhost($name){
 	if(!VhostsParser::isSafeName($name)){ return "Invalid vhost name."; }
 
 	$mod = $_SESSION["vhostsObj"];
+	$notifier = vhostsNotifier($mod->vhostsdb->getSettings());
 	$result = $mod->helper->run('delete', array($name));
 	if(!$result['ok']){
+		$notifier->configRolledBack($name, $result['output']);
 		return "Could not remove that vhost:\n".$result['output'];
 	}
 	vhostsAudit("deleteVhost", "vhost '".$name."' removed");
 	$reload = $mod->helper->run('reload');
 	if(!$reload['ok']){
+		$notifier->reloadFailed($reload['output']);
 		return "Removed, but reloading Apache failed:\n".$reload['output'];
 	}
+	$notifier->vhostChanged($name, "was deleted and Apache reloaded");
 	return true;
+}
+
+/*
+ * Preview the import: what files would be created, in what order, from what.
+ * Read-only and safe for any admin to run - it computes the plan and renders
+ * it, and touches nothing.
+ */
+function printVhostImport(){
+	if(!vhostsRequireAdmin()){ return "<h1>Import</h1><p>Admin access required.</p>"; }
+	$mod = $_SESSION["vhostsObj"];
+	$settings = $mod->vhostsdb->getSettings();
+	$plan = VhostsImporter::plan($mod->parser->listVhosts(), (string)$settings['readOnlyConf']);
+	return $mod->vhostsui->printVhostImport($plan, $settings, $mod->helper->canWrite());
+}
+
+/*
+ * Run the import. One helper call moves every vhost, neutralises the source
+ * file and configtests, rolling the whole thing back on any failure - so this
+ * either fully happens or does not happen at all.
+ */
+function importVhosts(){
+	$gate = vhostsRequireWrite();
+	if($gate !== true){ return $gate; }
+
+	$mod = $_SESSION["vhostsObj"];
+	$settings = $mod->vhostsdb->getSettings();
+	$source = (string)$settings['readOnlyConf'];
+	$plan = VhostsImporter::plan($mod->parser->listVhosts(), $source);
+	if(!$plan['ok']){ return $plan['error']; }
+
+	$notifier = vhostsNotifier($settings);
+	$result = $mod->helper->run('import', array($source), VhostsImporter::encode($plan['files']));
+	if(!$result['ok']){
+		ghoti::logError("vhosts.async.php:importVhosts", "import failed and was rolled back");
+		$notifier->needsIntervention("importing vhosts failed and was rolled back", $result['output']);
+		return "The import failed and everything was rolled back:\n".$result['output'];
+	}
+	vhostsAudit("importVhosts", count($plan['files'])." vhost file(s) imported from ".$source);
+
+	$reload = $mod->helper->run('reload');
+	if(!$reload['ok']){
+		//Files are in place and configtest passed, but the running server has
+		//not picked them up - squarely a go-look-at-it situation.
+		$notifier->reloadFailed($reload['output']);
+		return "Imported, but reloading Apache failed:\n".$reload['output'];
+	}
+	$notifier->notify(VhostsNotifier::EVENT_OK,
+		count($plan['files'])." vhost(s) imported into ghoti management", $result['output']);
+	return "Imported ".count($plan['files'])." vhost file(s) and reloaded Apache.\n".$result['output'];
 }
 
 //`apachectl configtest` - safe for any admin to run, changes nothing.
@@ -227,8 +287,12 @@ function vhostsVhostMap(){
 function reloadApache(){
 	$gate = vhostsRequireWrite();
 	if($gate !== true){ return $gate; }
-	$result = $_SESSION["vhostsObj"]->helper->run('reload');
-	if(!$result['ok']){ return "Reload failed:\n".$result['output']; }
+	$mod = $_SESSION["vhostsObj"];
+	$result = $mod->helper->run('reload');
+	if(!$result['ok']){
+		vhostsNotifier($mod->vhostsdb->getSettings())->reloadFailed($result['output']);
+		return "Reload failed:\n".$result['output'];
+	}
 	vhostsAudit("reloadApache", "apache reloaded");
 	return true;
 }
@@ -255,12 +319,18 @@ function issueCertificate($name){
 	if(!VhostsParser::isSafeName($name)){ return "Invalid vhost name."; }
 
 	$mod = $_SESSION["vhostsObj"];
-	$email = (string)$mod->vhostsdb->getSettings()['certbotEmail'];
+	$settings = $mod->vhostsdb->getSettings();
+	$email = (string)$settings['certbotEmail'];
 	if($email === ''){ return "Set a certificate contact e-mail in the vhosts settings first - Let's Encrypt requires one."; }
 
+	$notifier = vhostsNotifier($settings);
 	$result = $mod->helper->run('issue', array($name, $email));
-	if(!$result['ok']){ return "Certificate issuance failed:\n".$result['output']; }
+	if(!$result['ok']){
+		$notifier->certFailed($name, "issue", $result['output']);
+		return "Certificate issuance failed:\n".$result['output'];
+	}
 	vhostsAudit("issueCertificate", "certificate issued for '".$name."'");
+	$notifier->certIssued($name, $result['output']);
 	return "Certificate issued.\n".$result['output'];
 }
 
@@ -269,10 +339,34 @@ function renewCertificate($name){
 	if($gate !== true){ return $gate; }
 	if(!VhostsParser::isSafeName($name)){ return "Invalid certificate name."; }
 
-	$result = $_SESSION["vhostsObj"]->helper->run('renew', array($name));
-	if(!$result['ok']){ return "Renewal failed:\n".$result['output']; }
+	$mod = $_SESSION["vhostsObj"];
+	$notifier = vhostsNotifier($mod->vhostsdb->getSettings());
+	$result = $mod->helper->run('renew', array($name));
+	if(!$result['ok']){
+		$notifier->certFailed($name, "renew", $result['output']);
+		return "Renewal failed:\n".$result['output'];
+	}
 	vhostsAudit("renewCertificate", "certificate '".$name."' renewed");
+	$notifier->certRenewed($name, $result['output']);
 	return "Certificate renewed.\n".$result['output'];
+}
+
+//Sends a test alert using the CURRENTLY SAVED settings, so admins should press
+//Save first - same contract as the mail module's own test button.
+function sendVhostsTestAlert(){
+	if(!vhostsRequireAdmin()){ return "Admin access required."; }
+	$settings = $_SESSION["vhostsObj"]->vhostsdb->getSettings();
+	$notifier = vhostsNotifier($settings);
+	if(!$notifier->isEnabled()){
+		if(empty($settings['notifyEnabled'])){ return "E-mail alerts are switched off. Tick the box, save, then try again."; }
+		if($notifier->recipient() === ''){ return "No notification address is set."; }
+		return "The mail module is not available, so alerts cannot be sent.";
+	}
+	if($notifier->notify(VhostsNotifier::EVENT_OK, "test alert",
+		"Nothing is wrong - this message confirms that vhost and certificate alerts can reach you.")){
+		return "Test alert sent to ".$notifier->recipient()." - check the inbox.";
+	}
+	return "The test alert could not be sent. Check Mail Settings and the log.";
 }
 
 function printVhostsSettingsForm(){
@@ -306,7 +400,19 @@ function saveVhostsSettings($settings){
 	}else{
 		$clean['certbotEmail'] = '';
 	}
+	if(trim((string)($settings['notifyEmail'] ?? '')) !== ''){
+		try{ $clean['notifyEmail'] = ghoti_validate()->email($settings['notifyEmail']); }
+		catch(Exception $e){ return "Notification address: ".$e->getMessage(); }
+	}else{
+		$clean['notifyEmail'] = '';
+	}
+	$clean['notifyEnabled'] = (bool)ghoti_validate()->boolInt($settings['notifyEnabled'] ?? 0);
 	$clean['enabled'] = (bool)ghoti_validate()->boolInt($settings['enabled'] ?? 0);
+
+	//Alerts with nowhere to go are a silent no-op later; say so now instead.
+	if($clean['notifyEnabled'] && $clean['notifyEmail'] === '' && $clean['certbotEmail'] === ''){
+		return "Set a notification address (or a certificate contact) before turning notifications on.";
+	}
 
 	$mod = $_SESSION["vhostsObj"];
 	if(!$mod->vhostsdb->saveSettings($clean)){
@@ -374,8 +480,11 @@ ghoti_async_register(
 	"printCertificates",
 	"issueCertificate",
 	"renewCertificate",
+	"printVhostImport",
+	"importVhosts",
 	"printVhostsSettingsForm",
-	"saveVhostsSettings"
+	"saveVhostsSettings",
+	"sendVhostsTestAlert"
 );
 
 /* ---------------------------------------------------------------- *
@@ -408,6 +517,7 @@ class vhostsui{
 		$tabs = array(
 			'vhosts' => array('Virtual Hosts', 'showVhosts()'),
 			'certs'  => array('Certificates', 'showVhostCertificates()'),
+			'import' => array('Import', 'showVhostImport()'),
 			'config' => array('Settings', 'showVhostsSettings()'),
 		);
 		$o = "<div class=\"vhTabs\" role=\"tablist\">\n";
@@ -500,7 +610,13 @@ class vhostsui{
 				$o .= "<span class=\"vhBadge vhBadgePort\">:".self::esc($port)."</span>";
 			}
 			$o .= $vhost['sslEngine'] ? "<span class=\"vhBadge vhBadgeSsl\">TLS</span>" : "";
-			$o .= $vhost['managed'] ? "<span class=\"vhBadge vhBadgeManaged\">managed</span>" : "<span class=\"vhBadge vhBadgeExternal\">external</span>";
+			if($vhost['origin'] === VhostsParser::ORIGIN_GENERATED){
+				$o .= "<span class=\"vhBadge vhBadgeManaged\">managed</span>";
+			}elseif($vhost['origin'] === VhostsParser::ORIGIN_ADOPTED){
+				$o .= "<span class=\"vhBadge vhBadgeAdopted\" title=\"Imported verbatim - edited on the server, not in this form\">adopted</span>";
+			}else{
+				$o .= "<span class=\"vhBadge vhBadgeExternal\">external</span>";
+			}
 			$o .= "</span>\n</div>\n";
 
 			if($vhost['aliases']){
@@ -515,7 +631,7 @@ class vhostsui{
 			$o .= "</dl>\n";
 
 			$o .= "<div class=\"vhCardActions\">\n";
-			$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"editVhost('".self::esc($key)."');\">".($vhost['managed'] && $canWrite ? "Edit" : "Inspect")."</button>\n";
+			$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"editVhost('".self::esc($key)."');\">".($vhost['editable'] && $canWrite ? "Edit" : "Inspect")."</button>\n";
 			if($vhost['managed'] && $canWrite){
 				$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"issueCertificate('".self::esc($vhost['name'])."');\">Issue cert</button>\n";
 				$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonDanger\" onclick=\"deleteVhost('".self::esc($vhost['name'])."');\">Delete</button>\n";
@@ -549,9 +665,14 @@ class vhostsui{
 		$o  = "<section id=\"ghotiVhostForm\" class=\"ghotiAdminPanel\">\n";
 		$o .= "<h1>".($isNew ? "New vhost" : self::esc($serverName !== '' ? $serverName : $vhost['fileName']))."</h1>\n";
 		if($readOnly && !$isNew){
-			$o .= "<div class=\"vhNotice\">".($vhost['managed']
-				? "Read-only: changes are disabled or the helper is not installed."
-				: "This vhost lives in <code>".self::esc($vhost['fileName'])."</code>, which this panel never writes. Edit it on the server, or recreate it as a managed vhost.")."</div>\n";
+			if($vhost['origin'] === VhostsParser::ORIGIN_ADOPTED){
+				$reason = "This vhost was <b>imported verbatim</b> and is shown read-only on purpose. It may use directives this form has no fields for &mdash; <code>&lt;Directory&gt;</code>, <code>&lt;FilesMatch&gt;</code>, <code>Alias</code>, <code>SSLOptions</code>, <code>Include</code> &mdash; and rebuilding it from the fields below would delete them. Edit <code>".self::esc($vhost['fileName'])."</code> on the server. Certificates and deletion still work from here.";
+			}elseif($vhost['managed']){
+				$reason = "Read-only: changes are disabled or the helper is not installed.";
+			}else{
+				$reason = "This vhost lives in <code>".self::esc($vhost['fileName'])."</code>, which this panel never writes. Edit it on the server, or import it to bring it under ghoti management.";
+			}
+			$o .= "<div class=\"vhNotice\">".$reason."</div>\n";
 		}
 
 		$o .= "<form id=\"vhostForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveVhost(); return false;\">\n";
@@ -610,6 +731,7 @@ class vhostsui{
 		$adminLine = $spec['serverAdmin'] !== '' ? "    ServerAdmin  ".$spec['serverAdmin']."\n" : "";
 
 		$o  = "#############################################################################\n";
+		$o .= VhostsParser::MARKER." ".VhostsParser::ORIGIN_GENERATED."\n";
 		$o .= "#  ".$spec['serverName']."\n";
 		$o .= "#\n";
 		$o .= "#  Generated by the ghoti vhosts module. Edits made here by hand will be\n";
@@ -715,6 +837,82 @@ class vhostsui{
 		return $o;
 	}
 
+	/* ---------------- Import pane ---------------- */
+
+	public function printVhostImport($plan, $settings, $canWrite){
+		$o  = "<section id=\"ghotiVhostImport\" class=\"ghotiAdminPanel\">\n";
+		$o .= "<div class=\"ghotiCrudHeader\"><h1>Import Vhosts</h1></div>\n";
+		$o .= self::tabs('import');
+
+		$o .= "<p class=\"ghotiHelpText\">Moves each vhost out of <code>".self::esc($settings['readOnlyConf'])."</code> into its own file in <code>".self::esc($settings['dropInDir'])."</code>, so this panel can manage its certificates and removal. Blocks are copied <b>exactly</b> as written &mdash; nothing is regenerated, so <code>&lt;Directory&gt;</code>, <code>&lt;FilesMatch&gt;</code>, <code>Alias</code>, <code>SSLOptions</code> and <code>Include</code> lines survive untouched.</p>\n";
+
+		if(!$plan['ok']){
+			$o .= "<div class=\"vhNotice\">".self::esc($plan['error'])."</div>\n";
+			$o .= $this->importDocs();
+			$o .= "<span id=\"vhostsFeedback\"></span>\n</section>\n";
+			return $o;
+		}
+
+		$first = $plan['files'][0];
+		$o .= "<div class=\"vhNotice vhNoticeWarn\"><b>Read this before importing.</b>";
+		$o .= "<p>Apache serves the <i>first</i> vhost defined on a port to any request whose Host header matches nothing else. Files are numbered so the current order is preserved exactly, which keeps <b>".self::esc($first['serverName'])."</b> the default. Renaming these files afterwards can silently change which site answers unmatched requests.</p>";
+		$o .= "<p>The original file is backed up and replaced with a note pointing at the new location. If Apache rejects the result, every file is put back and nothing is reloaded.</p></div>\n";
+
+		$o .= "<h2 class=\"vhSectionTitle\">Planned files <span class=\"vhCount\">".count($plan['files'])."</span></h2>\n";
+		$o .= "<div class=\"vhTableWrap\"><table class=\"ghotiManageTable vhImportTable\">\n";
+		$o .= "<thead><tr><th>Order</th><th>New file</th><th>ServerName</th><th>Ports</th><th>Blocks</th></tr></thead>\n<tbody>\n";
+		$position = 0;
+		foreach($plan['files'] as $file){
+			$position++;
+			$o .= "<tr><td>".$position."</td>";
+			$o .= "<td><code>".self::esc($file['fileName'])."</code></td>";
+			$o .= "<td>".self::esc($file['serverName'])."</td>";
+			$o .= "<td>".self::esc(implode(', ', $file['ports']))."</td>";
+			$o .= "<td>".self::esc($file['blocks'])."</td></tr>\n";
+		}
+		$o .= "</tbody></table></div>\n";
+
+		$o .= "<div class=\"ghotiFormActions\">";
+		if($canWrite){
+			$o .= "<button type=\"button\" class=\"ghotiButton\" onclick=\"importVhosts();\">Import ".count($plan['files'])." vhost(s)</button>";
+		}else{
+			$o .= "<button type=\"button\" class=\"ghotiButton\" disabled=\"disabled\">Import unavailable</button>";
+		}
+		$o .= "</div>\n";
+		if(!$canWrite){
+			$o .= "<div class=\"vhNotice\">The import needs the privileged helper installed and <b>Allow changes</b> switched on under <b>Settings</b>.</div>\n";
+		}
+
+		$o .= "<details class=\"ghotiDocs\"><summary><span class=\"ghotiDocsTitle\">Preview the generated files</span><span class=\"ghotiDocsHint\">exactly what would be written</span></summary>\n<div class=\"ghotiDocsBody\">\n";
+		foreach($plan['files'] as $file){
+			$o .= "<h3><code>".self::esc($file['fileName'])."</code></h3>\n";
+			$o .= "<pre class=\"vhCode\">".self::esc($file['content'])."</pre>\n";
+		}
+		$o .= "</div></details>\n";
+
+		$o .= $this->importDocs();
+		$o .= "<pre id=\"vhostsOutput\" class=\"vhOutput\" hidden=\"hidden\"></pre>\n";
+		$o .= "<span id=\"vhostsFeedback\"></span>\n</section>\n";
+		return $o;
+	}
+
+	private function importDocs(){
+		return ghoti_docs_panel("About importing", "what changes, what does not, and how to undo it", array(
+			array('heading' => 'What the import does',
+				'list' => array('Copies each <code>&lt;VirtualHost&gt;</code> block verbatim into its own file in the drop-in directory.',
+					'Numbers the files to preserve the original order, because the first vhost on a port is the fallback for unmatched requests.',
+					'Backs up the original file, then replaces it with a note saying where its vhosts went.',
+					'Runs <code>apachectl configtest</code> once over the result and reloads only if it passes.')),
+			array('heading' => 'What it deliberately does not do',
+				'list' => array('It does not rewrite or normalise your configuration. Imported vhosts are marked <b>adopted</b> and stay read-only in the edit form, because that form only knows about the fields it shows &mdash; regenerating an adopted vhost from them would delete anything else the block contains.',
+					'Certificates, deletion and reloads still work normally for adopted vhosts.',
+					'It will not overwrite a drop-in file that already exists.')),
+			array('heading' => 'Undoing it',
+				'list' => array('Restore the backup over the original file and delete the numbered files from the drop-in directory, then reload Apache.',
+					'The backup path is printed when the import finishes, and the note left in the original file repeats it.'))
+		));
+	}
+
 	/* ---------------- Settings pane ---------------- */
 
 	public function printVhostsSettingsForm($settings, $helperAvailable){
@@ -738,13 +936,38 @@ class vhostsui{
 			$o .= "<label class=\"ghotiField\"><span>".self::esc($field[0])." <i>(".self::esc($field[1]).")</i></span>";
 			$o .= "<input type=\"text\" id=\"vh-".self::esc($key)."\" size=\"30\" maxlength=\"255\" value=\"".self::esc($settings[$key])."\" /></label>\n";
 		}
-		$o .= "<label class=\"ghotiField\"><span>Certificate contact e-mail</span><input type=\"email\" id=\"vh-certbotEmail\" size=\"30\" maxlength=\"190\" placeholder=\"webmaster@example.com\" value=\"".self::esc($settings['certbotEmail'])."\" /></label>\n";
+		$o .= "<label class=\"ghotiField\"><span>Certificate contact e-mail <i>(Let's Encrypt account)</i></span><input type=\"email\" id=\"vh-certbotEmail\" size=\"30\" maxlength=\"190\" placeholder=\"webmaster@example.com\" value=\"".self::esc($settings['certbotEmail'])."\" /></label>\n";
+		$o .= "<label class=\"ghotiField\"><span>Notification address <i>(blank = use the contact above)</i></span><input type=\"email\" id=\"vh-notifyEmail\" size=\"30\" maxlength=\"190\" placeholder=\"admin@example.com\" value=\"".self::esc($settings['notifyEmail'])."\" /></label>\n";
 		$o .= "</div>\n";
+		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"vh-notifyEnabled\"".self::checked($settings['notifyEnabled'])." /> E-mail alerts &mdash; on certificate issue/renewal, failures, and anything needing manual intervention</label>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"vh-enabled\"".self::checked($settings['enabled'])." /> Allow changes &mdash; without this the panel can look but never write, even with the helper installed</label>\n";
-		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveVhostsSettings();\">Save Settings</button></div>\n";
+		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveVhostsSettings();\">Save Settings</button>\n";
+		$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"sendVhostsTestAlert();\">Send test alert</button></div>\n";
 		$o .= "</form>\n";
+		$o .= $this->notifyDocs();
+		$o .= "<pre id=\"vhostsOutput\" class=\"vhOutput\" hidden=\"hidden\"></pre>\n";
 		$o .= "<span id=\"vhostsFeedback\"></span>\n</section>\n";
 		return $o;
+	}
+
+	private function notifyDocs(){
+		return ghoti_docs_panel("About e-mail alerts", "what triggers one, and what catches certbot's own renewals", array(
+			array('heading' => 'Where they come from',
+				'list' => array('Alerts are sent through the <b>mail module</b> (Admin Menu &rarr; Mail Settings). If mail sending is off or misconfigured, alerts are logged and dropped &mdash; a certificate renewal is never failed just because the mail server is unreachable.',
+					'Use <b>Send test alert</b> to confirm the whole path end to end.')),
+			array('heading' => 'What triggers one',
+				'list' => array('A certificate is issued or renewed from this panel.',
+					'A certificate operation fails &mdash; subject is prefixed <code>[FAILED]</code>.',
+					'Apache rejects a configuration and the change is rolled back.',
+					'Configuration is saved but Apache will not reload &mdash; prefixed <code>[ACTION NEEDED]</code>, because the file on disk and the running server now disagree.',
+					'A certificate is close to expiry and has not renewed itself.')),
+			array('heading' => 'Renewals certbot does on its own',
+				'list' => array('certbot renews from its own systemd timer, without going through this panel, so nothing here would notice.',
+					'<code>mod/vhosts/vhosts.certwatch.php</code> is a small CLI script that compares certbot\'s current state against the last state it saw, and mails when a serial number changes or a certificate is running out.',
+					'Run it as the web server user, once a day is plenty. From root\'s crontab: <code>0 7 * * * sudo -u http /usr/bin/php '.self::esc(__DIR__).'/vhosts.certwatch.php --quiet</code>',
+					'Running it as <i>root</i> works but risks leaving a root-owned <code>ghoti.log</code> after a rotation, which the web server could then no longer write.',
+					'It writes nothing to Apache and needs no arguments; with <code>--dry-run</code> it prints what it would send and sends nothing.'))
+		));
 	}
 
 	private function vhostsDocs(){

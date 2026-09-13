@@ -26,6 +26,26 @@
  */
 
 class VhostsParser{
+	/*
+	 * Marker line written as the first comment of every file this module puts
+	 * in the drop-in directory, saying how the file got there:
+	 *
+	 *   generated - rendered from the edit form's fields. Safe to regenerate,
+	 *               because every directive in it came from those fields.
+	 *   adopted   - copied verbatim out of a hand-written config by the import.
+	 *               It may contain <Directory>, <FilesMatch>, Alias, SSLOptions
+	 *               or Include lines that the edit form knows nothing about, so
+	 *               regenerating it from fields would silently DELETE them.
+	 *               Adopted files are therefore read-only in the form.
+	 *
+	 * An unmarked file in the drop-in directory is treated as adopted, which is
+	 * the safe default: never offer to rewrite a file this module did not write.
+	 */
+	const MARKER = '# ghoti-vhosts:';
+	const ORIGIN_GENERATED = 'generated';
+	const ORIGIN_ADOPTED   = 'adopted';
+	const ORIGIN_EXTERNAL  = 'external';
+
 	private $settings;
 
 	//Directives lifted out of a block for display. Everything else is kept in
@@ -153,6 +173,7 @@ class VhostsParser{
 	private function parseFile($file, $managed){
 		$text = @file_get_contents($file);
 		if($text === false){ return array(); }
+		$origin = $managed ? self::fileOrigin($text) : self::ORIGIN_EXTERNAL;
 
 		$out = array();
 		$lines = preg_split('/\r\n|\r|\n/', $text);
@@ -168,7 +189,7 @@ class VhostsParser{
 				if(preg_match('/^<VirtualHost\s+([^>]+)>/i', $bare, $m)){
 					$inBlock = true;
 					$depth = 0;
-					$current = self::newVhost($file, $managed, trim($m[1]), $lineNo + 1);
+					$current = self::newVhost($file, $managed, trim($m[1]), $lineNo + 1, $origin);
 				}
 				continue;
 			}
@@ -198,12 +219,35 @@ class VhostsParser{
 		return $out;
 	}
 
-	private static function newVhost($file, $managed, $addresses, $startLine){
+	/*
+	 * Which marker a drop-in file carries. Only the leading comment block is
+	 * examined - a marker further down could have come from pasted config.
+	 */
+	public static function fileOrigin($text){
+		foreach(preg_split('/\r\n|\r|\n/', (string)$text, 40) as $line){
+			$line = trim($line);
+			if($line === ''){ continue; }
+			if($line[0] !== '#'){ break; } //past the header comment block
+			if(stripos($line, self::MARKER) === 0){
+				$value = strtolower(trim(substr($line, strlen(self::MARKER))));
+				if($value === self::ORIGIN_GENERATED){ return self::ORIGIN_GENERATED; }
+				if($value === self::ORIGIN_ADOPTED){ return self::ORIGIN_ADOPTED; }
+			}
+		}
+		//Unmarked: assume a human wrote it, and never offer to regenerate it.
+		return self::ORIGIN_ADOPTED;
+	}
+
+	private static function newVhost($file, $managed, $addresses, $startLine, $origin = self::ORIGIN_EXTERNAL){
 		return array(
 			'file'       => $file,
 			'fileName'   => basename($file),
 			'name'       => $managed ? preg_replace('/\.conf$/', '', basename($file)) : '',
 			'managed'    => (bool)$managed,
+			'origin'     => $origin,
+			//Only a file this module generated can be safely rebuilt from the
+			//form's fields; see the MARKER note at the top of the class.
+			'editable'   => $managed && $origin === self::ORIGIN_GENERATED,
 			'addresses'  => $addresses,
 			'ports'      => self::portsFrom($addresses),
 			'startLine'  => $startLine,

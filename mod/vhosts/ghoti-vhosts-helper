@@ -31,6 +31,7 @@ CERTBOT="/usr/bin/certbot"
 SYSTEMCTL="/usr/bin/systemctl"
 HTTPD_SERVICE="httpd"
 MAX_CONF_BYTES=65536
+MAX_IMPORT_BYTES=2097152
 
 die() { printf '%s\n' "$1" >&2; exit "${2:-2}"; }
 
@@ -165,6 +166,131 @@ cmd_issue() {
 		--cert-name "$name" --non-interactive --agree-tos -m "$email" 2>&1
 }
 
+# import <sourceFile> - adopt hand-written vhosts into the drop-in directory.
+#
+# The migration plan arrives on stdin as frames:
+#   ===GHOTI-IMPORT-FILE <name>.conf
+#   <file content>
+#   ===GHOTI-IMPORT-END
+#
+# All files are staged, then moved in together, then the source file is replaced
+# by a stub, then configtest runs ONCE over the result. Any failure restores
+# every file and the source. There is no window in which half the vhosts have
+# moved, and never a moment with the same vhost defined twice.
+cmd_import() {
+	local source="${1:-}"
+	[[ -n "$source" ]] || die "missing source file" 1
+	# An absolute path with no traversal. This is the only path argument any
+	# verb accepts, so it is checked tightly rather than trusted.
+	[[ "$source" = /* ]] || die "source must be an absolute path" 1
+	[[ "$source" != *".."* ]] || die "invalid source path" 1
+	[[ -f "$source" ]] || die "no such file: $source" 1
+	[[ -r "$source" && -w "$source" ]] || die "cannot read and write $source" 1
+
+	mkdir -p -- "$DROPIN_DIR" "$BACKUP_DIR"
+	chmod 0750 "$BACKUP_DIR"
+
+	# Deliberately NOT `local`: the EXIT trap below runs after this function's
+	# frame is gone, and under `set -u` a local would be unset by then and turn
+	# a successful import into a spurious failure.
+	local stamp
+	stamp="$(date +%Y%m%d-%H%M%S)"
+	IMPORT_STAGE="$(mktemp -d "${BACKUP_DIR}/.import-${stamp}.XXXX")"
+	IMPORT_RESTORE="$(mktemp -d "${BACKUP_DIR}/.restore-${stamp}.XXXX")"
+	trap 'rm -rf -- "${IMPORT_STAGE:-}" "${IMPORT_RESTORE:-}"' EXIT
+	local stage="$IMPORT_STAGE" restore="$IMPORT_RESTORE"
+
+	# Split the plan into staged files. Only the frame headers are interpreted;
+	# file content is written through untouched.
+	head -c "$MAX_IMPORT_BYTES" | awk -v dir="$stage" '
+		/^===GHOTI-IMPORT-FILE /{ f = dir "/" $2; next }
+		/^===GHOTI-IMPORT-END$/ { f = ""; next }
+		f { print > f }
+	'
+
+	local staged=()
+	local path base
+	for path in "$stage"/*; do
+		[[ -e "$path" ]] || continue
+		base="$(basename -- "$path")"
+		# Re-validate every filename the plan asked for: same rule as write(),
+		# applied to the stem. A root helper never trusts its caller.
+		[[ "$base" == *.conf ]] || die "plan contains a non-.conf file: $base" 1
+		require_name "${base%.conf}"
+		[[ -s "$path" ]] || die "plan contains an empty file: $base" 1
+		staged+=("$base")
+	done
+	[[ ${#staged[@]} -gt 0 ]] || die "the import plan is empty" 1
+
+	# Refuse to clobber anything already in place - an import is a one-time
+	# migration, not an overwrite.
+	for base in "${staged[@]}"; do
+		[[ -e "${DROPIN_DIR}/${base}" ]] && die "${DROPIN_DIR}/${base} already exists; nothing was changed" 1
+	done
+
+	cp -p -- "$source" "${restore}/source.orig"
+
+	local applied=()
+	local failed=""
+	for base in "${staged[@]}"; do
+		if ! install -o root -g root -m 0644 -- "${stage}/${base}" "${DROPIN_DIR}/${base}"; then
+			failed="could not write ${DROPIN_DIR}/${base}"
+			break
+		fi
+		applied+=("$base")
+	done
+
+	local sourceBackup="${BACKUP_DIR}/$(basename -- "$source").${stamp}"
+	if [[ -z "$failed" ]]; then
+		cp -p -- "${restore}/source.orig" "$sourceBackup"
+		# Neutralise the source in the same pass: leaving it in place would mean
+		# every vhost defined twice, with the old copy still winning.
+		write_import_stub "$source" "$sourceBackup"
+
+		local output
+		if ! output="$("$APACHECTL" configtest 2>&1)"; then
+			failed="$output"
+		fi
+	fi
+
+	if [[ -n "$failed" ]]; then
+		for base in "${applied[@]}"; do rm -f -- "${DROPIN_DIR}/${base}"; done
+		cp -p -- "${restore}/source.orig" "$source"
+		rm -f -- "$sourceBackup"
+		rm -rf -- "$restore"
+		"$APACHECTL" configtest >/dev/null 2>&1 || true
+		printf 'import failed, everything rolled back:\n%s\n' "$failed" >&2
+		exit 2
+	fi
+
+	rm -rf -- "$stage" "$restore"
+	IMPORT_STAGE=""; IMPORT_RESTORE=""
+	trap - EXIT
+	printf 'imported %d file(s) into %s\n' "${#applied[@]}" "$DROPIN_DIR"
+	printf 'original saved to %s\n' "$sourceBackup"
+	for base in "${applied[@]}"; do printf '  %s\n' "$base"; done
+	return 0
+}
+
+# Replace the migrated source file with a note explaining where its vhosts went.
+write_import_stub() {
+	local target="$1" backup="$2"
+	{
+		printf '#############################################################################\n'
+		printf '#  Vhosts moved to %s by the ghoti vhosts module\n' "$DROPIN_DIR"
+		printf '#  on %s.\n' "$(date +%Y-%m-%d)"
+		printf '#\n'
+		printf '#  The original file was saved as:\n'
+		printf '#      %s\n' "$backup"
+		printf '#\n'
+		printf '#  Each vhost now lives in its own file there, numerically prefixed to\n'
+		printf '#  preserve the original order - which decides the default vhost per port.\n'
+		printf '#  Add new vhosts through the admin panel, or as new files in that\n'
+		printf '#  directory; do not put them back here.\n'
+		printf '#############################################################################\n'
+	} > "$target"
+}
+
 # renew <name> - force a renewal of one certificate by its certbot cert-name.
 cmd_renew() {
 	require_name "${1:-}"
@@ -181,8 +307,9 @@ case "$verb" in
 	vhost-map)   cmd_vhost_map ;;
 	list-certs)  cmd_list_certs ;;
 	write)       cmd_write "${1:-}" ;;
+	import)      cmd_import "${1:-}" ;;
 	delete)      cmd_delete "${1:-}" ;;
 	issue)       cmd_issue "${1:-}" "${2:-}" ;;
 	renew)       cmd_renew "${1:-}" ;;
-	*)           die "usage: ghoti-vhosts-helper {ping|configtest|reload|vhost-map|list-certs|write <name>|delete <name>|issue <name> <email>|renew <name>}" 1 ;;
+	*)           die "usage: ghoti-vhosts-helper {ping|configtest|reload|vhost-map|list-certs|write <name>|import <sourceFile>|delete <name>|issue <name> <email>|renew <name>}" 1 ;;
 esac

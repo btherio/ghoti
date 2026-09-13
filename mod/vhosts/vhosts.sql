@@ -16,6 +16,12 @@ create table if not exists vhosts(
 	`docRootBase` varchar(255) not null default '/etc/httpd/docs',
 	`logDir` varchar(255) not null default '/var/log/httpd',
 	`certbotEmail` varchar(255) not null default '',
+	`notifyEmail` varchar(255) not null default '',   -- where alerts go; falls back to certbotEmail
+	`notifyEnabled` int(1) not null default 0,        -- send mail on cert/config events
+	-- JSON snapshot of the last seen certbot state, keyed by certificate name.
+	-- Only the certwatch script writes it; it is how a renewal performed by
+	-- certbot's own timer (i.e. outside this panel) is noticed at all.
+	`certState` mediumtext null,
 	`enabled` int(1) not null default 0,          -- master switch for write operations
 	`updatedAt` int(11) not null default 0,
   PRIMARY KEY  (`id`)

@@ -1,1 +1,1 @@
-insert into vhosts (id,helperPath,dropInDir,readOnlyConf,docRootBase,logDir,certbotEmail,enabled,updatedAt) values (1,'/usr/local/sbin/ghoti-vhosts-helper','/etc/httpd/conf/conf.d','/etc/httpd/conf/extra/httpd-vhosts.conf','/etc/httpd/docs','/var/log/httpd','',0,0);
+insert into vhosts (id,helperPath,dropInDir,readOnlyConf,docRootBase,logDir,certbotEmail,notifyEmail,notifyEnabled,certState,enabled,updatedAt) values (1,'/usr/local/sbin/ghoti-vhosts-helper','/etc/httpd/conf/conf.d','/etc/httpd/conf/extra/httpd-vhosts.conf','/etc/httpd/docs','/var/log/httpd','','',0,null,0,0);
