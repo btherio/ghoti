@@ -472,6 +472,8 @@ function showSiteSettings(){
 function saveSiteSettings(){
 	var settings = {
 		siteTitle: $("#set-siteTitle").val(),
+		enableCriticalAlerts: $("#set-enableCriticalAlerts").is(":checked") ? 1 : 0,
+		criticalAlertEmail: $("#set-criticalAlertEmail").val(),
 		privacyOperator: $("#set-privacyOperator").val(),
 		privacyEmail: $("#set-privacyEmail").val(),
 		privacyRegion: $("#set-privacyRegion").val(),

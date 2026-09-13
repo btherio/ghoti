@@ -12,7 +12,7 @@ RedirectMatch 404 "(?:^|/)\.(?!well-known(?:/|$))[^/]+(?:/|$)"
 # Block direct HTTP access to files that contain secrets or runtime data.
 # They are still perfectly usable via PHP include/require - this only stops
 # someone downloading them through the web server.
-<FilesMatch "^(ghoti\.log|ghoti\.log\.[0-9]+|ghoti\.settings\.json|db\.config\.php|db\.config\.local\.php|db\.provisioned\.json|login\.throttle\.json(\.tmp)?)$">
+<FilesMatch "^(ghoti\.log|ghoti\.log\.[0-9]+|ghoti\.settings\.json|db\.config\.php|db\.config\.local\.php|db\.provisioned\.json|critical-alerts\.json|login\.throttle\.json(\.tmp)?)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>

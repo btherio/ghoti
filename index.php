@@ -5,6 +5,7 @@ require_once 'ghoti.php';
 
 //apply admin-managed Site Settings (ghoti.settings.json) over the defaults
 ghoti::loadSettings();
+ghoti_install_error_handlers();
 
 //initialize session
 $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);

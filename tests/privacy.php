@@ -1,4 +1,5 @@
 <?php
+if(PHP_SAPI !== 'cli'){ http_response_code(404); exit; }
 // Run: php tests/privacy.php — no real database, cookies, or settings writes.
 require_once __DIR__.'/../ghoti.php';
 require_once __DIR__.'/../mod/analytics/analytics.async.php';

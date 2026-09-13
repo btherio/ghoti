@@ -900,6 +900,10 @@ class ghotiui{
 		$o .= "<p class=\"ghotiHelpText\">Applies on the next page load. To sign in while hidden, open <a href=\"?theme=login\">?theme=login</a> on your site. This reveals the login button for that visit and keeps your current theme.</p>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableDebug\"".$chk(ghoti::$enableDebug)." /> Enable debug logging</label>\n";
 
+		$o .= '<fieldset><legend>Critical log alerts</legend>';
+		$o .= '<label class="ghotiInlineChoice"><input type="checkbox" id="set-enableCriticalAlerts"'.$chk(ghoti::$enableCriticalAlerts).' /> Email critical log alerts</label>';
+		$o .= '<label class="ghotiField"><span>Alert recipient email</span><input type="email" id="set-criticalAlertEmail" value="'.$esc(ghoti::$criticalAlertEmail).'" /></label>';
+		$o .= '<p class="ghotiHelpText">Uses Mail Settings. Sends an alert for an application error, or 5 failed-login or suspicious-access events within 15 minutes. Each category is limited to one delivery attempt per 15 minutes. Emails contain a summary, not raw logs or credentials. These signals are not a full intrusion-detection system.</p></fieldset>';
 		$o .= "<fieldset><legend>Privacy and accessibility contact</legend>";
 		foreach(array('privacyOperator' => 'Legal operator name', 'privacyEmail' => 'Public privacy / accessibility email', 'privacyRegion' => 'Province or territory') as $key => $label){
 			$type = $key === 'privacyEmail' ? 'email' : 'text';

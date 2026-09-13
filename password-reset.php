@@ -39,6 +39,8 @@ session_start();
 if (!isset($_SESSION['csrf']) || !is_string($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
 require_once __DIR__.'/ghoti.php';
+ghoti::loadSettings();
+ghoti_install_error_handlers();
 require_once __DIR__.'/mod/login/login.db.php';
 require_once __DIR__.'/mod/mail/mail.db.php';
 require_once __DIR__.'/mod/mail/mail.smtp.php';

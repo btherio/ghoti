@@ -9,6 +9,7 @@ include_once('ghoti.db.php');
 include_once('ghoti.validate.php');
 include_once('ghoti.privacy.php');
 include_once(__DIR__.'/ghoti.security.php');
+include_once(__DIR__.'/ghoti.alerts.php');
 include_once('ghoti.setup.php'); //DB-unreachable fallback: setup screen + saveDbConfig
 
 class ghoti {
@@ -30,6 +31,8 @@ class ghoti {
 	public static $privacyEmail = "";
 	public static $privacyRegion = "";
 	public static $hideLoginButton = False;       //hide public sign-in links      [UI]
+	public static $enableCriticalAlerts = False;
+	public static $criticalAlertEmail = "";
 	public static $enableDebug = False;            //enable debug logging           [UI]
 
 	/* ---------------- Logging levels ----------------
@@ -74,6 +77,8 @@ class ghoti {
 		'privacyEmail'       => 'email',
 		'privacyRegion'      => 'text',
 		'enableDebug'        => 'bool',
+		'enableCriticalAlerts' => 'bool',
+		'criticalAlertEmail'   => 'email',
 	);
 
 ################################################################
@@ -170,15 +175,19 @@ class ghoti {
 		}
 		try{
 			self::rotateLogIfNeeded();
-			$fh = fopen(ghoti::$ghotiLog, 'a') or die("Failed opening ".ghoti::$ghotiLog);
+			$fh = @fopen(ghoti::$ghotiLog, 'a');
+			if(!$fh){ throw new RuntimeException('Application log is not writable'); }
 			//Use PHP's date() instead of shelling out to `date` - the backtick spawned
 			//a process on every log line (slow), and on Windows `date` blocks waiting
 			//for interactive input, hanging the whole request.
 			fwrite($fh,"[".date('D M j g:i:s A T Y')."] ".$prefix.": ".$line."\n");
 			fclose($fh);
-		}catch (Exception $e){
-			return $e->getMessage();
+		}catch (Throwable $e){
+			error_log('Ghoti could not write the application log.');
+			ghoti_alert_log($level, $context, $line);
+			return false;
 		}
+		ghoti_alert_log($level, $context, $line);
 		return True;
 	}
 	/* ---------------- Site Settings (admin-editable) ---------------- */
@@ -221,6 +230,10 @@ class ghoti {
 		if(!is_array($settings)){ return "Invalid settings."; }
 
 		if(isset($settings['privacyEmail']) && $settings['privacyEmail'] !== '' && (!is_string($settings['privacyEmail']) || !filter_var($settings['privacyEmail'], FILTER_VALIDATE_EMAIL))){ return "Enter a valid privacy contact email."; }
+
+		$alertsEnabled = array_key_exists('enableCriticalAlerts', $settings) ? self::sanitizeSetting('bool', $settings['enableCriticalAlerts']) : self::$enableCriticalAlerts;
+		$alertEmail = $settings['criticalAlertEmail'] ?? self::$criticalAlertEmail;
+		if(($alertsEnabled || $alertEmail !== '') && (!is_string($alertEmail) || !filter_var($alertEmail, FILTER_VALIDATE_EMAIL))){ return "Enter a valid critical-alert recipient email."; }
 
 		//Give explicit feedback for a bad theme rather than silently ignoring it.
 		if(isset($settings['defaultTheme']) && $settings['defaultTheme'] !== ''
