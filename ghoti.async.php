@@ -67,7 +67,12 @@ function ghoti_async_read_request(){
 	if(ghoti_request_method() !== 'POST'){
 		return null;
 	}
-	$raw = file_get_contents('php://input');
+	$isMultipart = isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === 0;
+	$raw = $isMultipart ? '' : file_get_contents('php://input', false, null, 0, 1048577);
+	if(strlen((string)$raw) > 1048576){
+		ghoti_async_send_json(array('ok'=>false, 'error'=>'Request too large'), 413);
+		exit;
+	}
 	$payload = json_decode((string)$raw, true);
 	//Form-encoded/multipart fallback, scoped STRICTLY to file uploads: binary
 	//data can only arrive as multipart/form-data, and only the gallery and
@@ -83,6 +88,12 @@ function ghoti_async_read_request(){
 	}
 	if(!is_array($payload) || empty($payload['__ghoti_async']) || !isset($payload['fn'])){
 		return null;
+	}
+	if(!is_string($payload['fn']) || !preg_match('/^[A-Za-z][A-Za-z0-9_]{0,79}$/', $payload['fn'])
+		|| (isset($payload['token']) && !is_string($payload['token']))
+		|| (isset($payload['args']) && (!is_array($payload['args']) || count($payload['args']) > 32))){
+		ghoti_async_send_json(array('ok'=>false, 'error'=>'Invalid request'), 400);
+		exit;
 	}
 	$args = (isset($payload['args']) && is_array($payload['args'])) ? array_values($payload['args']) : array();
 	$token = isset($payload['token']) ? (string)$payload['token'] : '';
@@ -123,7 +134,7 @@ function ghoti_csrf_token(){
 			$t = ($bytes !== false && $strong) ? bin2hex($bytes) : '';
 		}
 		if($t === ''){
-			$t = md5(uniqid('ghoti', true)); // last-resort fallback, still random-ish
+			throw new RuntimeException('Secure random source unavailable.');
 		}
 		$_SESSION['csrf_token'] = $t;
 	}
@@ -147,7 +158,7 @@ function ghoti_csrf_verify($token){
  * pageId, theme, ...) is untouched.
  */
 function ghoti_free_request_objects(){
-	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','ghotidb') as $k){
+	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','mailObj','ghotidb') as $k){
 		unset($_SESSION[$k]);
 	}
 }
@@ -720,7 +731,6 @@ ghoti_async_register(
 	"saveSiteSettings",
 	"printPageManagementPanel",
 	"savePageManagement",
-	"getPage",
 	"getDefaultPage",
 	"getPageByTitle",
 	"getPageById",

@@ -208,7 +208,7 @@ function showPopup() {
 }
 
 function popupFeedBack(text){
-	$("#popupFeedback").html(text);
+	$("#popupFeedback").text(text);
 	window.setTimeout(function(){ $("#popupFeedback").html(""); },3000);
 }
 function cancelPopup(name) {
@@ -238,7 +238,7 @@ function hideMenu() {
 
 function pageFeedBack(text){
 	$("#popupTitle").html("Ghoti CMS");
-	$("#popup-content").html(text);
+	$("#popup-content").text(text);
 	showPopup();
 	setTimeout(function(){
 		$("#popup-content").html("");

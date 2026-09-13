@@ -50,9 +50,7 @@ $success = false;   // request accepted / password actually changed
 $complete = false;  // hide the form after a terminal outcome
 
 function passwordResetBaseUrl(): string {
-    $scheme = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
-    $host = preg_replace('/[^A-Za-z0-9.:\-]/', '', (string)($_SERVER['HTTP_HOST'] ?? 'localhost'));
-    return $scheme.'://'.$host.strtok((string)($_SERVER['REQUEST_URI'] ?? '/password-reset.php'), '?');
+    return ghoti_password_reset_url();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -66,12 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (strlen($email) > 254 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
                 throw new RuntimeException('Enter the email address saved on your account.');
             }
+            $resetUrl = passwordResetBaseUrl(); // Validate operator configuration before issuing a token.
             $db = new logindb();
             $userId = $db->findUserIdByEmail($email);
             if ($userId !== null) {
                 $rawToken = $db->createPasswordResetToken($userId, (string)($_SERVER['REMOTE_ADDR'] ?? ''));
                 if ($rawToken !== null) {
-                    $link = passwordResetBaseUrl().'?token='.$rawToken;
+                    $link = $resetUrl.'?token='.$rawToken;
                     $userName = $db->getUserNameById($userId);
                     $body = "A password reset was requested for your account on ".ghoti::$siteTitle.".\n\n"
                           . (is_string($userName) && $userName !== '' ? "Your username is: ".$userName."\n\n" : '')

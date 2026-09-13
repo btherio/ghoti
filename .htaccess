@@ -6,9 +6,8 @@
 Options -Indexes
 
 # Hide dot-directories (git metadata, agent dirs, ...) from HTTP.
-RedirectMatch 404 "^/\.git($|/)"
-RedirectMatch 404 "^/\.reasonix($|/)"
-RedirectMatch 404 "^/\.claude($|/)"
+# Match at any installation depth; permit ACME's .well-known directory.
+RedirectMatch 404 "(?:^|/)\.(?!well-known(?:/|$))[^/]+(?:/|$)"
 
 # Block direct HTTP access to files that contain secrets or runtime data.
 # They are still perfectly usable via PHP include/require - this only stops

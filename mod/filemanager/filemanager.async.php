@@ -57,7 +57,7 @@ function fm_root(){
 function fm_is_denied($name){
 	$name = (string)$name;
 	$low  = strtolower($name);
-	if(in_array($low, FM_DENY_BASENAMES, true)){ return true; }
+	if($low === '' || $low[0] === '.' || strpos($low, 'login.throttle.json') === 0 || in_array($low, FM_DENY_BASENAMES, true)){ return true; }
 	if(strpos($low, 'ghoti.log') === 0){ return true; }
 	return false;
 }
@@ -104,7 +104,19 @@ function fm_resolve_dir($dir){
 	$full = realpath($root.($dir === '' ? '' : '/'.$dir));
 	if($full === false){ return false; }
 	if($full !== $root && strpos($full, $root.'/') !== 0){ return false; }
+	if(!is_dir($full) || !fm_path_allowed($root, $full)){ return false; }
 	return array($root, $dir, $full);
+}
+
+// Check every canonical path component, including hidden/denied ancestors
+// reached through an otherwise harmless directory symlink.
+function fm_path_allowed($root, $path){
+	if($path === $root){ return true; }
+	if(strpos($path, $root.'/') !== 0){ return false; }
+	foreach(explode('/', substr($path, strlen($root) + 1)) as $part){
+		if(fm_is_denied($part)){ return false; }
+	}
+	return true;
 }
 
 /* Absolute path of a (validated) target inside a resolved directory. */
@@ -130,7 +142,7 @@ function fm_resolve_target($resolved, $name){
 	if($real === false){ return false; }
 	$root = $resolved[0];
 	if($real !== $root && strpos($real, $root.'/') !== 0){ return false; }
-	if(fm_is_denied(basename($real))){ return false; }
+	if(!fm_path_allowed($root, $real)){ return false; }
 	return $real;
 }
 

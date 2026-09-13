@@ -18,8 +18,8 @@
  *     and the target path is fixed (not an arbitrary-file-write primitive);
  *   - the async calls carry the session CSRF token (same as every other
  *     endpoint), so a cross-site request can't drive the form;
- *   - if the GHOTI_SETUP_KEY environment variable is set, the setup page and
- *     its endpoints additionally require that key (?k=... / payload "k"),
+ *   - GHOTI_SETUP_KEY is mandatory: without it web setup is disabled.
+ *     The setup page and its endpoints require that key (?k=... / payload "k"),
  *     turning the outage window into a locked door instead of an open portal;
  *   - raw PDO error text is flattened and truncated so it stays useful for the
  *     operator without becoming a network-probing oracle.
@@ -32,7 +32,7 @@ function ghoti_setup_allowed_drivers(){
 	return array('mysql');
 }
 
-/* Optional setup key from the environment; '' means "no key configured". */
+/* Operator-provided setup key; an empty value disables web setup. */
 function ghoti_setup_configured_key(){
 	$key = getenv('GHOTI_SETUP_KEY');
 	return is_string($key) ? $key : '';
@@ -170,7 +170,7 @@ function ghoti_setup_save_config($input){
  */
 function ghoti_setup_access_ok($presentedKey, $token){
 	$key = ghoti_setup_configured_key();
-	if($key !== '' && (!is_string($presentedKey) || !hash_equals($key, $presentedKey))){
+	if($key === '' || !is_string($presentedKey) || !hash_equals($key, $presentedKey)){
 		return false;
 	}
 	return ghoti_csrf_verify($token);
@@ -184,6 +184,13 @@ function ghoti_setup_access_ok($presentedKey, $token){
  */
 function ghoti_setup_dispatch(){
 	$key = ghoti_setup_configured_key();
+	if($key === ''){
+		http_response_code(503);
+		header('Content-Type: text/plain; charset=utf-8');
+		header('Cache-Control: no-store');
+		echo 'Database unavailable. Web setup is disabled until the operator configures GHOTI_SETUP_KEY.';
+		exit;
+	}
 	$req = ghoti_async_read_request();
 	if($req !== null){
 		list($fn, $args, $token) = $req;
