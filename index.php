@@ -56,7 +56,7 @@ if(!ghotidb::isConfigured()){
 $_SESSION['ghotiObj'] = new ghoti();
 
 //load the modules add module name into array like "module1","module2"
-$modules = array("links","login","banners","comments","analytics","gallery","filemanager","mail");
+$modules = array("links","login","banners","comments","analytics","gallery","filemanager","mail","vhosts");
 $_SESSION['ghotiObj']->loadModules($modules);
 
 //Initialize each module you want active
@@ -70,6 +70,7 @@ $_SESSION['analyticsObj'] = new analytics();
 $_SESSION['galleryObj'] = new gallery();
 $_SESSION['mailObj'] = new mail();
 $_SESSION['filemanagerObj'] = new filemanager();
+$_SESSION['vhostsObj'] = new vhosts();
 //(removed the unused $_SESSION['ghotidb'] = new ghotidb() - it was written every
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
 //dispatch an async (fetch) call if this request is one; otherwise fall

@@ -1,0 +1,208 @@
+/*
+ * vhosts.css - Apache vhost + certificate admin panel.
+ * Reuses the shared ghoti admin classes (ghotiButton, ghotiCrudHeader,
+ * ghotiForm, ghotiHelpText, ghotiDocs...) and adds only what the card grid,
+ * tab strip and expiry meters need.
+ *
+ * Colours are set with rgba() over whatever the active theme paints behind
+ * them, so this panel keeps working on the light and dark themes alike.
+ */
+
+/* Tab strip */
+.vhTabs{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin: 0 0 1.1rem;
+	border-bottom: 1px solid rgba(127,127,160,0.3);
+}
+.vhTab{
+	appearance: none;
+	border: 1px solid transparent;
+	border-bottom: none;
+	border-radius: 10px 10px 0 0;
+	background: transparent;
+	padding: 0.5rem 1rem;
+	font: inherit;
+	font-weight: 600;
+	color: inherit;
+	opacity: 0.65;
+	cursor: pointer;
+}
+.vhTab:hover{ opacity: 1; background: rgba(127,127,160,0.08); }
+.vhTabActive{
+	opacity: 1;
+	border-color: rgba(127,127,160,0.3);
+	background: rgba(139,92,246,0.12);
+	box-shadow: inset 0 -2px 0 #8b5cf6;
+}
+
+/* Header action cluster */
+.vhHeaderActions{ display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+/* Section headings with a count chip */
+.vhSectionTitle{
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 1.4rem 0 0.3rem;
+	font-size: 1.02rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	opacity: 0.75;
+}
+.vhCount{
+	font-size: 0.78rem;
+	letter-spacing: 0;
+	padding: 0.08rem 0.5rem;
+	border-radius: 999px;
+	background: rgba(127,127,160,0.18);
+}
+
+/* Card grid: one card per vhost or certificate */
+.vhGrid{
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+	gap: 0.8rem;
+	margin: 0.6rem 0 0.4rem;
+}
+.vhCard{
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.85rem 0.95rem;
+	border: 1px solid rgba(127,127,160,0.3);
+	border-left: 3px solid rgba(127,127,160,0.45);
+	border-radius: 12px;
+	background: rgba(127,127,160,0.06);
+}
+.vhCardSsl{ border-left-color: #10b981; }
+.vhCardHead{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.4rem;
+}
+.vhCardName{
+	font-weight: 700;
+	font-size: 1.02rem;
+	word-break: break-all;
+}
+.vhAliases{ font-size: 0.82rem; opacity: 0.7; word-break: break-all; }
+
+/* Badges */
+.vhBadges{ display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.vhBadge{
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: 0.12rem 0.45rem;
+	border-radius: 999px;
+	background: rgba(127,127,160,0.2);
+	white-space: nowrap;
+}
+.vhBadgePort{ font-family: monospace; text-transform: none; letter-spacing: 0; }
+.vhBadgeSsl{ background: rgba(16,185,129,0.22); color: #047857; }
+.vhBadgeManaged{ background: rgba(139,92,246,0.22); color: #6d28d9; }
+.vhBadgeExternal{ background: rgba(127,127,160,0.22); }
+.vhBadge-ok{ background: rgba(16,185,129,0.22); color: #047857; }
+.vhBadge-due{ background: rgba(245,158,11,0.24); color: #92400e; }
+.vhBadge-urgent,
+.vhBadge-expired{ background: rgba(239,68,68,0.24); color: #991b1b; }
+.vhBadge-unknown{ background: rgba(127,127,160,0.22); }
+
+/* Fact list inside a card */
+.vhFacts{
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.15rem 0.6rem;
+	margin: 0;
+	font-size: 0.85rem;
+}
+.vhFacts dt{
+	font-size: 0.68rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	opacity: 0.6;
+	padding-top: 0.1rem;
+}
+.vhFacts dd{ margin: 0; word-break: break-all; }
+.vhFacts code{ font-size: 0.82rem; }
+
+.vhCardActions{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin-top: auto;
+	padding-top: 0.3rem;
+}
+.vhCardActions .ghotiButton{ font-size: 0.82rem; padding: 0.3rem 0.7rem; }
+.ghotiButtonDanger{ background: #dc2626; border-color: #dc2626; color: #fff; }
+.ghotiButtonDanger:hover{ background: #b91c1c; border-color: #b91c1c; }
+
+/* Certificate expiry meter, scaled to the 90-day Let's Encrypt lifetime */
+.vhMeter{
+	height: 6px;
+	border-radius: 999px;
+	background: rgba(127,127,160,0.22);
+	overflow: hidden;
+}
+.vhMeter > span{ display: block; height: 100%; border-radius: 999px; background: #10b981; }
+.vhCert-due .vhMeter > span{ background: #f59e0b; }
+.vhCert-urgent .vhMeter > span,
+.vhCert-expired .vhMeter > span{ background: #ef4444; }
+.vhCert-due{ border-left-color: #f59e0b; }
+.vhCert-urgent,
+.vhCert-expired{ border-left-color: #ef4444; }
+
+/* Notices */
+.vhNotice{
+	padding: 0.75rem 0.9rem;
+	margin: 0 0 1rem;
+	border: 1px solid rgba(127,127,160,0.3);
+	border-left: 3px solid #8b5cf6;
+	border-radius: 10px;
+	background: rgba(127,127,160,0.07);
+	font-size: 0.9rem;
+}
+.vhNotice p{ margin: 0.5rem 0 0; }
+.vhNoticeWarn{ border-left-color: #f59e0b; background: rgba(245,158,11,0.09); }
+.vhNoticeOk{ border-left-color: #10b981; background: rgba(16,185,129,0.09); }
+
+.vhEmpty{
+	padding: 1.1rem;
+	border: 1px dashed rgba(127,127,160,0.4);
+	border-radius: 12px;
+	text-align: center;
+	font-size: 0.9rem;
+	opacity: 0.75;
+}
+
+/* Command output + raw config. Long apachectl/certbot output scrolls inside
+   the block rather than stretching the popup. */
+.vhCode,
+.vhOutput{
+	max-height: 22rem;
+	overflow: auto;
+	padding: 0.7rem 0.85rem;
+	margin: 0.5rem 0 0;
+	border: 1px solid rgba(127,127,160,0.3);
+	border-radius: 10px;
+	background: rgba(15,15,25,0.06);
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.8rem;
+	line-height: 1.45;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.vhOutput{ margin-top: 1rem; }
+
+@media (max-width: 640px){
+	.vhGrid{ grid-template-columns: 1fr; }
+	.vhHeaderActions{ width: 100%; }
+	.vhHeaderActions .ghotiButton{ flex: 1 1 auto; }
+	.vhFacts{ grid-template-columns: 1fr; }
+	.vhFacts dt{ padding-top: 0.3rem; }
+}
