@@ -35,13 +35,18 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/comments/comments.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/links/links.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/login/login.js'); ?>"></script>
-<script type="text/javascript" src="<?php echo $ghotiAsset('mod/analytics/analytics.js'); ?>"></script>
+<?/* Filename avoids "analytics.js" - Firefox ETP / uBlock Origin block that
+     path via the Disconnect tracker list, even though this file just draws
+     admin-only SVG charts and contains no tracking code. */?>
+<script type="text/javascript" src="<?php echo $ghotiAsset('mod/analytics/charts.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/gallery/gallery.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/filemanager/filemanager.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/mail/mail.js'); ?>"></script>
+<script type="text/javascript" src="<?php echo $ghotiAsset('mod/vhosts/vhosts.js'); ?>"></script>
 
 <?/*Main ghoti stylesheet*/?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('css/ghoti/ghoti.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/analytics/analytics.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/gallery/gallery.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/filemanager/filemanager.css'); ?>" />
+<link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/vhosts/vhosts.css'); ?>" />

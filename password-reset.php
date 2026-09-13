@@ -72,7 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $rawToken = $db->createPasswordResetToken($userId, (string)($_SERVER['REMOTE_ADDR'] ?? ''));
                 if ($rawToken !== null) {
                     $link = passwordResetBaseUrl().'?token='.$rawToken;
+                    $userName = $db->getUserNameById($userId);
                     $body = "A password reset was requested for your account on ".ghoti::$siteTitle.".\n\n"
+                          . (is_string($userName) && $userName !== '' ? "Your username is: ".$userName."\n\n" : '')
                           . "To choose a new password, open this link within 30 minutes:\n".$link."\n\n"
                           . "If you did not request this, you can ignore this email - your password will not change.\n";
                     $mailDb = new maildb();
@@ -137,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reset password</title><style>
-:root{color-scheme:light dark}body{font:16px/1.5 system-ui,sans-serif;background:#eef2f6;color:#18202a;margin:0;padding:2rem}main{max-width:30rem;margin:7vh auto;background:#fff;padding:clamp(1.4rem,5vw,2.25rem);border-radius:.8rem;box-shadow:0 8px 30px #0002}label{display:block;margin:1rem 0;font-weight:600}.field{display:block;width:100%;box-sizing:border-box;padding:.75rem;margin-top:.35rem;font:inherit}button{padding:.75rem 1rem;font:inherit;cursor:pointer}.message{padding:.8rem;background:#f7e8e8;border-radius:.4rem}.success{background:#e4f4e7}.help{color:#536273;font-size:.94rem}.actions{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1.25rem}@media(prefers-color-scheme:dark){body{background:#121820;color:#e9eef4}main{background:#202a35}.help{color:#b9c5d2}.message{background:#512d32}.success{background:#204a2a}}
+:root{color-scheme:light dark}body{font:16px/1.5 system-ui,sans-serif;background:#eef2f6;color:#18202a;margin:0;padding:2rem}main{max-width:30rem;margin:7vh auto;background:#fff;padding:clamp(1.4rem,5vw,2.25rem);border-radius:.8rem;box-shadow:0 8px 30px #0002}label{display:block;margin:1rem 0;font-weight:600}.field{display:block;width:100%;box-sizing:border-box;padding:.75rem;margin-top:.35rem;font:inherit}.passwordInput{display:flex;margin-top:.35rem}.passwordInput .field{margin:0;border-radius:.3rem 0 0 .3rem}.passwordToggle{width:2.25rem;padding:0;border:1px solid currentColor;border-left:0;border-radius:0 .3rem .3rem 0;background:#e5ebf2;color:#364656;font-size:.78rem;opacity:.65;cursor:pointer}.passwordToggle:hover,.passwordToggle:focus-visible{background:#d1dce8;opacity:1;outline:2px solid #2563eb;outline-offset:2px}button{padding:.75rem 1rem;font:inherit;cursor:pointer}.message{padding:.8rem;background:#f7e8e8;border-radius:.4rem}.success{background:#e4f4e7}.help{color:#536273;font-size:.94rem}.actions{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1.25rem}@media(prefers-color-scheme:dark){body{background:#121820;color:#e9eef4}main{background:#202a35}.help{color:#b9c5d2}.message{background:#512d32}.success{background:#204a2a}.passwordToggle{background:#293746;color:#d9e3ed}.passwordToggle:hover,.passwordToggle:focus-visible{background:#36495d}}
 </style></head><body><main>
 <?php if ($mode === 'request'): ?>
 <h1>Reset password</h1>
@@ -158,10 +160,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <form method="post" autocomplete="off">
 <input type="hidden" name="csrf" value="<?=htmlspecialchars((string)$_SESSION['csrf'],ENT_QUOTES,'UTF-8')?>">
 <input type="hidden" name="token" value="<?=htmlspecialchars($token,ENT_QUOTES,'UTF-8')?>">
-<label>New password<input class="field" type="password" name="password" minlength="8" maxlength="4096" required autocomplete="new-password"></label>
-<label>Confirm new password<input class="field" type="password" name="confirm" minlength="8" maxlength="4096" required autocomplete="new-password"></label>
+<label>New password<span class="passwordInput"><input class="field" type="password" name="password" minlength="8" maxlength="4096" required autocomplete="new-password"><button type="button" class="passwordToggle" onclick="togglePassword(this)" aria-label="Show password" title="Show password">&#128065;</button></span></label>
+<label>Confirm new password<span class="passwordInput"><input class="field" type="password" name="confirm" minlength="8" maxlength="4096" required autocomplete="new-password"><button type="button" class="passwordToggle" onclick="togglePassword(this)" aria-label="Show password" title="Show password">&#128065;</button></span></label>
 <div class="actions"><button type="submit">Reset password</button><a href="/">Cancel</a></div>
 </form>
 <?php else: ?><p><a href="/">Return to the site</a></p><?php endif; ?>
 <?php endif; ?>
-</main></body></html>
+</main><script>
+function togglePassword(button) {
+    var input = button.parentNode.querySelector('input');
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    button.setAttribute('title', show ? 'Hide password' : 'Show password');
+    button.setAttribute('aria-pressed', show ? 'true' : 'false');
+}
+</script></body></html>

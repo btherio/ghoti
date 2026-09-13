@@ -57,6 +57,28 @@ function saveMailSettings($settings){
 		$password = (string)($settings['smtpPassword'] ?? '');
 		$clean['smtpPassword'] = substr($password, 0, 255);
 
+		$clean['tlsVerify'] = (bool)$v->boolInt($settings['tlsVerify'] ?? 1);
+		//A filesystem path, not display text: text() would mangle it. Cap the
+		//length, reject anything that isn't a plausible absolute path, and make
+		//sure PHP can actually read it - a silently-wrong CA path would surface
+		//later as an opaque "certificate verify failed" mid-send.
+		$caFile = trim((string)($settings['tlsCaFile'] ?? ''));
+		if($caFile !== ''){
+			if(strlen($caFile) > 255 || !preg_match('#^/[A-Za-z0-9._/-]+$#', $caFile)){
+				return "The CA certificate path must be an absolute path (letters, digits, . _ - / only).";
+			}
+			if(!is_file($caFile) || !is_readable($caFile)){
+				return "The CA certificate file \"".$caFile."\" does not exist or is not readable by the web server.";
+			}
+		}
+		$clean['tlsCaFile'] = $caFile;
+
+		$peerName = strtolower(trim((string)($settings['tlsPeerName'] ?? '')));
+		if($peerName !== '' && !preg_match('/^[a-z0-9]([a-z0-9.-]{0,253}[a-z0-9])?$/', $peerName)){
+			return "The expected certificate name must be a hostname, not an IP address or URL.";
+		}
+		$clean['tlsPeerName'] = $peerName;
+
 		$clean['fromAddress'] = ($settings['fromAddress'] ?? '') !== '' ? $v->email($settings['fromAddress']) : '';
 		$clean['fromName'] = $v->text($settings['fromName'] ?? '', 120, false, "From name");
 		$clean['enabled'] = (bool)$v->boolInt($settings['enabled'] ?? 0);
@@ -69,6 +91,9 @@ function saveMailSettings($settings){
 	}
 	if($_SESSION["mailObj"]->maildb->saveSettings($clean)){
 		ghoti::logInfo("mail.async.php:saveMailSettings", "Mail settings updated by UID:".($_SESSION['userId'] ?? '?')." from ".mailRemoteAddr());
+		if($clean['encryption'] !== 'none' && !$clean['tlsVerify']){
+			ghoti::logWarn("mail.async.php:saveMailSettings", "TLS certificate verification DISABLED for ".$clean['smtpHost'].":".$clean['smtpPort']." by UID:".($_SESSION['userId'] ?? '?'));
+		}
 		return true;
 	}
 	return "Could not save mail settings. Check the log.";
@@ -116,6 +141,11 @@ class mailui{
 				'list' => array('Host <code>127.0.0.1</code>, port <b>25</b>, encryption <b>None</b>, and no username/password work for a local Postfix/Exim relay that trusts connections from localhost.', 'Confirm the server is listening: <code>ss -tlnp | grep :25</code> and that it relays for your domain.')),
 			array('heading' => 'Remote or authenticated relay',
 				'list' => array('Use port <b>587</b> with <b>STARTTLS</b>, or port <b>465</b> with <b>Implicit TLS (SSL)</b>.', 'Fill in a username/password only if the server requires <code>AUTH</code>.')),
+			array('heading' => 'TLS certificates',
+				'list' => array('Certificates are verified by default. Leave <b>Verify certificate</b> checked.',
+					'A LAN mail server usually presents a <i>self-signed</i> certificate that the system CA store does not know, so verification fails with <code>certificate verify failed</code>. Fix it by trusting that one server, not by switching verification off: put its certificate somewhere readable outside the web root and give the path as <b>CA certificate file</b>.',
+					'If you dial the server by IP, its certificate name will not match. Put the name from the certificate (e.g. <code>mail.example.com</code>) in <b>Expected certificate name</b> and verification will check against that.',
+					'Unchecking <b>Verify certificate</b> accepts any certificate, including an attacker\'s, and logs a warning. Use it only to confirm a diagnosis, never as the final setting.')),
 			array('heading' => 'From address',
 				'list' => array('Must be an address your mail server is allowed to send as, or delivery will be rejected/spam-filtered by the receiving side (SPF/DMARC).')),
 			array('heading' => 'Enable + test',
@@ -131,10 +161,13 @@ class mailui{
 		$o .= "<option value=\"ssl\"".$selEnc('ssl',$settings['encryption']).">Implicit TLS (SSL)</option>\n";
 		$o .= "</select></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>SMTP username <i>(optional)</i></span><input type=\"text\" id=\"mail-smtpUsername\" size=\"30\" maxlength=\"255\" autocomplete=\"off\" value=\"".$esc($settings['smtpUsername'])."\" /></label>\n";
-		$o .= "<label class=\"ghotiField\"><span>SMTP password <i>(optional)</i></span><input type=\"password\" id=\"mail-smtpPassword\" size=\"30\" maxlength=\"255\" autocomplete=\"new-password\" value=\"".$esc($settings['smtpPassword'])."\" /></label>\n";
+		$o .= "<label class=\"ghotiField\"><span>SMTP password <i>(optional)</i></span><span class=\"ghotiPasswordInput\"><input type=\"password\" id=\"mail-smtpPassword\" size=\"30\" maxlength=\"255\" autocomplete=\"new-password\" value=\"".$esc($settings['smtpPassword'])."\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
+		$o .= "<label class=\"ghotiField\"><span>CA certificate file <i>(optional)</i></span><input type=\"text\" id=\"mail-tlsCaFile\" size=\"30\" maxlength=\"255\" placeholder=\"/etc/ssl/ghoti/mailserver.pem\" value=\"".$esc($settings['tlsCaFile'])."\" /></label>\n";
+		$o .= "<label class=\"ghotiField\"><span>Expected certificate name <i>(optional)</i></span><input type=\"text\" id=\"mail-tlsPeerName\" size=\"30\" maxlength=\"255\" placeholder=\"mail.example.com\" value=\"".$esc($settings['tlsPeerName'])."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>From address</span><input type=\"email\" id=\"mail-fromAddress\" size=\"30\" maxlength=\"190\" value=\"".$esc($settings['fromAddress'])."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>From name <i>(optional)</i></span><input type=\"text\" id=\"mail-fromName\" size=\"30\" maxlength=\"120\" value=\"".$esc($settings['fromName'])."\" /></label>\n";
 		$o .= "</div>\n";
+		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"mail-tlsVerify\"".$chk($settings['tlsVerify'])." /> Verify certificate &mdash; leave on; use the CA file / name fields above for a self-signed server</label>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"mail-enabled\"".$chk($settings['enabled'])." /> Enabled &mdash; allow this site to send mail</label>\n";
 		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveMailSettings();\">Save Settings</button></div>\n";
 		$o .= "</form>\n";

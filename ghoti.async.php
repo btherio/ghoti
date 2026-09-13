@@ -147,7 +147,7 @@ function ghoti_csrf_verify($token){
  * pageId, theme, ...) is untouched.
  */
 function ghoti_free_request_objects(){
-	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','ghotidb') as $k){
+	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','mailObj','vhostsObj','ghotidb') as $k){
 		unset($_SESSION[$k]);
 	}
 }

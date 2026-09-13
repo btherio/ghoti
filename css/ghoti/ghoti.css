@@ -419,7 +419,7 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
   font-size: .9rem;
   font-weight: 650;
 }
-.ghotiField span{
+.ghotiField > span{
   color: var(--muted);
   font-size: .76rem;
   font-weight: 750;
@@ -429,6 +429,32 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
 .ghotiField input,
 .ghotiField select,
 .ghotiField textarea{ width: 100%; }
+.ghotiPasswordInput{
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+}
+.ghotiPasswordInput input{
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.ghotiPasswordToggle{
+  flex: 0 0 auto;
+  width: 2.15rem;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-left: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: .78rem;
+  opacity: .65;
+  cursor: pointer;
+}
+.ghotiPasswordToggle:hover,
+.ghotiPasswordToggle:focus-visible{ background: var(--surface-3); color: var(--text); opacity: 1; }
+.ghotiPasswordToggle:focus-visible{ outline: none; box-shadow: var(--ring); }
 .ghotiFieldWide{ grid-column: span 2; }
 .ghotiFormActions{
   display: flex;

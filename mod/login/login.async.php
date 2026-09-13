@@ -201,8 +201,15 @@ function loginCaptchaHtml($purpose,$inputId){
 		return "<p class=\"captchaBlock\">Security check unavailable. Please try again later.</p>\n";
 	}
 	$question = htmlspecialchars($question, ENT_QUOTES);
+	$purpose = htmlspecialchars($purpose, ENT_QUOTES);
 	$inputId = htmlspecialchars($inputId, ENT_QUOTES);
-	return "<div class=\"captchaBlock\"><label class=\"ghotiField\"><span>Security check</span><strong class=\"captchaQuestion\">".$question."</strong><input type=\"text\" id=\"".$inputId."\" size=\"10\" autocomplete=\"off\" inputmode=\"numeric\" /></label></div>\n";
+	return "<div id=\"loginCaptcha-".$purpose."\" class=\"captchaBlock\"><label class=\"ghotiField\"><span>Security check</span><strong class=\"captchaQuestion\">".$question."</strong><input type=\"text\" id=\"".$inputId."\" size=\"10\" autocomplete=\"off\" inputmode=\"numeric\" /></label></div>\n";
+}
+
+//Returns a new challenge after each registration attempt. Replacing only this
+//block preserves the visitor's username, email, and password entries.
+function refreshRegisterCaptcha(){
+	return loginCaptchaHtml('register','registerForm-captcha');
 }
 
 function loginCaptchaVerify($purpose,$answer){
@@ -516,6 +523,7 @@ function printRegisterForm(){
 ghoti_async_register(
 	"checkGetLogin",
 	"addUser",
+	"refreshRegisterCaptcha",
 	"changePassword",
 	"checkLogin",
 	"deleteUser",
@@ -559,6 +567,7 @@ class loginui{
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showMailSettings');\">Mail Settings</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showVhosts');\">Apache Vhosts</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"showSiteSettings();\">Site Settings</a></li>\n";
 		$this->output .= "</ul>\n";
 		return $this->output;
@@ -567,7 +576,7 @@ class loginui{
 	public function printLoginForm(){
 		$this->output = "<div id=\"ghotiLogin\"><form id=\"loginForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"login(); return false;\">\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Username</span><input type=\"text\" name=\"userName\" id=\"userName\" size=\"20\" autocomplete=\"username\" autocapitalize=\"none\" spellcheck=\"false\" /></label>\n";
-		$this->output .= "<label class=\"ghotiField\"><span>Password</span><input type=\"password\" name=\"password\" id=\"password\" size=\"20\" autocomplete=\"current-password\" /></label>\n";
+		$this->output .= "<label class=\"ghotiField\"><span>Password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password\" id=\"password\" size=\"20\" autocomplete=\"current-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
 		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Login</button>\n";
 		if(ghoti::$allowRegister == true){
 			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"printRegisterForm();\">Register</button>\n";
@@ -585,8 +594,8 @@ class loginui{
 		$this->output = "<div id=\"ghotiLogin\"><form id=\"registerForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"register(); return false;\">\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Username</span><input type=\"text\" name=\"userName\" id=\"registerForm-userName\" size=\"20\" autocomplete=\"username\" autocapitalize=\"none\" spellcheck=\"false\" /></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>E-mail</span><input type=\"email\" name=\"email\" id=\"registerForm-email\" size=\"20\" autocomplete=\"email\" /></label>\n";
-		$this->output .= "<label class=\"ghotiField\"><span>Password</span><input type=\"password\" name=\"password\" id=\"registerForm-password\" size=\"20\" autocomplete=\"new-password\" /></label>\n";
-		$this->output .= "<label class=\"ghotiField\"><span>Password again</span><input type=\"password\" name=\"password1\" id=\"registerForm-password1\" size=\"20\" autocomplete=\"new-password\" /></label>\n";
+		$this->output .= "<label class=\"ghotiField\"><span>Password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password\" id=\"registerForm-password\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
+		$this->output .= "<label class=\"ghotiField\"><span>Password again</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password1\" id=\"registerForm-password1\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
 		$this->output .= loginCaptchaHtml('register','registerForm-captcha');
 		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Register</button></div>\n";
 		$this->output .= "</form><span id=\"loginFeedback\"></span></div>\n";
@@ -595,9 +604,9 @@ class loginui{
 
 	public function printChangePasswordForm(){
 		$this->output = "<form id=\"changePasswordForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"changePassword(); return false;\">";
-		$this->output .= "<label class=\"ghotiField\"><span>Old password</span><input type=\"password\" id=\"chpw-password\" size=\"20\" autocomplete=\"current-password\" /></label>";
-		$this->output .= "<label class=\"ghotiField\"><span>New password</span><input type=\"password\" id=\"chpw-newPassword1\" size=\"20\" autocomplete=\"new-password\" /></label>";
-		$this->output .= "<label class=\"ghotiField\"><span>New password again</span><input type=\"password\" id=\"chpw-newPassword2\" size=\"20\" autocomplete=\"new-password\" /></label>";
+		$this->output .= "<label class=\"ghotiField\"><span>Old password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" id=\"chpw-password\" size=\"20\" autocomplete=\"current-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>";
+		$this->output .= "<label class=\"ghotiField\"><span>New password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" id=\"chpw-newPassword1\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>";
+		$this->output .= "<label class=\"ghotiField\"><span>New password again</span><span class=\"ghotiPasswordInput\"><input type=\"password\" id=\"chpw-newPassword2\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>";
 		$this->output .= loginCaptchaHtml('changePassword','chpw-captcha');
 		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Change Password</button>";
 		$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonDanger ghotiMenu\" onclick=\"printDeleteUserDialog();\">Remove Account</button></div></form>";

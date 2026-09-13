@@ -1,0 +1,14 @@
+# /etc/sudoers.d/ghoti-vhosts - install as root:root mode 0440, then run
+# `visudo -c` to confirm it parses. A syntax error in this directory can lock
+# every sudo user out of the machine.
+#
+# Grants the web server user exactly one command with no password. The helper
+# itself must stay root-owned and NOT group/world-writable, or this rule hands
+# `http` a root shell - verify with:
+#
+#   ls -l /usr/local/sbin/ghoti-vhosts-helper   # -rwxr-xr-x root root
+#
+# Change `http` below if your Apache runs as a different user (check the User
+# directive in httpd.conf).
+http ALL=(root) NOPASSWD: /usr/local/sbin/ghoti-vhosts-helper
+Defaults!/usr/local/sbin/ghoti-vhosts-helper !requiretty

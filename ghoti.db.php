@@ -48,7 +48,7 @@ class ghotidb{
     private static $pdo = null;
 
     /* Module names allowed to be auto-provisioned via loadModuleSql(). */
-    private static $validModules = array('pages','banners','comments','links','login','analytics','gallery','mail');
+    private static $validModules = array('pages','banners','comments','links','login','analytics','gallery','mail','vhosts');
     private static $moduleInitState = array();
     private static $pageSchemaReady = false;
     const PAGE_SCHEMA_VERSION = 1;
@@ -137,8 +137,14 @@ class ghotidb{
             //remains fully safe against SQL injection.
             PDO::ATTR_EMULATE_PREPARES   => true,
             PDO::ATTR_PERSISTENT         => false,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET sql_mode=''"
         );
+        //MYSQL_ATTR_* constants only exist once pdo_mysql is loaded - guard both
+        //the same way, rather than assuming the extension is always present
+        //(a transient PHP-FPM reload can serve a request before it's loaded,
+        //which previously threw "Undefined constant" and broke isConfigured()).
+        if ($driver === 'mysql' && defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+            $pdoOptions[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET sql_mode=''";
+        }
         if ($driver === 'mysql' && defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
             $pdoOptions[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = true;
         }
