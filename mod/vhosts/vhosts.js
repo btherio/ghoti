@@ -1,8 +1,13 @@
 /*
  * vhosts.js - admin "Apache Vhosts" panel wiring.
  *
- * Same shape as mail.js / filemanager.js: showX() fetches + renders a pane into
- * the popup, saveX() reads the form fields and posts them back.
+ * showX() fetches a pane and renders it into the page body via printPage()
+ * (#ghotiContent), the same way Site Settings and the Page Manager do - not
+ * into the popup. These panes are wide: card grids, an import plan table, raw
+ * config blocks and multi-line command output all need the full column, and
+ * they are worked through rather than glanced at.
+ *
+ * saveX() reads the form fields and posts them back.
  *
  * Results from privileged actions are multi-line command output (configtest
  * errors, certbot logs), which pageFeedBack()'s 3-second toast would throw away
@@ -11,16 +16,13 @@
  */
 
 function showVhosts(){
-	x_printVhostsPanel(popup_cb);
-	$("#popupTitle").text("Apache Vhosts");
+	x_printVhostsPanel(printPage);
 }
 function showVhostCertificates(){
-	x_printCertificates(popup_cb);
-	$("#popupTitle").text("Certificates");
+	x_printCertificates(printPage);
 }
 function showVhostImport(){
-	x_printVhostImport(popup_cb);
-	$("#popupTitle").text("Import Vhosts");
+	x_printVhostImport(printPage);
 }
 /* Two-step, like deleteVhost: this rewrites every vhost file on the server, so
  * a stray click should not start it. */
@@ -40,18 +42,15 @@ function importVhosts_cb(result){
 }
 
 function showVhostsSettings(){
-	x_printVhostsSettingsForm(popup_cb);
-	$("#popupTitle").text("Vhost Settings");
+	x_printVhostsSettingsForm(printPage);
 }
 function newVhost(){
-	x_printVhostForm("", popup_cb);
-	$("#popupTitle").text("New vhost");
+	x_printVhostForm("", printPage);
 }
 /* key is whatever the card rendered: a managed vhost's file stem, or an
  * external block's "file.conf:startLine". */
 function editVhost(key){
-	x_printVhostForm(key, popup_cb);
-	$("#popupTitle").text("Vhost");
+	x_printVhostForm(key, printPage);
 }
 
 /* Show command output in the panel's own <pre>, scrolled into view. Falls back
