@@ -930,9 +930,9 @@ class ghotiui{
 		$o .= "<form id=\"siteSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveSiteSettings(); return false;\">\n";
 		$o .= "<div class=\"siteSettingsGrid\">\n";
 
-		/* ---- Identity: what a visitor sees first ---- */
+		/* ---- Identity: site presentation and public operator details ---- */
 		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide\"><legend>Identity</legend>\n";
-		$o .= "<p class=\"siteSettingsSectionIntro\">The name and look the site presents to everyone.</p>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">The name, look, and public identity details the site presents to everyone.</p>\n";
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= $text("siteTitle", "Site title", ghoti::$siteTitle, "text", "", "maxlength=\"120\" ");
 		$o .= "<label class=\"ghotiField\"><span>Default theme</span><select id=\"set-defaultTheme\">\n";
@@ -941,8 +941,11 @@ class ghotiui{
 		}
 		$o .= "</select></label>\n";
 		$o .= $text("headerImg", "Header image", ghoti::$headerImg, "text", "(path)", "maxlength=\"200\" placeholder=\"gfx/ghoti-logo.png\" ");
+		$o .= $text("privacyOperator", "Legal operator name", ghoti::$privacyOperator, "text", "", "maxlength=\"120\" placeholder=\"Example Media Ltd.\" ");
+		$o .= $text("privacyEmail", "Public contact e-mail", ghoti::$privacyEmail, "email", "", "maxlength=\"190\" placeholder=\"privacy@example.com\" ");
+		$o .= $text("privacyRegion", "Province or territory", ghoti::$privacyRegion, "text", "", "maxlength=\"120\" placeholder=\"Alberta, Canada\" ");
 		$o .= "</div>\n";
-		$o .= "<p class=\"ghotiHelpText\">Theme and header image apply on the next page load. The home page is chosen in <b>Manage Pages</b>.</p>\n";
+		$o .= "<p class=\"ghotiHelpText\">Theme and header image apply on the next page load. Public identity details appear in the footer policy and accessibility notice; leave them blank to omit that notice. The home page is chosen in <b>Manage Pages</b>.</p>\n";
 		$o .= "</fieldset>\n";
 
 		/* ---- Visitor access ---- */
@@ -963,17 +966,6 @@ class ghotiui{
 		$o .= $choice("showHelpTips", "Show contextual &ldquo;How to&rdquo; tips", ghoti::$showHelpTips, "set-showHelpTips-help");
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-showHelpTips-help\">This hides expandable tips across admin screens. The complete guide remains available under <button type=\"button\" class=\"ghotiTextButton\" onclick=\"showDocumentation();\">Documentation</button>.</p>\n";
-		$o .= "</fieldset>\n";
-
-		/* ---- Privacy and accessibility ---- */
-		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Privacy &amp; accessibility</legend>\n";
-		$o .= "<p class=\"siteSettingsSectionIntro\">Published in the footer policy and accessibility notice.</p>\n";
-		$o .= "<div class=\"ghotiFormGrid\">\n";
-		$o .= $text("privacyOperator", "Legal operator name", ghoti::$privacyOperator, "text", "", "maxlength=\"120\" placeholder=\"Example Media Ltd.\" ");
-		$o .= $text("privacyEmail", "Public contact e-mail", ghoti::$privacyEmail, "email", "", "maxlength=\"190\" placeholder=\"privacy@example.com\" ");
-		$o .= $text("privacyRegion", "Province or territory", ghoti::$privacyRegion, "text", "", "maxlength=\"120\" placeholder=\"Alberta, Canada\" ");
-		$o .= "</div>\n";
-		$o .= "<p class=\"ghotiHelpText\">Leave blank to omit the notice rather than publish a placeholder.</p>\n";
 		$o .= "</fieldset>\n";
 
 		/* ---- Logging and alerts. criticalAlertEmail is the dependent field of

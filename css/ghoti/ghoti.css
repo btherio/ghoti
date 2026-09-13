@@ -506,7 +506,7 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
   text-transform: uppercase;
   letter-spacing: .07em;
 }
-/* Full width: the Identity row holds three fields, and Optional modules holds
+/* Full width: Identity holds site and public operator fields, while Optional modules holds
    a docs panel. Both look cramped in half a column. */
 #ghotiSiteSettings .siteSettingsSectionWide{
   grid-column: span 2;
