@@ -110,6 +110,7 @@ function ghotiTogglePassword(button){
  * trusted static markup.
  */
 function ghotiDocsHtml(title, hint, sections){
+	if(typeof GHOTI_SHOW_HELP_TIPS !== 'undefined' && !GHOTI_SHOW_HELP_TIPS){ return ''; }
 	var html = '<details class="ghotiDocs">';
 	html += '<summary><span class="ghotiDocsTitle">' + ghotiEscapeHtml(title) + '</span><span class="ghotiDocsHint">' + ghotiEscapeHtml(hint) + '</span></summary>';
 	html += '<div class="ghotiDocsBody">';
@@ -285,13 +286,208 @@ function changeTheme(form){
 		location.href=url;
 	}
 }
-// Page editing uses a plain textarea (#pageContentEdit) - no rich-text editor.
+var ghotiPageEditorState = { mode: 'visual', original: '', dirty: false };
+
+function ghotiSanitizeEditorUrl(value){
+	value = ghotiString(value).trim();
+	if(!value || /[\u0000-\u0020]/.test(value.replace(/^\s+|\s+$/g, ''))){ return ''; }
+	var match = value.match(/^([A-Za-z][A-Za-z0-9+.\-]*):/);
+	if(match && ['http','https','mailto'].indexOf(match[1].toLowerCase()) === -1){ return ''; }
+	return value;
+}
+
+//A client-side mirror of the authoritative PHP allowlist. It makes visual and
+//preview modes safe immediately; the server repeats this work before saving
+//and on every public render.
+function ghotiSanitizeEditorHtml(html){
+	var allowedTags = ['p','br','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','pre','code','strong','b','em','i','u','s','sub','sup','a','img','figure','figcaption','hr','div','span','section','article','table','thead','tbody','tfoot','tr','th','td'];
+	var discardTags = ['script','style','iframe','object','embed','svg','math','template','form','input','button','textarea','select','option','link','meta','base','noscript','noembed','xmp','plaintext','title','frame','frameset'];
+	var parser = new DOMParser();
+	var documentCopy = parser.parseFromString('<div id="ghoti-editor-root">' + ghotiString(html) + '</div>', 'text/html');
+	var root = documentCopy.getElementById('ghoti-editor-root');
+	if(!root){ return ''; }
+	discardTags.forEach(function(tag){
+		Array.from(root.querySelectorAll(tag)).forEach(function(node){ node.remove(); });
+	});
+	Array.from(root.querySelectorAll('*')).reverse().forEach(function(element){
+		var tag = element.tagName.toLowerCase();
+		if(allowedTags.indexOf(tag) === -1){
+			element.replaceWith.apply(element, Array.from(element.childNodes));
+			return;
+		}
+		var perTag = {
+			a: ['href','title','target','rel'],
+			img: ['src','alt','title','width','height','loading'],
+			th: ['colspan','rowspan','scope'],
+			td: ['colspan','rowspan']
+		};
+		var allowedAttributes = ['class','id','aria-label'].concat(perTag[tag] || []);
+		Array.from(element.attributes).forEach(function(attribute){
+			var name = attribute.name.toLowerCase();
+			var value = attribute.value.trim();
+			if(allowedAttributes.indexOf(name) === -1){ element.removeAttribute(name); return; }
+			if(name === 'href' || name === 'src'){
+				value = ghotiSanitizeEditorUrl(value);
+			}else if(name === 'class'){
+				value = value.split(/\s+/).filter(function(token){ return /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(token); }).slice(0,12).join(' ');
+			}else if(name === 'id'){
+				value = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(value) ? value : '';
+			}else if(['width','height','colspan','rowspan'].indexOf(name) !== -1){
+				value = /^\d+$/.test(value) ? String(Math.max(1, Math.min(4096, Number(value)))) : '';
+			}else if(name === 'target'){
+				value = ['_blank','_self'].indexOf(value) !== -1 ? value : '';
+			}else if(name === 'loading'){
+				value = ['lazy','eager'].indexOf(value.toLowerCase()) !== -1 ? value.toLowerCase() : '';
+			}else if(name === 'scope'){
+				value = ['row','col','rowgroup','colgroup'].indexOf(value.toLowerCase()) !== -1 ? value.toLowerCase() : '';
+			}else if(name === 'rel'){
+				value = value.toLowerCase().split(/\s+/).filter(function(token){ return ['noopener','noreferrer','nofollow'].indexOf(token) !== -1; }).join(' ');
+			}else{
+				value = value.replace(/[\u0000-\u001F\u007F]/g, ' ').slice(0,500);
+			}
+			if(value){ element.setAttribute(name, value); }else{ element.removeAttribute(name); }
+		});
+		if(tag === 'a' && element.getAttribute('target') === '_blank'){
+			var rel = (element.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
+			['noopener','noreferrer'].forEach(function(token){ if(rel.indexOf(token) === -1){ rel.push(token); } });
+			element.setAttribute('rel', rel.join(' '));
+		}
+		if(tag === 'img' && !element.hasAttribute('alt')){ element.setAttribute('alt',''); }
+	});
+	return root.innerHTML.trim();
+}
+
+function ghotiEditorCurrentHtml(){
+	var source = document.getElementById('pageContentEdit');
+	var visual = document.getElementById('pageContentVisual');
+	var html = ghotiPageEditorState.mode === 'source' ? source.value : visual.innerHTML;
+	return ghotiSanitizeEditorHtml(html);
+}
+
+function ghotiEditorUpdateStatus(){
+	var html = ghotiEditorCurrentHtml();
+	var sourceHasPendingMarkup = ghotiPageEditorState.mode === 'source' && document.getElementById('pageContentEdit').value.trim() !== html;
+	var holder = document.createElement('div');
+	holder.innerHTML = html;
+	var text = (holder.textContent || '').replace(/\s+/g,' ').trim();
+	var words = text ? text.split(' ').length : 0;
+	$('#ghotiEditorCount').text(words + (words === 1 ? ' word' : ' words') + ' · ' + text.length + ' characters');
+	var signature = $('#pageTitleEdit').val() + '\n' + $('#pageVisibilityEdit').val() + '\n' + html;
+	ghotiPageEditorState.dirty = signature !== ghotiPageEditorState.original || sourceHasPendingMarkup;
+	$('#managePageForm').toggleClass('is-dirty', ghotiPageEditorState.dirty);
+}
+
+function ghotiEditorSetMode(mode){
+	if(['visual','source','preview'].indexOf(mode) === -1){ return; }
+	var source = document.getElementById('pageContentEdit');
+	var visual = document.getElementById('pageContentVisual');
+	var current = ghotiEditorCurrentHtml();
+	if(ghotiPageEditorState.mode === 'source' && source.value.trim() !== current){
+		$('#ghotiEditorMessage').text('Unsupported or unsafe markup was removed.');
+	}
+	source.value = current;
+	visual.innerHTML = current;
+	if(mode === 'preview'){
+		document.getElementById('pageContentPreview').innerHTML = current || '<p class="ghotiEditorEmptyPreview">Nothing to preview yet.</p>';
+	}
+	ghotiPageEditorState.mode = mode;
+	$('#managePageForm').attr('data-editor-mode', mode);
+	$('[data-editor-mode]').each(function(){
+		var active = $(this).attr('data-editor-mode') === mode;
+		$(this).toggleClass('is-active', active).attr('aria-pressed', active ? 'true' : 'false');
+	});
+	ghotiEditorUpdateStatus();
+	if(mode === 'visual'){ visual.focus(); }
+	if(mode === 'source'){ source.focus(); }
+}
+
+function initPageEditor(){
+	var source = document.getElementById('pageContentEdit');
+	var visual = document.getElementById('pageContentVisual');
+	if(!source || !visual){ return; }
+	var safeHtml = ghotiSanitizeEditorHtml(source.value);
+	source.value = safeHtml;
+	visual.innerHTML = safeHtml;
+	ghotiPageEditorState.mode = 'visual';
+	ghotiPageEditorState.original = $('#pageTitleEdit').val() + '\n' + $('#pageVisibilityEdit').val() + '\n' + safeHtml;
+	ghotiPageEditorState.dirty = false;
+	$('#managePageForm').attr('data-editor-mode','visual');
+
+	$('#pageContentVisual').off('.ghotiEditor').on('input.ghotiEditor', ghotiEditorUpdateStatus).on('paste.ghotiEditor', function(event){
+		event.preventDefault();
+		var clipboard = event.originalEvent.clipboardData;
+		var pastedHtml = clipboard && clipboard.getData('text/html');
+		var safePaste = pastedHtml ? ghotiSanitizeEditorHtml(pastedHtml) : ghotiEscapeHtml(clipboard ? clipboard.getData('text/plain') : '').replace(/\n/g,'<br>');
+		document.execCommand('insertHTML', false, safePaste);
+		ghotiEditorUpdateStatus();
+	});
+	$('#pageContentEdit, #pageTitleEdit, #pageVisibilityEdit').off('.ghotiEditor').on('input.ghotiEditor change.ghotiEditor', ghotiEditorUpdateStatus);
+	$('[data-editor-command]').off('.ghotiEditor').on('mousedown.ghotiEditor', function(event){
+		event.preventDefault();
+		document.execCommand($(this).attr('data-editor-command'), false, null);
+		visual.focus();
+		ghotiEditorUpdateStatus();
+	});
+	$('#ghotiEditorBlock').off('.ghotiEditor').on('change.ghotiEditor', function(){
+		document.execCommand('formatBlock', false, '<' + this.value + '>');
+		visual.focus();
+		ghotiEditorUpdateStatus();
+	});
+	$('[data-editor-action="link"]').off('.ghotiEditor').on('mousedown.ghotiEditor', function(event){
+		event.preventDefault();
+		var url = window.prompt('Paste a web or email address:');
+		if(url === null){ return; }
+		url = ghotiSanitizeEditorUrl(url);
+		if(!url){ $('#ghotiEditorMessage').text('That link address is not allowed.'); return; }
+		document.execCommand('createLink', false, url);
+		visual.focus();
+		ghotiEditorUpdateStatus();
+	});
+	$('[data-editor-mode]').off('.ghotiEditor').on('click.ghotiEditor', function(){ ghotiEditorSetMode($(this).attr('data-editor-mode')); });
+	$('.ghotiPageEditorForm').off('.ghotiEditor').on('keydown.ghotiEditor', function(event){
+		if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
+			event.preventDefault();
+			savePage();
+		}
+	});
+	ghotiEditorUpdateStatus();
+}
+
 function printPageEditor(){
 	$("#ghotiPageDisplay").stop(true, true).slideUp("slow");
 	$("#managePageForm").stop(true, true).css("visibility", "visible").slideDown("slow");
 	$("#pageEditButton").css("visibility", "hidden");
-	$("#pageContentEdit").focus();
+	initPageEditor();
+	$("#pageTitleEdit").focus().select();
 }
+
+function cancelPageEditor(){
+	if(ghotiPageEditorState.dirty && !window.confirm('Discard your unsaved page changes?')){ return; }
+	ghotiPageEditorState.dirty = false;
+	$("#managePageForm").css("visibility", "hidden").slideUp("slow");
+	$("#ghotiPageDisplay").stop(true, true).slideDown("slow");
+	$("#pageEditButton").css("visibility", "visible").focus();
+}
+
+window.addEventListener('beforeunload', function(event){
+	if(!ghotiPageEditorState.dirty){ return; }
+	event.preventDefault();
+	event.returnValue = '';
+});
+
+//The CMS swaps page/admin panels without a browser navigation. Protect those
+//clicks too, so the same unsaved-change promise holds inside this single-page
+//flow as it does when closing the tab.
+document.addEventListener('click', function(event){
+	if(!ghotiPageEditorState.dirty || !document.getElementById('managePageForm')){ return; }
+	if(event.target.closest && event.target.closest('#managePageForm')){ return; }
+	if(window.confirm('Discard your unsaved page changes?')){
+		ghotiPageEditorState.dirty = false;
+		return;
+	}
+	event.preventDefault();
+	event.stopPropagation();
+}, true);
 
 //ajax functions
 function getPage(id) {
@@ -446,15 +642,17 @@ function deletePage(id){
 }
 function savePage(){
 	var id = $("#pageIdEdit").val();
-	var title = $("#pageTitleEdit").val();
-	var content = $("#pageContentEdit").val();
-
-	if(!title || !content){
-		pageFeedBack("Required field missing.");
-	}else{
-		x_savePage(id,title,content,savePage_cb);
-		getPage(id);
+	var title = $("#pageTitleEdit").val().trim();
+	var content = ghotiEditorCurrentHtml();
+	var group = $("#pageVisibilityEdit").val();
+	if(!title){
+		$("#ghotiEditorMessage").text("Give this page a title before saving.");
+		$("#pageTitleEdit").focus();
+		return;
 	}
+	$("#pageContentEdit").val(content);
+	$("#ghotiEditorMessage").text("Saving…");
+	x_savePage(id,title,content,group,function(result){ savePage_cb(result,id); });
 }
 function logToFile(line){
 	x_logToFile(line,doNothing_cb);
@@ -471,6 +669,9 @@ function showSiteSettings(){
 		printPage(content);
 		initSiteSettings();
 	});
+}
+function showDocumentation(){
+	x_printDocumentation(printPage);
 }
 /* Dim the alert-recipient field while its checkbox is off, so the dependency is
  * visible as you toggle and not only on the next render. The field stays
@@ -500,12 +701,14 @@ function saveSiteSettings(){
 		allowRegister: $("#set-allowRegister").is(":checked") ? 1 : 0,
 		enableThemeChanger: $("#set-enableThemeChanger").is(":checked") ? 1 : 0,
 		hideLoginButton: $("#set-hideLoginButton").is(":checked") ? 1 : 0,
+		showHelpTips: $("#set-showHelpTips").is(":checked") ? 1 : 0,
 		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0
 	};
 	x_saveSiteSettings(settings, saveSiteSettings_cb);
 }
 function saveSiteSettings_cb(result){
 	if(result === true){
+		GHOTI_SHOW_HELP_TIPS = $("#set-showHelpTips").is(":checked");
 		pageFeedBack("Settings saved.");
 		showSiteSettings(); //re-render with the saved values
 	}else{
@@ -513,12 +716,12 @@ function saveSiteSettings_cb(result){
 	}
 }
 function setPagePublic(id){
-	savePage(); //save the page first, in case someone's working on it
-	x_setPagePublic(id,changePageGroup_cb);
+	$("#pageVisibilityEdit").val("public");
+	savePage();
 }
 function setPagePrivate(id){
-	savePage(); //save the page first, in case someone's working on it
-	x_setPagePrivate(id,changePageGroup_cb);
+	$("#pageVisibilityEdit").val("private");
+	savePage();
 }
 //callbacks
 function doNothing_cb(){
@@ -534,6 +737,7 @@ function changePageGroup_cb(id) {
 	}
 }
 function printPage(content) {
+	ghotiPageEditorState.dirty = false;
 	var $target = $("#ghotiContent");
 	$target.html(content);
 	// add fade-in animation to updated content.
@@ -549,16 +753,16 @@ function popup_cb(contents){
 	// show overlay and animated popup
 	showPopup();
 }
-function savePage_cb(result){
-	if(result == true){
-		$("#pageEditButton").css("visibility", "visible");
-		$("#managePageForm").css("visibility", "hidden").slideUp("slow");
-
+function savePage_cb(result,id){
+	if(result === true){
+		ghotiPageEditorState.dirty = false;
+		$("#ghotiEditorMessage").text("Saved. Publishing your update…");
 		x_refreshPageMenu(refreshPageMenu_cb);
 		x_refreshPrivateMenu(refreshPrivateMenu_cb);
+		x_getPageById(id,printPage);
 	}else{
-		pageFeedBack(result);
-		logToFile("Error saving page:"+result);
+		$("#ghotiEditorMessage").text(result || "Could not save the page.");
+		logToFile("Error saving page:"+(result || "unknown error"));
 	}
 }
 function getDefaultPage_cb(title){

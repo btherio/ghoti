@@ -34,7 +34,7 @@ class validate{
 	const MAX_PASSWORD   = 4096;   // cap candidate length so password_hash/verify can't be used as a slow-hash DoS
 	const MAX_USERNAME   = 20;
 	const MAX_EMAIL      = 190;    // fits a utf8mb4 unique index; RFC allows 254 but 190 is plenty here
-	const MAX_PAGE_TITLE = 120;
+	const MAX_PAGE_TITLE = 24;     // matches pages.title varchar(24)
 	const MAX_PAGE_BODY  = 200000; // authored page HTML
 	const MAX_COMMENT    = 4000;
 	const MAX_LINK_NAME  = 120;
@@ -153,6 +153,139 @@ class validate{
 			throw new Exception(ucfirst($label)." is required.");
 		}
 		return $v;
+	}
+
+	/*
+	 * Authored page markup. Page bodies intentionally support a useful subset
+	 * of HTML, but they are also rendered to every visitor, so treating them as
+	 * arbitrary trusted HTML would turn one compromised admin session into
+	 * stored XSS. Parse the fragment, keep semantic content elements, and allow
+	 * only attributes whose values can be validated safely.
+	 */
+	public function pageHtml($var, $required = false){
+		$html = (string)$var;
+		$html = str_replace("\r\n", "\n", $html);
+		$html = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $html);
+		if($html === null){ $html = ''; }
+		if(strlen($html) > self::MAX_PAGE_BODY){
+			throw new Exception("Page content is too long.");
+		}
+		if(trim($html) === ''){
+			if($required){ throw new Exception("Page content is required."); }
+			return '';
+		}
+
+		//DOM is the only reliable way to clean malformed/nested markup. Fail
+		//closed to readable text if an unusually minimal PHP build lacks it.
+		if(!class_exists('DOMDocument')){
+			return nl2br(htmlspecialchars(strip_tags($html), ENT_QUOTES, 'UTF-8'));
+		}
+
+		$previousErrors = libxml_use_internal_errors(true);
+		$document = new DOMDocument('1.0', 'UTF-8');
+		$flags = LIBXML_NONET;
+		if(defined('LIBXML_HTML_NOIMPLIED')){ $flags |= LIBXML_HTML_NOIMPLIED; }
+		if(defined('LIBXML_HTML_NODEFDTD')){ $flags |= LIBXML_HTML_NODEFDTD; }
+		$loaded = $document->loadHTML('<?xml encoding="UTF-8"><div id="ghoti-sanitize-root">'.$html.'</div>', $flags);
+		libxml_clear_errors();
+		libxml_use_internal_errors($previousErrors);
+		if(!$loaded){
+			return nl2br(htmlspecialchars(strip_tags($html), ENT_QUOTES, 'UTF-8'));
+		}
+
+		$root = $document->getElementById('ghoti-sanitize-root');
+		if(!$root){ return ''; }
+		$this->sanitizePageChildren($root);
+		$output = '';
+		foreach($root->childNodes as $child){ $output .= $document->saveHTML($child); }
+		if(strlen($output) > self::MAX_PAGE_BODY){
+			throw new Exception("Page content is too long after formatting.");
+		}
+		return trim($output);
+	}
+
+	private function sanitizePageChildren($parent){
+		$allowed = array(
+			'p','br','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote',
+			'pre','code','strong','b','em','i','u','s','sub','sup','a','img',
+			'figure','figcaption','hr','div','span','section','article','table',
+			'thead','tbody','tfoot','tr','th','td'
+		);
+		$discardContents = array('script','style','iframe','object','embed','svg','math','template','form','input','button','textarea','select','option','link','meta','base','noscript','noembed','xmp','plaintext','title','frame','frameset');
+		$children = array();
+		foreach($parent->childNodes as $child){ $children[] = $child; }
+		foreach($children as $child){
+			if($child->nodeType === XML_COMMENT_NODE || $child->nodeType === XML_PI_NODE){
+				$parent->removeChild($child);
+				continue;
+			}
+			if($child->nodeType !== XML_ELEMENT_NODE){ continue; }
+			$tag = strtolower($child->nodeName);
+			if(in_array($tag, $discardContents, true)){
+				$parent->removeChild($child);
+				continue;
+			}
+			$this->sanitizePageChildren($child);
+			if(!in_array($tag, $allowed, true)){
+				while($child->firstChild){ $parent->insertBefore($child->firstChild, $child); }
+				$parent->removeChild($child);
+				continue;
+			}
+			$this->sanitizePageAttributes($child, $tag);
+		}
+	}
+
+	private function sanitizePageAttributes($element, $tag){
+		$tagAttributes = array(
+			'a' => array('href','title','target','rel'),
+			'img' => array('src','alt','title','width','height','loading'),
+			'th' => array('colspan','rowspan','scope'),
+			'td' => array('colspan','rowspan')
+		);
+		$allowed = array('class','id','aria-label');
+		if(isset($tagAttributes[$tag])){ $allowed = array_merge($allowed, $tagAttributes[$tag]); }
+		$attributes = array();
+		foreach($element->attributes as $attribute){ $attributes[] = $attribute->name; }
+		foreach($attributes as $name){
+			$name = strtolower($name);
+			if(!in_array($name, $allowed, true)){
+				$element->removeAttribute($name);
+				continue;
+			}
+			$value = trim($element->getAttribute($name));
+			if($name === 'href' || $name === 'src'){
+				try{ $value = $this->url($value, true, $name); }
+				catch(Exception $e){ $element->removeAttribute($name); continue; }
+			}elseif($name === 'class'){
+				$tokens = preg_split('/\s+/', $value, -1, PREG_SPLIT_NO_EMPTY);
+				$tokens = array_slice(array_values(array_filter($tokens, function($token){
+					return preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $token);
+				})), 0, 12);
+				$value = implode(' ', $tokens);
+			}elseif($name === 'id'){
+				$value = preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $value) ? $value : '';
+			}elseif($name === 'width' || $name === 'height' || $name === 'colspan' || $name === 'rowspan'){
+				$value = ctype_digit($value) ? (string)max(1, min(4096, (int)$value)) : '';
+			}elseif($name === 'target'){
+				$value = in_array($value, array('_blank','_self'), true) ? $value : '';
+			}elseif($name === 'rel'){
+				$value = implode(' ', array_intersect(preg_split('/\s+/', strtolower($value)), array('noopener','noreferrer','nofollow')));
+			}elseif($name === 'loading'){
+				$value = in_array(strtolower($value), array('lazy','eager'), true) ? strtolower($value) : '';
+			}elseif($name === 'scope'){
+				$value = in_array(strtolower($value), array('row','col','rowgroup','colgroup'), true) ? strtolower($value) : '';
+			}else{
+				$value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value);
+				$value = function_exists('mb_substr') ? mb_substr((string)$value, 0, 500) : substr((string)$value, 0, 500);
+			}
+			if($value === ''){ $element->removeAttribute($name); }
+			else{ $element->setAttribute($name, $value); }
+		}
+		if($tag === 'a' && $element->getAttribute('target') === '_blank'){
+			$rel = preg_split('/\s+/', strtolower($element->getAttribute('rel')), -1, PREG_SPLIT_NO_EMPTY);
+			$element->setAttribute('rel', implode(' ', array_unique(array_merge($rel, array('noopener','noreferrer')))));
+		}
+		if($tag === 'img' && !$element->hasAttribute('alt')){ $element->setAttribute('alt', ''); }
 	}
 
 	// Username: letters, numbers and _.- only, 1..MAX_USERNAME. Matches the

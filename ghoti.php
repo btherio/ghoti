@@ -31,6 +31,7 @@ class ghoti {
 	public static $privacyEmail = "";
 	public static $privacyRegion = "";
 	public static $hideLoginButton = False;       //hide public sign-in links      [UI]
+	public static $showHelpTips = True;           //contextual admin how-to panels [UI]
 	public static $enableVhosts = False;          //optional privileged module [UI]
 	public static $enableCriticalAlerts = False;
 	public static $criticalAlertEmail = "";
@@ -74,6 +75,7 @@ class ghoti {
 		'allowRegister'      => 'bool',
 		'enableThemeChanger' => 'bool',
 		'hideLoginButton'    => 'bool',
+		'showHelpTips'       => 'bool',
 		'privacyOperator'    => 'text',
 		'privacyEmail'       => 'email',
 		'privacyRegion'      => 'text',
@@ -312,4 +314,5 @@ class ghoti {
         }
     }
 }
+include_once('ghoti.documentation.php');
 ?>
