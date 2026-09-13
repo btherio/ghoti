@@ -384,7 +384,9 @@ function getPage($content){
 	$_SESSION["ghotiObj"] = new ghoti();
 	$_SESSION["commentsObj"] = new comments();
 	$_SESSION["ghotiObj"]->ghotidb = new ghotidb();
-	$pageDisplay = ghoti_expand_shortcodes($content); // e.g. [gallery:name] -> inline gallery
+	//Sanitize on every render as well as on save. This protects visitors from
+	//unsafe markup stored by an older Ghoti version or written directly to DB.
+	$pageDisplay = ghoti_expand_shortcodes(ghoti_validate()->pageHtml($content)); // e.g. [gallery:name] -> inline gallery
 	//this next bit shows the comments for the current page
 	$pageComments = $_SESSION["commentsObj"]->commentsdb->getPageComments($_SESSION['pageId']);
 	$pageDisplay.= $_SESSION["commentsObj"]->commentsui->displayComments($pageComments,true);
@@ -460,7 +462,7 @@ function editPage($id){
 	$_SESSION["ghotiObj"]->ghotiui = new ghotiui();
 	$page = $_SESSION["ghotiObj"]->ghotidb->getPageById($id); //first we get the page from db
 	$title = $page[0][1];
-	$content = $page[0][0];
+	$content = ghoti_validate()->pageHtml($page[0][0]);
 	$group = $page[0][2];
 	return $_SESSION["ghotiObj"]->ghotiui->printEditPageForm($id,$title,$content,$group);
 }
@@ -472,25 +474,34 @@ function getDefaultPage(){
 	$_SESSION["pageId"] = $content[0][1];
 	return getPage($content[0][0]);
 }
-function savePage($id,$title,$content){
+function savePage($id,$title,$content,$group = null){
 	if(!ghoti_require_admin()){ return false; }
 	$v = ghoti_validate();
 	try{
 		$id = $v->id($id, "page id");
 		$title = $v->text($title, validate::MAX_PAGE_TITLE, true, "page title"); // strips tags + caps length
-		$content = $v->multilineText($content, validate::MAX_PAGE_BODY, false, "page content");
+		$content = $v->pageHtml($content, false);
+		if($group !== null){ $group = $v->pageGroup($group); }
 	}catch (Exception $e){
 		return $e->getMessage();
 	}
 	$_SESSION["ghotiObj"] = new ghoti();
 	$isDefault = false;
+	$foundPage = false;
 	$pages = $_SESSION['ghotiObj']->ghotidb->getPageManagementList();
 	if(is_array($pages)){
 		foreach($pages as $page){
-			if((int)$page[0] === $id && (int)$page[4] === 1){ $isDefault = true; break; }
+			if((int)$page[0] !== $id){ continue; }
+			$foundPage = true;
+			$isDefault = (int)$page[4] === 1;
+			break;
 		}
 	}
-	$result = $_SESSION['ghotiObj']->ghotidb->savePage($id,$content,$title);
+	if($group !== null && !$foundPage){ return "Could not verify the page audience."; }
+	if($isDefault && $group === 'private'){
+		return "The home page must remain visible to everyone.";
+	}
+	$result = $_SESSION['ghotiObj']->ghotidb->savePage($id,$content,$title,$group);
 	if($result === true && $isDefault){
 		$settingsResult = ghoti::saveSettings(array('defaultPageTitle'=>$title));
 		if($settingsResult !== true){ return "Page saved, but the default-page setting file could not be updated."; }
@@ -502,7 +513,7 @@ function savePageByTitle($title,$content){
 	$v = ghoti_validate();
 	try{
 		$title = $v->text($title, validate::MAX_PAGE_TITLE, true, "page title");
-		$content = $v->multilineText($content, validate::MAX_PAGE_BODY, false, "page content");
+		$content = $v->pageHtml($content, false);
 	}catch (Exception $e){
 		return $e->getMessage();
 	}
@@ -753,7 +764,9 @@ class ghotiui{
 	function printPageList($pageList){
 		$this->output = "<ul class=\"navbar-nav text-light\" id=\"accordionSidebar\">\n";
 		foreach($pageList as $records => $row){
-			$this->output .= "<li class=\"nav-item\"><a class=\"nav-link\" href=\"#\" class=\"ghotiMenu\" onclick=\"getPage(".$row[0].")\"><i class=\"fas fa-tachometer-alt\"></i><span>".stripslashes($row[1])."</span></a></li>\n";
+			$id = (int)$row[0];
+			$title = htmlspecialchars(stripslashes((string)$row[1]), ENT_QUOTES, 'UTF-8');
+			$this->output .= "<li class=\"nav-item\"><a class=\"nav-link ghotiMenu\" href=\"#\" onclick=\"getPage(".$id.")\"><i class=\"fas fa-tachometer-alt\"></i><span>".$title."</span></a></li>\n";
 		}
 		$this->output .= "</ul>\n";
 		return $this->output;
@@ -772,7 +785,7 @@ class ghotiui{
 			array('heading' => 'Who can see a page',
 				'list' => array('<b>Everyone</b> &mdash; appears in the public menu.', '<b>Signed-in users</b> &mdash; appears in the private menu; requires login.')),
 			array('heading' => 'Edit page content',
-				'list' => array('Click a page title to edit it. Content is plain HTML.', 'Embed a photo gallery with <code>[gallery:name]</code> &mdash; see <b>Galleries</b> for details.')),
+				'list' => array('Click a page title to open the visual editor. Switch to <b>HTML</b> for source control or <b>Preview</b> to check the finished page.', 'Embed a photo gallery with <code>[gallery:name]</code> &mdash; see <b>Galleries</b> for details.', 'Page HTML is filtered to safe content elements and attributes when you preview, save, and publish.')),
 			array('heading' => 'Add and remove pages',
 				'list' => array('Type a title in the box and press <b>Add page</b>.', 'Delete a page with its Delete button; the last page and the current home page cannot be deleted.'))
 		));
@@ -810,21 +823,28 @@ class ghotiui{
 	}
 
 	function printEditPageForm($id,$title,$content,$group){
-		$safeTitle = htmlspecialchars((string)$title, ENT_QUOTES);
-		$safeContent = htmlspecialchars(stripslashes((string)$content), ENT_NOQUOTES);
-		$this->output .= html::divStart("managePagePanel")."<form class=\"ghotiForm\" action=\"#\">";
-		$this->output .= html::divStart("managePageForm")."<label class=\"ghotiField\"><span>Page title</span><input id=\"pageTitleEdit\" maxlength=\"20\" type=\"text\" value=\"".$safeTitle."\" /></label>";
-		$this->output .= "<label class=\"ghotiField\"><span>Page content</span><textarea id=\"pageContentEdit\" class=\"pageEditArea\" rows=\"24\" spellcheck=\"true\" style=\"width:100%;min-height:440px;box-sizing:border-box;padding:12px;font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical;\">".$safeContent."</textarea></label>";
-		$this->output .= "<div class=\"managePageActions\"><a href=\"#\" class=\"ghotiIconButton ghotiMenu\" id=\"pageSaveButton\" title=\"Save page\" aria-label=\"Save page\" onclick=\"savePage();\"><img src=\"gfx/save.png\" alt=\"\" /></a>\n";
-		$this->output .= "<span class=\"managePageVisibilityLabel\">Public</span>\n";
+		$safeTitle = htmlspecialchars((string)$title, ENT_QUOTES, 'UTF-8');
+		$safeContent = htmlspecialchars(stripslashes((string)$content), ENT_NOQUOTES, 'UTF-8');
+		$publicSelected = $group === 'private' ? '' : ' selected="selected"';
+		$privateSelected = $group === 'private' ? ' selected="selected"' : '';
+		$this->output .= html::divStart("managePagePanel")."<form class=\"ghotiPageEditorForm\" action=\"#\" onsubmit=\"savePage(); return false;\">";
+		$this->output .= html::divStart("managePageForm","ghotiPageEditor");
+		$this->output .= "<header class=\"ghotiEditorHeader\"><div><span class=\"ghotiEditorEyebrow\">Page studio</span><h2>Shape your story</h2><p>Compose visually, inspect the HTML, and preview the finished page.</p></div>";
+		$this->output .= "<div class=\"ghotiEditorHeaderFields\"><label><span>Page title</span><input id=\"pageTitleEdit\" maxlength=\"24\" type=\"text\" value=\"".$safeTitle."\" required=\"required\" /></label>";
+		$this->output .= "<label><span>Audience</span><select id=\"pageVisibilityEdit\"><option value=\"public\"".$publicSelected.">Everyone</option><option value=\"private\"".$privateSelected.">Signed-in users</option></select></label></div></header>";
 
-		if($group === "public"){
-			$this->output .= "<span id=\"publicPrivateButton\"><img class=\"linkIcon ghotiIconButtonImage\" src=\"gfx/green-check.gif\" alt=\"yes\" title=\"Make private\" onclick=\"setPagePrivate($id);\" /></span>";
-		}elseif($group === "private"){
-			$this->output .= "<span id=\"publicPrivateButton\"><img class=\"linkIcon ghotiIconButtonImage\" src=\"gfx/red-x.gif\" alt=\"no\" title=\"Make public\" onclick=\"setPagePublic($id)\" /></span>";
-		}
+		$this->output .= "<div class=\"ghotiEditorToolbar\" role=\"toolbar\" aria-label=\"Page formatting\">";
+		$this->output .= "<div class=\"ghotiEditorToolGroup\"><select id=\"ghotiEditorBlock\" aria-label=\"Text style\"><option value=\"p\">Paragraph</option><option value=\"h1\">Heading 1</option><option value=\"h2\">Heading 2</option><option value=\"h3\">Heading 3</option><option value=\"blockquote\">Quote</option><option value=\"pre\">Code block</option></select>";
+		$this->output .= "<button type=\"button\" data-editor-command=\"bold\" title=\"Bold (Ctrl+B)\" aria-label=\"Bold\"><b>B</b></button><button type=\"button\" data-editor-command=\"italic\" title=\"Italic (Ctrl+I)\" aria-label=\"Italic\"><i>I</i></button><button type=\"button\" data-editor-command=\"underline\" title=\"Underline (Ctrl+U)\" aria-label=\"Underline\"><u>U</u></button></div>";
+		$this->output .= "<div class=\"ghotiEditorToolGroup\"><button type=\"button\" data-editor-command=\"insertUnorderedList\" title=\"Bulleted list\" aria-label=\"Bulleted list\">&#8226; List</button><button type=\"button\" data-editor-command=\"insertOrderedList\" title=\"Numbered list\" aria-label=\"Numbered list\">1. List</button><button type=\"button\" data-editor-action=\"link\" title=\"Add link\" aria-label=\"Add link\">Link</button><button type=\"button\" data-editor-command=\"removeFormat\" title=\"Clear formatting\" aria-label=\"Clear formatting\">Clear</button></div>";
+		$this->output .= "<div class=\"ghotiEditorModes\" role=\"group\" aria-label=\"Editor view\"><button type=\"button\" class=\"is-active\" data-editor-mode=\"visual\" aria-pressed=\"true\">Visual</button><button type=\"button\" data-editor-mode=\"source\" aria-pressed=\"false\">HTML</button><button type=\"button\" data-editor-mode=\"preview\" aria-pressed=\"false\">Preview</button></div></div>";
 
-		$this->output .= "<a href=\"#\" class=\"ghotiIconButton ghotiDangerButton ghotiMenu\" title=\"Delete page\" aria-label=\"Delete page\" onclick=\"deletePage($id);\"><img src=\"gfx/delete.png\" alt=\"\" /></a></div>\n";
+		$this->output .= "<div class=\"ghotiEditorCanvas\"><div id=\"pageContentVisual\" class=\"ghotiVisualEditor\" contenteditable=\"true\" role=\"textbox\" aria-multiline=\"true\" aria-label=\"Page content\" data-placeholder=\"Start writing something memorable…\"></div>";
+		$this->output .= "<textarea id=\"pageContentEdit\" class=\"ghotiSourceEditor\" rows=\"24\" spellcheck=\"false\" aria-label=\"Page HTML source\">".$safeContent."</textarea>";
+		$this->output .= "<div id=\"pageContentPreview\" class=\"ghotiEditorPreview\" aria-label=\"Page preview\"></div></div>";
+
+		$this->output .= "<footer class=\"ghotiEditorFooter\"><div class=\"ghotiEditorStatus\"><span class=\"ghotiEditorSafeBadge\">Protected HTML</span><span id=\"ghotiEditorCount\">0 words · 0 characters</span><span id=\"ghotiEditorMessage\" role=\"status\" aria-live=\"polite\"></span></div>";
+		$this->output .= "<div class=\"ghotiEditorActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonDanger ghotiButtonSecondary\" onclick=\"deletePage($id);\">Delete</button><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"cancelPageEditor();\">Cancel</button><button type=\"submit\" class=\"ghotiButton ghotiEditorSave\" id=\"pageSaveButton\"><img src=\"gfx/save.png\" alt=\"\" />Save &amp; publish</button></div></footer>";
 
 		$this->output .= html::divEnd()."</form>".html::divStart(null,"ghotiPageActions ghotiEditActions")."<a href=\"#\" id=\"pageEditButton\" class=\"ghotiIconButton ghotiEditButton ghotiMenu\" title=\"Edit page\" aria-label=\"Edit page\" onclick=\"printPageEditor();\"><img src=\"gfx/edit.png\" alt=\"\" /></a>\n";
 		$this->output .= "<input type=\"hidden\" id=\"pageIdEdit\" value=\"$id\" /></div>";

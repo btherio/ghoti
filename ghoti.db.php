@@ -475,9 +475,13 @@ class ghotidb{
         }
         return $m_content;
     }
-    function savePage($m_id,$m_content,$m_title){
+    function savePage($m_id,$m_content,$m_title,$m_group=null){
         try{
-            $this->query("update pages set content=?,title=? where id=?",array($m_content,$m_title,$m_id));
+            if($m_group === null){
+                $this->query("update pages set content=?,title=? where id=?",array($m_content,$m_title,$m_id));
+            }else{
+                $this->query("update pages set content=?,title=?,groupName=? where id=?",array($m_content,$m_title,$m_group,$m_id));
+            }
         }catch (Throwable $e){
             ghoti::logException("ghoti.db.php:savePage", $e);
             return false;

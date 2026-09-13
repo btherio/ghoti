@@ -90,6 +90,27 @@ foreach(array('javascript:alert(1)', "java\tscript:alert(1)", 'data:text/html,te
     check(rejects(function() use ($url){ ghoti_validate()->url($url); }), 'dangerous URL rejected');
 }
 check(ghoti_validate()->url('/assets/a.png') === '/assets/a.png', 'relative asset URL allowed');
+$safePageHtml = ghoti_validate()->pageHtml('<article class="story feature"><h2>Hello <em>world</em></h2><p>Read <a href="https://example.test" target="_blank">more</a>.</p><img src="/files/photo.jpg" width="800"></article>[gallery:summer]');
+check(strpos($safePageHtml, '<article class="story feature">') !== false, 'semantic page HTML is preserved');
+check(strpos($safePageHtml, '<h2>Hello <em>world</em></h2>') !== false, 'rich text formatting is preserved');
+check(strpos($safePageHtml, 'href="https://example.test"') !== false && strpos($safePageHtml, 'rel="noopener noreferrer"') !== false, 'safe external links are retained and hardened');
+check(strpos($safePageHtml, '<img src="/files/photo.jpg" width="800" alt="">') !== false, 'safe images are preserved with accessible alt fallback');
+check(strpos($safePageHtml, '[gallery:summer]') !== false, 'page shortcodes survive HTML sanitizing');
+$hostilePageHtml = ghoti_validate()->pageHtml('<script>alert(1)</script><p onclick="steal()" style="background:url(https://evil.test)">Safe</p><a href="javascript:alert(1)">link</a><iframe src="https://evil.test">bad</iframe><custom-tag>kept text</custom-tag>');
+check(strpos($hostilePageHtml, 'alert(1)') === false && strpos($hostilePageHtml, 'steal') === false && strpos($hostilePageHtml, 'evil.test') === false, 'executable and embedded page content is removed');
+check(strpos($hostilePageHtml, '<p>Safe</p>') !== false && strpos($hostilePageHtml, '<a>link</a>') !== false, 'safe text remains when unsafe attributes are removed');
+check(strpos($hostilePageHtml, 'kept text') !== false && strpos($hostilePageHtml, 'custom-tag') === false, 'unknown wrappers are removed without deleting their text');
+check(rejects(function(){ ghoti_validate()->pageHtml(str_repeat('x', validate::MAX_PAGE_BODY + 1)); }), 'oversized page HTML is rejected');
+class PageContentDb extends ghotidb{
+    public $writes=array();
+    public function __construct(){}
+    protected function query($sql, array $params=array()){ $this->writes[]=array($sql,$params); return true; }
+}
+$pageDb = new PageContentDb();
+check($pageDb->savePage(4,'<p>Updated</p>','News','private') === true, 'page content and audience save together');
+check($pageDb->writes[0][1] === array('<p>Updated</p>','News','private',4), 'page save binds content, title, audience and id in order');
+$menuHtml = (new ghotiui())->printPageList(array(array(4,'<img src=x onerror=alert(1)>')));
+check(strpos($menuHtml, '&lt;img src=x onerror=alert(1)&gt;') !== false && strpos($menuHtml, '<img src=x') === false, 'legacy page titles are escaped in navigation');
 $_SESSION=array();
 check(fmSaveTextFile('', 'index.php', 'malicious') === 'Admin access required.', 'anonymous file write denied');
 check(savePage(1, 'title', 'content') === false, 'anonymous page write denied');
