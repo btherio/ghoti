@@ -467,7 +467,24 @@ function clearGhotiLog(){
 	}
 }
 function showSiteSettings(){
-	x_printSiteSettingsForm(printPage);
+	x_printSiteSettingsForm(function(content){
+		printPage(content);
+		initSiteSettings();
+	});
+}
+/* Dim the alert-recipient field while its checkbox is off, so the dependency is
+ * visible as you toggle and not only on the next render. The field stays
+ * enabled and readable on purpose - hiding it would lose sight of a saved
+ * address, and disabling it would drop the value from the save payload. */
+function initSiteSettings(){
+	var box = document.getElementById('set-enableCriticalAlerts');
+	if(!box){ return; }
+	var row = box.closest('fieldset').querySelector('.settingsDependent');
+	if(!row){ return; }
+	box.addEventListener('change', function(){
+		if(box.checked){ row.removeAttribute('data-inactive'); }
+		else { row.setAttribute('data-inactive', 'true'); }
+	});
 }
 function saveSiteSettings(){
 	var settings = {

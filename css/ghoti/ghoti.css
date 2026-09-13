@@ -473,6 +473,99 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
   color: var(--text-2);
   font-weight: 600;
 }
+/* ---------------------------------------------------------------------------
+   Site Settings
+   One card per concern in a responsive grid. Cards that carry a wide field row
+   or their own docs panel span the full width so nothing is squeezed into a
+   half column. All colour comes from the theme tokens, so this follows the
+   light/dark switch with no extra rules.
+   --------------------------------------------------------------------------- */
+#ghotiSiteSettings .siteSettingsGrid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+#ghotiSiteSettings .siteSettingsSection{
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  margin: 0;
+  padding: 1.15rem 1.2rem 1.25rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+#ghotiSiteSettings .siteSettingsSection legend{
+  padding: 0 .4rem;
+  margin-left: -.4rem;
+  color: var(--text);
+  font-size: .82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+/* Full width: the Identity row holds three fields, and Optional modules holds
+   a docs panel. Both look cramped in half a column. */
+#ghotiSiteSettings .siteSettingsSectionWide{
+  grid-column: span 2;
+}
+#ghotiSiteSettings .siteSettingsSectionIntro{
+  margin: -.25rem 0 .15rem;
+  color: var(--text-2);
+  font-size: .9rem;
+}
+#ghotiSiteSettings .siteSettingsChoices{
+  display: grid;
+  gap: .55rem;
+}
+/* Help text closes a section: push it to the bottom so cards in the same row
+   line their bodies up regardless of how much help each one carries. */
+#ghotiSiteSettings .siteSettingsSection .ghotiHelpText{
+  margin: 0;
+  margin-top: auto;
+  padding-top: .15rem;
+  font-size: .85rem;
+}
+#ghotiSiteSettings .siteSettingsSection .ghotiDocs{
+  margin-top: .35rem;
+}
+/* A field that only matters when the checkbox above it is ticked. Indented and
+   rule-marked so the dependency is visible rather than implied by proximity;
+   dimmed (never hidden) while inactive, so the saved value stays readable. */
+#ghotiSiteSettings .settingsDependent{
+  margin-left: .15rem;
+  padding-left: .85rem;
+  border-left: 2px solid var(--border-strong);
+}
+#ghotiSiteSettings .settingsDependent[data-inactive="true"]{
+  opacity: .55;
+}
+#ghotiSiteSettings .ghotiCrudHeader{
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+#ghotiSiteSettings .ghotiCrudHeader h1{ margin: 0 0 .2rem; }
+#ghotiSiteSettings .ghotiCrudHeader .ghotiHelpText{ margin: 0; max-width: 54ch; }
+/* Second Save at the end of a long form, so it is reachable from either end. */
+#ghotiSiteSettings .siteSettingsFooterActions{
+  align-items: center;
+  gap: .9rem;
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
+}
+#ghotiSiteSettings .siteSettingsFooterActions .ghotiHelpText{ margin: 0; }
+/* Two cards side by side need roughly 320px each before the fields inside them
+   start wrapping awkwardly; below that the grid goes to one column. This sits
+   above the 520px block, which handles the field grids inside each card. */
+@media (max-width: 860px){
+  #ghotiSiteSettings .siteSettingsGrid{ grid-template-columns: minmax(0, 1fr); }
+  #ghotiSiteSettings .siteSettingsSectionWide{ grid-column: span 1; }
+  #ghotiSiteSettings .ghotiCrudHeader{ align-items: stretch; flex-direction: column; }
+}
 .ghotiHelpText,
 .ghotiEmptyState{
   color: var(--muted);
@@ -1094,6 +1187,8 @@ img.linkIcon:hover{ transform: scale(1.15); }
 @media (max-width: 520px){
   .ghotiFormGrid{ grid-template-columns: minmax(0,1fr); }
   .ghotiFieldWide{ grid-column: 1; }
+  #ghotiSiteSettings .siteSettingsGrid{ grid-template-columns: minmax(0,1fr); }
+  #ghotiSiteSettings .siteSettingsSectionWide{ grid-column: span 1; }
   .ghotiCrudHeader{
     align-items: stretch;
     flex-direction: column;
