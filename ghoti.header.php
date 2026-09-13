@@ -45,13 +45,17 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/gallery/gallery.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/filemanager/filemanager.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/mail/mail.js'); ?>"></script>
+<?php if(ghoti::$enableVhosts){ ?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/vhosts/vhosts.js'); ?>"></script>
+<?php } ?>
 
 <?/*Main ghoti stylesheet*/?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('css/ghoti/ghoti.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/analytics/analytics.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/gallery/gallery.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/filemanager/filemanager.css'); ?>" />
+<?php if(ghoti::$enableVhosts){ ?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/vhosts/vhosts.css'); ?>" />
+<?php } ?>
 
 <link rel="stylesheet" href="<?php echo $ghotiAsset('css/ghoti/privacy.css'); ?>" />

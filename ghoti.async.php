@@ -900,6 +900,18 @@ class ghotiui{
 		$o .= "<p class=\"ghotiHelpText\">Applies on the next page load. To sign in while hidden, open <a href=\"?theme=login\">?theme=login</a> on your site. This reveals the login button for that visit and keeps your current theme.</p>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableDebug\"".$chk(ghoti::$enableDebug)." /> Enable debug logging</label>\n";
 
+		$o .= '<fieldset><legend>Optional server management</legend>';
+		$o .= '<label class="ghotiInlineChoice"><input type="checkbox" id="set-enableVhosts"'.$chk(ghoti::$enableVhosts).' /> Enable Apache Vhosts module</label>';
+		$o .= '<p class="ghotiHelpText">Disabled by default. Save and reload to show or hide Apache Vhosts in the workspace. Enabling loads the module; its separate Allow changes setting and privileged helper control writes. Existing vhost settings are retained when this module is disabled.</p>';
+		$o .= ghoti_docs_panel('How to enable Apache Vhosts', 'optional setup guide', array(
+			array('heading'=>'Enable in stages', 'list'=>array(
+				'Enable this option, save Site Settings, and reload the page.',
+				'Open Workspace &rarr; Apache Vhosts &rarr; Settings. Verify paths; leave Allow changes off while inspecting.',
+				'If you need writes, follow the <a href="docs/vhosts-enablement.md">server setup guide</a> to install the root-owned helper and its sudoers rule, validate Apache configuration, then turn on Allow changes.',
+				'Certificate monitoring and notifications require separate setup. Disabling this option stops the CMS module and its certificate watcher; existing Apache sites keep running.'
+			))
+		));
+		$o .= '</fieldset>';
 		$o .= '<fieldset><legend>Critical log alerts</legend>';
 		$o .= '<label class="ghotiInlineChoice"><input type="checkbox" id="set-enableCriticalAlerts"'.$chk(ghoti::$enableCriticalAlerts).' /> Email critical log alerts</label>';
 		$o .= '<label class="ghotiField"><span>Alert recipient email</span><input type="email" id="set-criticalAlertEmail" value="'.$esc(ghoti::$criticalAlertEmail).'" /></label>';

@@ -33,12 +33,15 @@ $root = dirname(__DIR__, 2); //.../ghoti
 chdir($root);
 
 require_once $root.'/ghoti.php';        //ghoti class + logging + async layer
+ghoti::loadSettings();
+if(!ghoti::$enableVhosts){
+	if(!in_array('--quiet', $argv, true)){ fwrite(STDOUT, "Apache Vhosts module is disabled; certificate monitoring skipped.\n"); }
+	exit(0);
+}
 require_once $root.'/mod/mail/mail.php';
 require_once $root.'/mod/vhosts/vhosts.db.php';
 require_once $root.'/mod/vhosts/vhosts.helper.php';
 require_once $root.'/mod/vhosts/vhosts.notify.php';
-
-ghoti::loadSettings();
 
 $dryRun = in_array('--dry-run', $argv, true);
 $quiet  = in_array('--quiet', $argv, true);
@@ -71,7 +74,7 @@ if(!$result['ok']){
 	certwatchSay("vhosts certwatch: certbot could not be queried.", $quiet);
 	//Worth an alert: if this keeps failing, nobody is watching the certificates.
 	$notifier = new VhostsNotifier($settings, new mail());
-	$notifier->needsIntervention("certificate monitoring is failing", $result['error']);
+	if(!$dryRun){ $notifier->needsIntervention("certificate monitoring is failing", $result['error']); }
 	exit(2);
 }
 

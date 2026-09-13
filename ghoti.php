@@ -31,6 +31,7 @@ class ghoti {
 	public static $privacyEmail = "";
 	public static $privacyRegion = "";
 	public static $hideLoginButton = False;       //hide public sign-in links      [UI]
+	public static $enableVhosts = False;          //optional privileged module [UI]
 	public static $enableCriticalAlerts = False;
 	public static $criticalAlertEmail = "";
 	public static $enableDebug = False;            //enable debug logging           [UI]
@@ -77,6 +78,7 @@ class ghoti {
 		'privacyEmail'       => 'email',
 		'privacyRegion'      => 'text',
 		'enableDebug'        => 'bool',
+		'enableVhosts'       => 'bool',
 		'enableCriticalAlerts' => 'bool',
 		'criticalAlertEmail'   => 'email',
 	);
@@ -90,6 +92,11 @@ class ghoti {
 		$this->ghotiui = new ghotiui();
 		$this->validate = new validate();
 		$this->html = new html();
+	}
+	public static function enabledModules(){
+		$modules = array('links','login','banners','comments','analytics','gallery','filemanager','mail');
+		if(self::$enableVhosts){ $modules[] = 'vhosts'; }
+		return $modules;
 	}
 	public function loadModules($modules){
 		foreach ($modules as $moduleName){

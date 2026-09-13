@@ -472,6 +472,7 @@ function showSiteSettings(){
 function saveSiteSettings(){
 	var settings = {
 		siteTitle: $("#set-siteTitle").val(),
+		enableVhosts: $("#set-enableVhosts").is(":checked") ? 1 : 0,
 		enableCriticalAlerts: $("#set-enableCriticalAlerts").is(":checked") ? 1 : 0,
 		criticalAlertEmail: $("#set-criticalAlertEmail").val(),
 		privacyOperator: $("#set-privacyOperator").val(),

@@ -17,7 +17,8 @@
  *   ghoti-vhosts-helper   - the root helper (repo copy: mod/vhosts/)
  *   sudoers.ghoti-vhosts  - the matching sudoers snippet
  *
- * When the helper is not installed the module still works, read-only: it lists
+ * The module is opt-in via Site Settings (enableVhosts defaults to false).
+ * Once enabled, when the helper is not installed it works read-only: it lists
  * and inspects vhosts parsed from the config files, and tells the admin exactly
  * how to install the helper to unlock writes. See vhosts.helper.php.
  *

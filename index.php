@@ -57,7 +57,7 @@ if(!ghotidb::isConfigured()){
 $_SESSION['ghotiObj'] = new ghoti();
 
 //load the modules add module name into array like "module1","module2"
-$modules = array("links","login","banners","comments","analytics","gallery","filemanager","mail","vhosts");
+$modules = ghoti::enabledModules();
 $_SESSION['ghotiObj']->loadModules($modules);
 
 //Initialize each module you want active
@@ -71,7 +71,8 @@ $_SESSION['analyticsObj'] = new analytics();
 $_SESSION['galleryObj'] = new gallery();
 $_SESSION['mailObj'] = new mail();
 $_SESSION['filemanagerObj'] = new filemanager();
-$_SESSION['vhostsObj'] = new vhosts();
+if(ghoti::$enableVhosts){ $_SESSION['vhostsObj'] = new vhosts(); }
+else { unset($_SESSION['vhostsObj']); }
 //(removed the unused $_SESSION['ghotidb'] = new ghotidb() - it was written every
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
 // Revoke deleted accounts and sessions created before a password change.
