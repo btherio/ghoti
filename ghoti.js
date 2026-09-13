@@ -110,6 +110,7 @@ function ghotiTogglePassword(button){
  * trusted static markup.
  */
 function ghotiDocsHtml(title, hint, sections){
+	if(typeof GHOTI_SHOW_HELP_TIPS !== 'undefined' && !GHOTI_SHOW_HELP_TIPS){ return ''; }
 	var html = '<details class="ghotiDocs">';
 	html += '<summary><span class="ghotiDocsTitle">' + ghotiEscapeHtml(title) + '</span><span class="ghotiDocsHint">' + ghotiEscapeHtml(hint) + '</span></summary>';
 	html += '<div class="ghotiDocsBody">';
@@ -669,6 +670,9 @@ function showSiteSettings(){
 		initSiteSettings();
 	});
 }
+function showDocumentation(){
+	x_printDocumentation(printPage);
+}
 /* Dim the alert-recipient field while its checkbox is off, so the dependency is
  * visible as you toggle and not only on the next render. The field stays
  * enabled and readable on purpose - hiding it would lose sight of a saved
@@ -697,12 +701,14 @@ function saveSiteSettings(){
 		allowRegister: $("#set-allowRegister").is(":checked") ? 1 : 0,
 		enableThemeChanger: $("#set-enableThemeChanger").is(":checked") ? 1 : 0,
 		hideLoginButton: $("#set-hideLoginButton").is(":checked") ? 1 : 0,
+		showHelpTips: $("#set-showHelpTips").is(":checked") ? 1 : 0,
 		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0
 	};
 	x_saveSiteSettings(settings, saveSiteSettings_cb);
 }
 function saveSiteSettings_cb(result){
 	if(result === true){
+		GHOTI_SHOW_HELP_TIPS = $("#set-showHelpTips").is(":checked");
 		pageFeedBack("Settings saved.");
 		showSiteSettings(); //re-render with the saved values
 	}else{

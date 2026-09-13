@@ -23,7 +23,26 @@ check(!ghoti_setup_access_ok('wrong', 'test-token'), 'setup rejects wrong key');
 check(!ghoti_setup_access_ok('operator-test-key', 'wrong'), 'setup rejects wrong CSRF');
 check(ghoti_setup_access_ok('operator-test-key', 'test-token'), 'setup accepts both valid secrets');
 check(!ghoti_async_is_registered('getPage'), 'internal HTML renderer is not public RPC');
+check(ghoti_async_is_registered('printDocumentation'), 'admin documentation endpoint is registered');
 check(!ghoti_csrf_verify(array('test-token')), 'CSRF rejects structured input');
+check(array_key_exists('showHelpTips', ghoti::currentSettings()) && ghoti::$showHelpTips === true, 'contextual help defaults on and is part of site settings');
+check(strpos(ghoti_docs_panel('How to test','hint',array()), 'ghotiDocs') !== false, 'contextual help renders while enabled');
+ghoti::$showHelpTips = false;
+check(ghoti_docs_panel('How to test','hint',array()) === '', 'contextual help is suppressed by site setting');
+check(strpos(ghoti_documentation_html(), 'Installation') !== false && strpos(ghoti_documentation_html(), 'Troubleshooting') !== false, 'complete documentation remains available when tips are hidden');
+ghoti::$showHelpTips = true;
+$settingsFileBeforeTest = ghoti::$settingsFile;
+$settingsFixture = 'tests/site-settings-fixture-'.getmypid().'.json';
+ghoti::$settingsFile = $settingsFixture;
+try{
+    check(ghoti::saveSettings(array('showHelpTips'=>0)) === true, 'contextual help preference saves');
+    $savedSettings = json_decode((string)file_get_contents(__DIR__.'/'.basename($settingsFixture)), true);
+    check(isset($savedSettings['showHelpTips']) && $savedSettings['showHelpTips'] === false && ghoti::$showHelpTips === false, 'saved contextual help preference applies immediately');
+}finally{
+    if(is_file(__DIR__.'/'.basename($settingsFixture))){ unlink(__DIR__.'/'.basename($settingsFixture)); }
+    ghoti::$settingsFile = $settingsFileBeforeTest;
+    ghoti::$showHelpTips = true;
+}
 
 $_SERVER['HTTP_HOST'] = 'attacker.invalid';
 $_SERVER['REQUEST_URI'] = '//attacker.invalid/poisoned';
@@ -111,9 +130,12 @@ check($pageDb->savePage(4,'<p>Updated</p>','News','private') === true, 'page con
 check($pageDb->writes[0][1] === array('<p>Updated</p>','News','private',4), 'page save binds content, title, audience and id in order');
 $menuHtml = (new ghotiui())->printPageList(array(array(4,'<img src=x onerror=alert(1)>')));
 check(strpos($menuHtml, '&lt;img src=x onerror=alert(1)&gt;') !== false && strpos($menuHtml, '<img src=x') === false, 'legacy page titles are escaped in navigation');
+$adminMenuHtml = (new loginui())->printAdminMenu();
+check(strpos($adminMenuHtml, 'showDocumentation()') !== false, 'admin menu includes documentation');
 $_SESSION=array();
 check(fmSaveTextFile('', 'index.php', 'malicious') === 'Admin access required.', 'anonymous file write denied');
 check(savePage(1, 'title', 'content') === false, 'anonymous page write denied');
+check(printDocumentation() === '<p>Admin access required.</p>', 'anonymous documentation access denied');
 check(deleteComment(1) === false, 'anonymous comment delete denied');
 check(setSessionVars(1) === false, 'client cannot elevate session by ID');
 

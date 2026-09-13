@@ -215,12 +215,14 @@ function ghoti_async_handle_request(){
 function ghoti_async_emit_js(){
 	$endpointJs = json_encode(isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : 'index.php');
 	$csrfTokenJs = json_encode(ghoti_csrf_token());
+	$helpTipsJs = ghoti::$showHelpTips ? 'true' : 'false';
 	$out = <<<JS
 // ghoti async layer - a tiny fetch() wrapper that replaces the SAJAX client.
 // x_<fn>(arg0, ..., callback) posts {fn,args} as JSON and hands the decoded
 // return value to the trailing callback (when the last argument is a function).
 var GHOTI_ASYNC_URL = {$endpointJs};
 var GHOTI_CSRF_TOKEN = {$csrfTokenJs};
+var GHOTI_SHOW_HELP_TIPS = {$helpTipsJs};
 
 function ghotiAsync(fn, argList){
 	var args = Array.prototype.slice.call(argList);
@@ -318,6 +320,7 @@ function ghoti_expand_shortcodes($content){
  *  data). The matching client-side helper is ghotiDocsHtml() in ghoti.js.
  * ================================================================== */
 function ghoti_docs_panel($title, $hint, $sections){
+	if(class_exists('ghoti') && !ghoti::$showHelpTips){ return ''; }
 	$o  = "<details class=\"ghotiDocs\">\n";
 	$o .= "<summary><span class=\"ghotiDocsTitle\">".htmlspecialchars((string)$title, ENT_QUOTES)."</span><span class=\"ghotiDocsHint\">".htmlspecialchars((string)$hint, ENT_QUOTES)."</span></summary>\n";
 	$o .= "<div class=\"ghotiDocsBody\">\n";
@@ -951,6 +954,15 @@ class ghotiui{
 		$o .= $choice("hideLoginButton", "Hide the login button", ghoti::$hideLoginButton, "set-hideLoginButton-help");
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-hideLoginButton-help\">With the login button hidden, sign in via <a href=\"?theme=login\">?theme=login</a> &mdash; that reveals it for one visit and keeps your theme.</p>\n";
+		$o .= "</fieldset>\n";
+
+		/* ---- Administrator experience ---- */
+		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Admin experience</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">Choose how much guidance appears beside everyday tools.</p>\n";
+		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= $choice("showHelpTips", "Show contextual &ldquo;How to&rdquo; tips", ghoti::$showHelpTips, "set-showHelpTips-help");
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-showHelpTips-help\">This hides expandable tips across admin screens. The complete guide remains available under <button type=\"button\" class=\"ghotiTextButton\" onclick=\"showDocumentation();\">Documentation</button>.</p>\n";
 		$o .= "</fieldset>\n";
 
 		/* ---- Privacy and accessibility ---- */
