@@ -23,12 +23,16 @@
  *
  *   vhosts.db.php     - `vhosts` settings table (single row, admin-edited)
  *   vhosts.helper.php - class VhostsHelper: the sudo bridge to the root helper
+ *   vhosts.notify.php - class VhostsNotifier: admin e-mail alerts via mod/mail
+ *   vhosts.import.php - class VhostsImporter: adopting hand-written vhosts
  *   vhosts.parser.php - class VhostsParser: reads <VirtualHost> blocks from disk
  *   vhosts.async.php  - admin endpoints/UI + class vhostsui
  */
 include_once('vhosts.db.php');
 include_once('vhosts.parser.php');
 include_once('vhosts.helper.php');
+include_once('vhosts.notify.php');
+include_once('vhosts.import.php');
 include_once('vhosts.async.php'); //endpoints + class vhostsui
 
 class vhosts{

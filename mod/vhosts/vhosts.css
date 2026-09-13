@@ -181,7 +181,7 @@
 }
 
 /* Command output + raw config. Long apachectl/certbot output scrolls inside
-   the block rather than stretching the popup. */
+   the block rather than stretching the page column. */
 .vhCode,
 .vhOutput{
 	max-height: 22rem;
@@ -206,3 +206,15 @@
 	.vhFacts{ grid-template-columns: 1fr; }
 	.vhFacts dt{ padding-top: 0.3rem; }
 }
+
+/* Adopted = imported verbatim; deliberately not editable in the form, so it
+   reads differently from a vhost this module generated. */
+.vhBadgeAdopted{ background: rgba(14,165,233,0.22); color: #0369a1; }
+
+/* Import plan table. Wrapped so a long ServerName scrolls the table rather
+   than the whole page. */
+.vhTableWrap{ overflow-x: auto; margin: 0.6rem 0 0.9rem; }
+.vhImportTable{ width: 100%; }
+.vhImportTable td:first-child{ width: 3.5rem; opacity: 0.6; font-variant-numeric: tabular-nums; }
+.vhImportTable code{ font-size: 0.82rem; word-break: break-all; }
+.ghotiButton[disabled]{ opacity: 0.5; cursor: not-allowed; }

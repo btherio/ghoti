@@ -1,8 +1,13 @@
 /*
  * vhosts.js - admin "Apache Vhosts" panel wiring.
  *
- * Same shape as mail.js / filemanager.js: showX() fetches + renders a pane into
- * the popup, saveX() reads the form fields and posts them back.
+ * showX() fetches a pane and renders it into the page body via printPage()
+ * (#ghotiContent), the same way Site Settings and the Page Manager do - not
+ * into the popup. These panes are wide: card grids, an import plan table, raw
+ * config blocks and multi-line command output all need the full column, and
+ * they are worked through rather than glanced at.
+ *
+ * saveX() reads the form fields and posts them back.
  *
  * Results from privileged actions are multi-line command output (configtest
  * errors, certbot logs), which pageFeedBack()'s 3-second toast would throw away
@@ -11,26 +16,51 @@
  */
 
 function showVhosts(){
-	x_printVhostsPanel(popup_cb);
-	$("#popupTitle").text("Apache Vhosts");
+	x_printVhostsPanel(printPage);
 }
 function showVhostCertificates(){
-	x_printCertificates(popup_cb);
-	$("#popupTitle").text("Certificates");
+	x_printCertificates(printPage);
 }
+function showVhostImport(){
+	x_printVhostImport(printPage);
+}
+/* Two-step, like deleteVhost: this rewrites every vhost file on the server, so
+ * a stray click should not start it. */
+function importVhosts(){
+	if(importVhosts.confirmed !== true){
+		importVhosts.confirmed = true;
+		setTimeout(function(){ importVhosts.confirmed = false; }, 8000);
+		vhostsOutput("This moves every vhost out of the shared config file into its own file, and reloads Apache.\nClick Import again within 8 seconds to go ahead.");
+		return;
+	}
+	importVhosts.confirmed = false;
+	vhostsOutput("Importing - this runs configtest and reloads Apache, give it a moment...");
+	x_importVhosts(importVhosts_cb);
+}
+/* Re-render the pane before showing the result. The import returns a message
+ * either way (not true/false), so there is nothing to branch on - and a stale
+ * plan table is the worse outcome: on success it would still list every file as
+ * pending, and a second click would hit the helper's "already exists" guard and
+ * report an error for an operation that worked. Re-rendering is right in both
+ * cases: on failure the plan is unchanged, on success it becomes "nothing to
+ * import". */
+function importVhosts_cb(result){
+	x_printVhostImport(function(html){
+		printPage(html);
+		vhostsOutput(result);
+	});
+}
+
 function showVhostsSettings(){
-	x_printVhostsSettingsForm(popup_cb);
-	$("#popupTitle").text("Vhost Settings");
+	x_printVhostsSettingsForm(printPage);
 }
 function newVhost(){
-	x_printVhostForm("", popup_cb);
-	$("#popupTitle").text("New vhost");
+	x_printVhostForm("", printPage);
 }
 /* key is whatever the card rendered: a managed vhost's file stem, or an
  * external block's "file.conf:startLine". */
 function editVhost(key){
-	x_printVhostForm(key, popup_cb);
-	$("#popupTitle").text("Vhost");
+	x_printVhostForm(key, printPage);
 }
 
 /* Show command output in the panel's own <pre>, scrolled into view. Falls back
@@ -114,10 +144,14 @@ function saveVhostsSettings(){
 		docRootBase: $("#vh-docRootBase").val(),
 		logDir: $("#vh-logDir").val(),
 		certbotEmail: $("#vh-certbotEmail").val(),
+		notifyEmail: $("#vh-notifyEmail").val(),
+		notifyEnabled: $("#vh-notifyEnabled").is(":checked") ? 1 : 0,
 		enabled: $("#vh-enabled").is(":checked") ? 1 : 0
 	};
 	x_saveVhostsSettings(settings, saveVhostsSettings_cb);
 }
+function sendVhostsTestAlert(){ x_sendVhostsTestAlert(vhostsOutput); }
+
 function saveVhostsSettings_cb(result){
 	if(result === true){
 		pageFeedBack("Vhost settings saved.");
