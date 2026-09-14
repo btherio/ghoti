@@ -29,3 +29,7 @@ reasonix.toml
 
 # Throttled operational alert counters; never commit runtime state.
 critical-alerts.json
+
+# Python bytecode caches (bitcoin-pong and anything else under lib/)
+__pycache__/
+*.pyc

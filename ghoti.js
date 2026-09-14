@@ -786,6 +786,14 @@ function printPage(content) {
 	// remove animation class after it completes
 	setTimeout(function(){ $target.removeClass('fade-in').find('.fade-in').removeClass('fade-in'); }, 400);
 
+	//Most modules drive their markup with inline onclick attributes, which
+	//survive having the content replaced. Anything that binds listeners instead
+	//has to be told the DOM changed: this content arrived long after
+	//DOMContentLoaded, so a module waiting on that event would never see it.
+	//bpongInit() skips boards it has already set up, so calling it here is safe
+	//however many times it runs.
+	if(typeof bpongInit === 'function'){ bpongInit($target[0]); }
+
 	$("#managePageForm").slideUp(0);//workaround to hide ugly space at the bottom.
 }
 function popup_cb(contents){

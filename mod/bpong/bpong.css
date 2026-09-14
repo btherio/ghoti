@@ -1,0 +1,50 @@
+/*
+ * bpong.css - the board.
+ *
+ * The palette is exposed as custom properties on the canvas because bpong.js
+ * reads them with getComputedStyle: a theme can restyle the game by overriding
+ * these, and the drawing code never has a colour of its own except as a
+ * fallback for a browser that reports nothing.
+ */
+.ghotiBpong{
+	margin: 1.2rem 0;
+	padding: 0;
+	max-width: 100%;
+}
+.ghotiBpongHead{
+	display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
+	font-size: .78rem; text-transform: uppercase; letter-spacing: .09em;
+	margin: 0 0 .35rem;
+}
+.ghotiBpongTitle{ font-weight: 700; }
+.ghotiBpongScore{ font-variant-numeric: tabular-nums; }
+.ghotiBpong canvas{
+	--bpong-bg: #0b0d12;
+	--bpong-edge: #2b6cb0;
+	--bpong-net: #243049;
+	--bpong-player: #38bdf8;
+	--bpong-cpu: #e879f9;
+	--bpong-coin: #f7b32b;
+	display: block;
+	width: 100%;
+	height: auto;
+	/* The board is 80x24 cells, so the element has to keep that ratio or the
+	   cells stop being square and the ball visibly drifts. */
+	aspect-ratio: 80 / 24;
+	border-radius: 6px;
+	background: var(--bpong-bg);
+	cursor: pointer;
+	touch-action: none;
+}
+/* Focus is not decoration here: the keys only work while the canvas holds it,
+   so a player has to be able to see that it does. */
+.ghotiBpong canvas:focus{ outline: 3px solid var(--bpong-coin); outline-offset: 2px; }
+.ghotiBpong canvas:focus:not(:focus-visible){ outline-color: var(--bpong-edge); }
+.ghotiBpongStatus{ margin: .4rem 0 .2rem; font-size: .86rem; min-height: 1.2em; }
+.ghotiBpongKeys{ margin: .1rem 0 .4rem; font-size: .8rem; opacity: .8; }
+.ghotiBpongKeys kbd{
+	display: inline-block; padding: 0 .3rem; margin: 0 .1rem;
+	border: 1px solid currentColor; border-radius: 3px; font-size: .95em;
+}
+.ghotiBpongActions{ display: flex; gap: .4rem; margin: .2rem 0 0; }
+.ghotiBpongMissing{ font-style: italic; opacity: .8; }

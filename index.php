@@ -76,6 +76,8 @@ if(ghoti::$enableVhosts){ $_SESSION['vhostsObj'] = new vhosts(); }
 else { unset($_SESSION['vhostsObj']); }
 if(ghoti::$enableStore){ $_SESSION['storeObj'] = new store(); }
 else { unset($_SESSION['storeObj']); }
+if(ghoti::$enableBpong){ $_SESSION['bpongObj'] = new bpong(); }
+else { unset($_SESSION['bpongObj']); }
 //(removed the unused $_SESSION['ghotidb'] = new ghotidb() - it was written every
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
 // Revoke deleted accounts and sessions created before a password change.
