@@ -10,6 +10,7 @@ if(PHP_SAPI !== 'cli'){ http_response_code(404); exit; }
  */
 require_once __DIR__.'/../ghoti.php';
 require_once __DIR__.'/../mod/store/store.paypal.php';
+require_once __DIR__.'/../mod/store/store.dropship.php';
 require_once __DIR__.'/../mod/store/store.async.php';
 
 $checks = 0;
@@ -45,17 +46,37 @@ class StoreDbFake{
 			'paypalClientId' => 'test-client', 'paypalSecret' => 'test-secret',
 			'paypalEnv' => 'sandbox', 'currency' => 'CAD', 'shippingCents' => 995,
 			'shippingNote' => '', 'downloadHours' => 72, 'downloadLimit' => 5, 'updatedAt' => 0,
+			'dropshipEnabled' => true, 'dropshipAutoSubmit' => true,
+			'dropshipConfig' => array('printful' => array('token' => 'pf-test-token')),
 		);
 		$this->products = array(
 			1 => array('productId'=>1,'sku'=>'MUG','name'=>'Mug','description'=>'','priceCents'=>1250,
 				'kind'=>'physical','category'=>'default','imageUrl'=>'','downloadPath'=>'','active'=>true,'sortOrder'=>0,'createdAt'=>0),
 			2 => array('productId'=>2,'sku'=>'PDF','name'=>'Guide','description'=>'','priceCents'=>500,
 				'kind'=>'digital','category'=>'default','imageUrl'=>'','downloadPath'=>'guide.pdf','active'=>true,'sortOrder'=>0,'createdAt'=>0),
+			4 => array('productId'=>4,'sku'=>'TEE','name'=>'Shirt','description'=>'','priceCents'=>2000,
+				'kind'=>'physical','category'=>'default','imageUrl'=>'','downloadPath'=>'','active'=>true,'sortOrder'=>0,'createdAt'=>0,
+				'fulfilment'=>'dropship','dropProvider'=>'printful','dropProductId'=>'','dropVariantId'=>'4012'),
 			3 => array('productId'=>3,'sku'=>'OLD','name'=>'Retired','description'=>'','priceCents'=>9900,
 				'kind'=>'physical','category'=>'default','imageUrl'=>'','downloadPath'=>'','active'=>false,'sortOrder'=>0,'createdAt'=>0),
 		);
 	}
+	public function skuTaken($sku, $excludeId = 0){
+		foreach($this->products as $id => $product){ if($id !== (int)$excludeId && $product['sku'] === $sku){ return true; } }
+		return false;
+	}
+	public function addProduct($product){
+		$id = $this->products ? max(array_keys($this->products)) + 1 : 1;
+		$this->products[$id] = array_merge($product, array('productId' => $id, 'createdAt' => time()));
+		return true;
+	}
+	public function updateProduct($id, $product){
+		if(!isset($this->products[(int)$id])){ return false; }
+		$this->products[(int)$id] = array_merge($this->products[(int)$id], $product);
+		return true;
+	}
 	public function getSettings(){ return $this->settings; }
+	public function saveSettings($settings){ $this->settings = array_merge($this->settings, $settings); return true; }
 	public function getProduct($id){ return isset($this->products[(int)$id]) ? $this->products[(int)$id] : null; }
 	public function getProductsById($ids){
 		$out = array();
@@ -90,7 +111,77 @@ class StoreDbFake{
 		}
 		return null;
 	}
-	public function getOrderItems($id){ return isset($this->items[(int)$id]) ? $this->items[(int)$id] : array(); }
+	//Mirrors the real query: line items carry the product's current supplier
+	//mapping rather than a snapshot, so a corrected variant id can be retried.
+	public function getOrderItems($id){
+		$items = isset($this->items[(int)$id]) ? $this->items[(int)$id] : array();
+		foreach($items as $index => $item){
+			$product = isset($this->products[(int)$item['productId']]) ? $this->products[(int)$item['productId']] : array();
+			$items[$index]['fulfilment']    = isset($product['fulfilment']) ? $product['fulfilment'] : 'self';
+			$items[$index]['dropProvider']  = isset($product['dropProvider']) ? $product['dropProvider'] : '';
+			$items[$index]['dropProductId'] = isset($product['dropProductId']) ? $product['dropProductId'] : '';
+			$items[$index]['dropVariantId'] = isset($product['dropVariantId']) ? $product['dropVariantId'] : '';
+		}
+		return $items;
+	}
+
+	/* ---- supplier fulfilment queue ---- */
+	public $fulfilments = array();
+	public function queueFulfilment($orderId, $provider){
+		foreach($this->fulfilments as $row){
+			//The real table has a unique key on (orderId, provider): a replayed
+			//capture must not become a second supplier order.
+			if($row['orderId'] === (int)$orderId && $row['provider'] === $provider){ return true; }
+		}
+		$id = count($this->fulfilments) + 1;
+		$this->fulfilments[$id] = array('fulfilmentId'=>$id,'orderId'=>(int)$orderId,'provider'=>$provider,
+			'providerOrderId'=>'','status'=>'queued','trackingNumber'=>'','trackingUrl'=>'','carrier'=>'',
+			'lastError'=>'','attempts'=>0,'createdAt'=>time(),'sentAt'=>0,'syncedAt'=>0);
+		return true;
+	}
+	public function getFulfilment($id){ return isset($this->fulfilments[(int)$id]) ? $this->fulfilments[(int)$id] : null; }
+	public function getOrderFulfilments($orderId){
+		$rows = array();
+		foreach($this->fulfilments as $row){ if($row['orderId'] === (int)$orderId){ $rows[] = $row; } }
+		return $rows;
+	}
+	public function getQueuedFulfilments($limit = 25){
+		$rows = array();
+		foreach($this->fulfilments as $row){ if($row['status'] === 'queued'){ $rows[] = $row; } }
+		return array_slice($rows, 0, $limit);
+	}
+	public function getOpenFulfilments($limit = 50){
+		$rows = array();
+		foreach($this->fulfilments as $row){ if($row['status'] === 'sent'){ $rows[] = $row; } }
+		return array_slice($rows, 0, $limit);
+	}
+	public function claimFulfilment($id){
+		if(!isset($this->fulfilments[(int)$id])){ return false; }
+		if(!in_array($this->fulfilments[(int)$id]['status'], array('queued','failed'), true)){ return false; }
+		$this->fulfilments[(int)$id]['status'] = 'sending';
+		$this->fulfilments[(int)$id]['attempts']++;
+		return true;
+	}
+	public function markFulfilmentSent($id, $providerOrderId, $status = 'sent'){
+		$this->fulfilments[(int)$id]['status'] = $status;
+		$this->fulfilments[(int)$id]['providerOrderId'] = $providerOrderId;
+		$this->fulfilments[(int)$id]['lastError'] = '';
+		$this->fulfilments[(int)$id]['sentAt'] = time();
+		return true;
+	}
+	public function markFulfilmentFailed($id, $error, $retryable = true){
+		$this->fulfilments[(int)$id]['status'] = $retryable ? 'queued' : 'failed';
+		$this->fulfilments[(int)$id]['lastError'] = $error;
+		return true;
+	}
+	public function updateFulfilmentTracking($id, $status, $tracking){
+		$this->fulfilments[(int)$id]['status'] = $status;
+		$this->fulfilments[(int)$id]['trackingNumber'] = $tracking['trackingNumber'];
+		$this->fulfilments[(int)$id]['trackingUrl'] = $tracking['trackingUrl'];
+		$this->fulfilments[(int)$id]['carrier'] = $tracking['carrier'];
+		$this->fulfilments[(int)$id]['syncedAt'] = time();
+		return true;
+	}
 	public function markOrderPaid($id, $captureId, $payerEmail){
 		$this->paidCalls++;
 		if(!isset($this->orders[(int)$id]) || $this->orders[(int)$id]['status'] !== 'pending'){ return false; }
@@ -112,6 +203,27 @@ class StoreDbFake{
 	}
 	public function getOrderDownloads($orderId){ return $this->downloads; }
 	public function getSalesSummary($days = 30){ return array('orders'=>0,'totalCents'=>0); }
+}
+
+//Mock supplier transport, shared by the fulfilment section below.
+class DropshipMock{
+	public $requests = array();
+	public $responses = array();
+	public function __invoke($request){
+		$this->requests[] = $request;
+		foreach($this->responses as $fragment => $response){
+			if(strpos($request['url'], $fragment) !== false){ return $response; }
+		}
+		return array('status' => 200, 'body' => '{}');
+	}
+	public function bodyFor($fragment){
+		foreach($this->requests as $request){
+			if(strpos($request['url'], $fragment) !== false && isset($request['body'])){
+				return json_decode($request['body'], true);
+			}
+		}
+		return null;
+	}
 }
 
 //Mock PayPal. Records every request and answers with the shape the real API
@@ -298,6 +410,126 @@ storeCheck(strpos($receipt, '<img src=x') === false, 'Customer name was rendered
 $db->orders[1]['note'] = "Nice\r\nBcc: attacker@example.test";
 $text = storeUi()->receiptText($db->getOrder(1), $db->getOrderItems(1), array());
 storeCheck(strpos($text, "\r") === false, 'Receipt text carried a carriage return');
+
+/* ---------------- supplier fulfilment ----------------
+ * Payment and fulfilment are separate on purpose: a supplier being down must
+ * never look like a failed payment, and a replayed capture must not become a
+ * second supplier order. */
+
+storeTestSignOut();
+$db->fulfilments = array();
+$db->orders = array();
+$db->items = array();
+$mock->captureCurrency = 'CAD';
+
+//A cart with one self-fulfilled line, one download and one supplier line.
+$_SESSION['storeCart'] = array(1 => 1, 2 => 1, 4 => 2);
+$mock->orderId = 'PAYPAL-DROP-1';
+$begin = storeBeginCheckout(array('name'=>'Ada Lovelace','email'=>'buyer@example.test',
+	'address1'=>'1 Example St','city'=>'Calgary','region'=>'AB','postcode'=>'T2P 1A1','country'=>'CA'));
+storeCheck($begin['ok'] === true, 'Dropship checkout did not start: '.($begin['error'] ?? ''));
+$dropOrderId = $db->orders[count($db->orders)]['orderId'];
+$mock->captureCents = $db->getOrder($dropOrderId)['totalCents'];
+
+//Capture queues, and only queues: nothing is sent to a supplier in the payment
+//path, so no transport is even configured at this point.
+$paid = storeCaptureOrder('PAYPAL-DROP-1');
+storeCheck($paid['ok'] === true, 'Dropship order could not be captured');
+storeCheck($paid['submitQueued'] === true, 'The receipt did not ask the browser to drain the queue');
+$queued = $db->getOrderFulfilments($dropOrderId);
+storeCheck(count($queued) === 1, 'Wrong number of supplier submissions queued: '.count($queued));
+storeCheck($queued[0]['provider'] === 'printful' && $queued[0]['status'] === 'queued', 'Queued row is wrong: '.json_encode($queued[0]));
+storeCheck($queued[0]['providerOrderId'] === '', 'A queued row already claims a supplier order id');
+
+//A replayed capture must not queue the order a second time.
+storeCaptureOrder('PAYPAL-DROP-1');
+storeCheck(count($db->getOrderFulfilments($dropOrderId)) === 1, 'A replayed capture queued a second supplier order');
+
+//Draining the queue is what talks to the supplier.
+$dropTransport = new DropshipMock();
+$GLOBALS['storeDropshipTransport'] = $dropTransport;
+$dropTransport->responses['/orders'] = array('status' => 200, 'body' => json_encode(array('result' => array('id' => 777, 'status' => 'pending'))));
+$drained = storeDrainFulfilments(10);
+storeCheck($drained['sent'] === 1 && $drained['failed'] === 0, 'Drain did not send the queued order: '.json_encode($drained));
+$row = $db->getOrderFulfilments($dropOrderId)[0];
+storeCheck($row['status'] === 'sent' && $row['providerOrderId'] === '777', 'Submission not recorded: '.json_encode($row));
+//Only the supplier's own lines are sent - not the mug, and never the download.
+$body = $dropTransport->bodyFor('/orders');
+storeCheck(count($body['items']) === 1 && $body['items'][0]['quantity'] === 2, 'The wrong lines went to the supplier: '.json_encode($body['items']));
+
+//A second drain has nothing to do: the row is no longer queued.
+$dropTransport->requests = array();
+storeCheck(storeDrainFulfilments(10)['sent'] === 0, 'A sent order was submitted again');
+storeCheck(!$dropTransport->requests, 'A second drain called the supplier again');
+
+//Tracking moves the order to shipped once every supplier line has shipped.
+//Replace the map rather than adding to it: '/orders' would otherwise match the
+//status call first and answer it with the create-order body.
+$dropTransport->responses = array('/orders/777' => array('status' => 200, 'body' => json_encode(array('result' => array(
+	'status' => 'fulfilled',
+	'shipments' => array(array('carrier' => 'UPS', 'tracking_number' => '1Z777', 'tracking_url' => 'https://ups.test/1Z777')),
+)))));
+storeCheck(storeSyncOpenFulfilments(10) === 1, 'Tracking sync did nothing');
+$row = $db->getOrderFulfilments($dropOrderId)[0];
+storeCheck($row['status'] === 'shipped' && $row['trackingNumber'] === '1Z777', 'Tracking not stored: '.json_encode($row));
+storeCheck($db->getOrder($dropOrderId)['status'] === 'shipped', 'The order was not marked shipped by its supplier');
+
+//A supplier rejecting the order stops the row rather than retrying forever, and
+//says why on the order.
+$db->fulfilments = array();
+$db->queueFulfilment($dropOrderId, 'printful');
+$dropTransport->responses = array('/orders' => array('status' => 422, 'body' => json_encode(array('result' => 'variant 4012 is discontinued'))));
+storeCheck(storeDrainFulfilments(10)['failed'] === 1, 'A rejected submission was reported as sent');
+$row = $db->getOrderFulfilments($dropOrderId)[0];
+storeCheck($row['status'] === 'failed', 'A rejected submission stayed on the queue');
+storeCheck(strpos($row['lastError'], 'discontinued') !== false, 'The rejection reason was not recorded: '.$row['lastError']);
+storeCheck(storeDrainFulfilments(10)['sent'] === 0, 'A failed row was picked up by the next drain');
+
+//An outage is different: the row goes back on the queue for the next run.
+$db->fulfilments = array();
+$db->queueFulfilment($dropOrderId, 'printful');
+$dropTransport->responses = array('/orders' => array('status' => 503, 'body' => '{}'));
+storeDrainFulfilments(10);
+$row = $db->getOrderFulfilments($dropOrderId)[0];
+storeCheck($row['status'] === 'queued', 'An outage was treated as a permanent rejection');
+storeCheck($row['attempts'] === 1, 'The attempt was not counted');
+
+//With dropshipping switched off, nothing queues at all.
+$db->settings['dropshipEnabled'] = false;
+$db->fulfilments = array();
+storeCheck(storeQueueFulfilments($dropOrderId, $db->getOrderItems($dropOrderId), $db->getSettings()) === 0, 'Queued a supplier order while dropshipping was off');
+storeCheck(storeSubmitQueued() === array('ok' => true, 'sent' => 0), 'Submitted while dropshipping was off');
+$db->settings['dropshipEnabled'] = true;
+
+//A digital product can never be routed to a supplier. The file has to exist, or
+//the refusal would be about the missing file rather than the routing.
+storeTestSignIn(true);
+$deliverable = __DIR__.'/../files/store/store-test-deliverable.bin';
+file_put_contents($deliverable, 'sample');
+try{
+	$refused = saveStoreProduct(array('name'=>'X','sku'=>'X2','price'=>'1.00','kind'=>'digital',
+		'downloadPath'=>'store-test-deliverable.bin','fulfilment'=>'dropship','dropProvider'=>'printful','dropVariantId'=>'1'));
+	storeCheck(is_string($refused) && stripos($refused, 'supplier') !== false, 'A download was routed to a supplier: '.var_export($refused, true));
+}finally{
+	unlink($deliverable);
+}
+//And a supplier product needs the ids that supplier actually uses.
+$refused = saveStoreProduct(array('name'=>'X','sku'=>'X3','price'=>'1.00','kind'=>'physical',
+	'fulfilment'=>'dropship','dropProvider'=>'printify','dropVariantId'=>'9'));
+storeCheck(is_string($refused) && stripos($refused, 'product id') !== false, 'Printify accepted a mapping with no product id');
+$refused = saveStoreProduct(array('name'=>'X','sku'=>'X4','price'=>'1.00','kind'=>'physical',
+	'fulfilment'=>'dropship','dropProvider'=>'not-a-supplier','dropVariantId'=>'9'));
+storeCheck(is_string($refused) && stripos($refused, 'supplier') !== false, 'An unknown supplier was accepted');
+//Supplier ids are opaque, but bounded.
+storeCheck(storeSupplierId('4012') === '4012' && storeSupplierId('sync-99') === 'sync-99', 'A valid supplier id was rejected');
+storeCheck(storeSupplierId('<script>') === '' && storeSupplierId(str_repeat('9', 65)) === '', 'An unusable supplier id was accepted');
+
+//Retrying is admin-only, like every other management endpoint.
+storeTestSignOut();
+storeCheck(storeRetryFulfilment(1) === 'Admin access required.', 'Retry served a signed-out caller');
+storeCheck(storeRefreshFulfilment(1) === 'Admin access required.', 'Refresh served a signed-out caller');
+unset($GLOBALS['storeDropshipTransport']);
+storeTestSignIn(true);
 
 /* ---------------- digital delivery paths ---------------- */
 

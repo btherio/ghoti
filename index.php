@@ -101,15 +101,31 @@ if(!headers_sent()){
 	//hosts, none of which the base policy allows. The widening is therefore
 	//applied only while the module is enabled - a site with no shop keeps the
 	//tighter policy - and is limited to PayPal's documented origins.
-	$scriptSrc = "'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
-	$connectSrc = "'self'";
-	$frameSrc = "'none'";
+	//Accumulated, not assigned: a site can run the shop and Google ads at once,
+	//and the second feature to widen the policy must not overwrite the first.
+	$scriptSrc = array("'self'", "'unsafe-inline'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com");
+	$connectSrc = array("'self'");
+	$frameSrc = array();
 	if(ghoti::$enableStore){
-		$paypal = "https://www.paypal.com https://www.sandbox.paypal.com https://www.paypalobjects.com";
-		$scriptSrc .= " ".$paypal;
-		$connectSrc .= " ".$paypal;
-		$frameSrc = $paypal;
+		$paypal = array("https://www.paypal.com", "https://www.sandbox.paypal.com", "https://www.paypalobjects.com");
+		$scriptSrc = array_merge($scriptSrc, $paypal);
+		$connectSrc = array_merge($connectSrc, $paypal);
+		$frameSrc = array_merge($frameSrc, $paypal);
 	}
+	//Ads are a per-site setting rather than a module switch, so the widening is
+	//conditional on the banners module actually being about to emit Google's
+	//tag - a site showing its own banners keeps the tighter policy. A database
+	//that cannot be read reports "no ads", which is the safe direction: the
+	//policy stays narrow and nothing that needs it gets emitted either.
+	if(isset($_SESSION['bannersObj']) && $_SESSION['bannersObj'] instanceof banners && $_SESSION['bannersObj']->adsActive()){
+		$google = BannerAds::cspOrigins();
+		$scriptSrc = array_merge($scriptSrc, $google['script']);
+		$connectSrc = array_merge($connectSrc, $google['connect']);
+		$frameSrc = array_merge($frameSrc, $google['frame']);
+	}
+	$scriptSrc = implode(' ', array_unique($scriptSrc));
+	$connectSrc = implode(' ', array_unique($connectSrc));
+	$frameSrc = $frameSrc ? implode(' ', array_unique($frameSrc)) : "'none'";
 	header("Content-Security-Policy: default-src 'self'; script-src ".$scriptSrc."; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:; img-src 'self' data: http: https:; connect-src ".$connectSrc."; frame-src ".$frameSrc."; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
 }
 

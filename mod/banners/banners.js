@@ -62,3 +62,22 @@ function deleteBanner(id){
 		x_manageBanners(printPage);	
 	}
 }
+
+function saveBannerSettings(){
+	var source = document.getElementById('bannerSource').value;
+	var client = document.getElementById('bannerAdClient').value;
+	var small = document.getElementById('bannerAdSlotSmall').value;
+	var large = document.getElementById('bannerAdSlotLarge').value;
+	var format = document.getElementById('bannerAdFormat').value;
+	var fullWidth = document.getElementById('bannerAdFullWidth').checked ? 1 : 0;
+	var test = document.getElementById('bannerAdTest').checked ? 1 : 0;
+	var label = document.getElementById('bannerAdLabel').value;
+
+	x_saveBannerSettings(source,client,small,large,format,fullWidth,test,label,saveBannerSettings_cb);
+}
+function saveBannerSettings_cb(result){
+	//Re-render the panel: the status notes under the form (missing slot, ads.txt
+	//line, test mode) are computed server-side from what was just saved.
+	x_manageBanners(printPage);
+	pageFeedBack(result);
+}

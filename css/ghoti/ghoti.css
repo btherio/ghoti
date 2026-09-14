@@ -341,6 +341,18 @@ select:focus-visible, textarea:focus-visible{
 }
 .ghotiBanner, #footer img{ border: 0; border-radius: var(--radius-sm); height: auto; }
 
+/* Ad slots. The size is Google's to decide, so this only reserves the width and
+   keeps the "Advertisement" caption legible and clearly separate from content. */
+.ghotiAdSlot{ margin: .6rem 0; max-width: 100%; overflow: hidden; }
+.ghotiAdSlot ins.adsbygoogle{ display: block; width: 100%; }
+.ghotiAdSlotSmall{ max-width: 336px; }
+.ghotiAdLabel{
+  display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin-bottom: .25rem;
+}
+.ghotiHint{ font-size: .86rem; color: var(--muted); margin: .5rem 0; }
+.ghotiHint code{ word-break: break-all; }
+
 #ghotiLinks ul, #ghotiLinksList{ list-style: none; margin: 0; padding: 0; }
 #ghotiLinks li{ margin: 0; }
 #ghotiLinks li a{

@@ -171,3 +171,91 @@
 	.ghotiStoreBar{ align-items:stretch; flex-direction:column; }
 	.ghotiStorePrice{ margin-right:0; width:100%; }
 }
+
+/* Collection and merchandising. The same tokens carry through light and dark themes. */
+.ghotiStore, #ghotiStoreManager { box-sizing:border-box; }
+.ghotiStore *, #ghotiStoreManager * { box-sizing:inherit; }
+.ghotiStore [hidden], #ghotiStoreManager [hidden] { display:none !important; }
+.ghotiStoreCatalog { padding:clamp(1rem, 3vw, 2.5rem); background:var(--store-surface); border:1px solid var(--store-line); border-radius:24px; }
+.ghotiStoreHero { display:flex; justify-content:space-between; align-items:center; gap:2rem; padding:1rem 0 2rem; border-bottom:1px solid var(--store-line); }
+.ghotiStoreEyebrow { margin:0 0 .8rem; font-size:.7rem; font-weight:750; letter-spacing:.18em; color:var(--store-accent); }
+.ghotiStoreHero .ghotiStoreTitle { font-size:clamp(1.8rem, 3.7vw, 3.3rem); font-weight:750; letter-spacing:-.045em; line-height:1.08; max-width:18ch; }
+.ghotiStoreHero .ghotiStoreLead { margin:1rem 0 0; max-width:46ch; line-height:1.6; }
+.ghotiStoreCartButton { display:flex; flex-direction:column; align-items:flex-start; gap:.3rem; }
+.ghotiStoreCartSummary { font-size:.75rem; font-weight:400; }
+.ghotiStoreTools { display:grid; grid-template-columns:minmax(0, 2fr) repeat(2,minmax(0,1fr)); gap:1rem; padding:1.5rem 0 1rem; }
+.ghotiStoreTools label, .ghotiStoreAdminSearch label { display:flex; flex-direction:column; gap:.45rem; font-size:.75rem; font-weight:650; color:var(--store-muted); min-width:0; }
+.ghotiStoreTools input, .ghotiStoreTools select, .ghotiStoreAdminSearch input,
+.ghotiStoreQty input, .ghotiStoreQtyInput { font:inherit; color:var(--store-text); background:var(--store-surface); border:1px solid var(--store-line); border-radius:9px; padding:.7rem; min-height:44px; max-width:100%; }
+.ghotiStoreTools input, .ghotiStoreTools select { width:100%; font-size:.88rem; }
+.ghotiStore :is(button, a, input, select, summary):focus-visible,
+#ghotiStoreManager :is(button, a, input, select, textarea):focus-visible { outline:3px solid var(--store-accent); outline-offset:3px; }
+.ghotiStoreCollectionBar { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.4rem 0 1.5rem; }
+.ghotiStoreChips { display:flex; flex-wrap:wrap; gap:.45rem; }
+.ghotiStoreChips button { cursor:pointer; border:1px solid var(--store-line); border-radius:100px; padding:.55rem .9rem; min-height:40px; background:transparent; color:var(--store-muted); font:inherit; font-size:.8rem; }
+.ghotiStoreChips button[aria-pressed="true"] { background:var(--store-text); color:var(--store-surface); border-color:var(--store-text); }
+.ghotiStoreResultCount { font-size:.78rem; color:var(--store-muted); white-space:nowrap; margin:0; }
+.ghotiStoreCatalog .ghotiStoreGrid { grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr)); gap:1.3rem; }
+.ghotiStoreCatalog .ghotiStoreCard { padding:0; gap:0; overflow:hidden; border-radius:16px; transition:transform .18s ease, box-shadow .18s ease; min-width:0; }
+@media (hover:hover) {
+	.ghotiStoreCatalog .ghotiStoreCard:hover { transform:translateY(-3px); box-shadow:0 12px 30px #0000000c; }
+}
+.ghotiStoreCatalog .ghotiStoreThumb { border-radius:0; aspect-ratio:1.18; position:relative; border-bottom:1px solid var(--store-line); background:linear-gradient(135deg,var(--store-raised),color-mix(in srgb,var(--store-accent) 9%,var(--store-surface))); }
+.ghotiStoreCatalog .ghotiStoreThumb img { object-fit:contain; padding:.7rem; }
+.ghotiStorePlaceholder { display:grid; place-items:center; height:100%; color:color-mix(in srgb,var(--store-accent) 65%,var(--store-muted)); font-size:5rem; font-weight:300; }
+.ghotiStoreRibbon { position:absolute; top:1rem; left:1rem; padding:.4rem .65rem; background:var(--store-surface); color:var(--store-text); border:1px solid var(--store-line); border-radius:100px; font-size:.68rem; font-weight:700; max-width:calc(100% - 2rem); overflow-wrap:anywhere; }
+.ghotiStoreCardBody { display:flex; flex-direction:column; gap:.7rem; padding:1.2rem; flex:1; }
+.ghotiStoreMeta { display:flex; justify-content:space-between; gap:.5rem; color:var(--store-muted); font-size:.65rem; text-transform:uppercase; letter-spacing:.055em; overflow-wrap:anywhere; }
+.ghotiStoreCatalog .ghotiStoreCard h2 { font-size:1.16rem; line-height:1.35; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.ghotiStoreDescription { color:var(--store-muted); font-size:.8rem; }
+.ghotiStoreDescription summary { cursor:pointer; padding:.2rem 0; }
+.ghotiStoreDescription p { margin-top:.55rem; line-height:1.6; overflow-wrap:anywhere; }
+.ghotiStorePricing { display:flex; flex-wrap:wrap; align-items:baseline; gap:.5rem; margin-top:auto; padding-top:.35rem; }
+.ghotiStorePricing del { color:var(--store-muted); font-size:.8rem; }
+.ghotiStorePricing .ghotiStorePrice { width:auto; font-size:1.14rem; }
+.ghotiStorePrice small { font-size:.7rem; font-weight:400; color:var(--store-muted); }
+.ghotiStoreDelivery { font-size:.75rem; color:var(--store-muted); margin:0; overflow-wrap:anywhere; }
+.ghotiStoreCatalog .ghotiStoreBuy { margin-top:0; flex-wrap:nowrap; padding-top:.2rem; align-items:stretch; }
+.ghotiStoreBuy .ghotiButton { flex:1; display:flex; justify-content:center; align-items:center; gap:.5rem; min-height:44px; text-decoration:none; text-align:center; }
+.ghotiStorePurchaseNote { margin:0; color:var(--store-muted); font-size:.7rem; line-height:1.5; }
+.ghotiStoreTrust { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-top:2rem; padding-top:1.3rem; border-top:1px solid var(--store-line); color:var(--store-muted); font-size:.72rem; }
+.ghotiStoreEmpty { text-align:center; padding:3rem 1rem; }
+.ghotiStoreEmpty h2 { color:var(--store-text); font-size:1.4rem; }
+.ghotiStoreTableScroll { overflow-x:auto; }
+.ghotiStoreTotals { background:var(--store-raised); border-radius:12px; padding:1.2rem; gap:.65rem; }
+#ghotiStoreManager { color:var(--store-text); }
+.ghotiStoreStats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; margin-bottom:1.6rem; }
+.ghotiStoreStats > div { display:flex; flex-direction:column; gap:.6rem; border:1px solid var(--store-line); background:var(--store-surface); padding:1.2rem; border-radius:14px; }
+.ghotiStoreStats span { color:var(--store-muted); font-size:.75rem; }
+.ghotiStoreStats strong { font-size:1.8rem; letter-spacing:-.04em; }
+.ghotiStoreAdminSearch { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin:1rem 0; }
+.ghotiStoreAdminSearch label { flex:1; max-width:540px; }
+.ghotiStoreAdminSearch > span { font-size:.75rem; color:var(--store-muted); padding-bottom:.8rem; }
+.ghotiStoreAdminProduct { display:flex; align-items:center; gap:.7rem; min-width:140px; }
+.ghotiStoreAdminProduct img { width:42px; height:42px; object-fit:contain; border-radius:8px; background:var(--store-raised); }
+.ghotiStoreRowActions { display:flex; gap:.4rem; }
+.ghotiStoreSpringPanel { margin:1.2rem 0; padding:1.5rem; border:1px solid color-mix(in srgb,var(--store-accent) 35%,var(--store-line)); border-radius:16px; background:linear-gradient(120deg,color-mix(in srgb,var(--store-accent) 8%,var(--store-surface)),var(--store-surface)); }
+.ghotiStoreSpringPanel h3 { margin:.5rem 0; }
+.ghotiStoreSpringPanel p { font-size:.88rem; line-height:1.6; max-width:80ch; }
+.ghotiStoreSpringPanel a { color:var(--store-accent); }
+#ghotiStoreManager .ghotiStoreFieldset { padding:1.25rem; background:var(--store-surface); }
+#ghotiStoreManager .ghotiStoreTabs { gap:.5rem; padding:.3rem 0; }
+#ghotiStoreManager .ghotiStoreTab { min-height:44px; }
+@media(max-width:760px) {
+	.ghotiStoreHero { align-items:flex-start; flex-direction:column; gap:1.3rem; }
+	.ghotiStoreTools { grid-template-columns:repeat(2,minmax(0,1fr)); }
+	.ghotiStoreSearch { grid-column:1 / -1; }
+	.ghotiStoreCollectionBar { align-items:flex-start; flex-direction:column; }
+	.ghotiStoreStats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(prefers-reduced-motion:reduce) {
+	.ghotiStoreCatalog .ghotiStoreCard { transition:none; }
+	.ghotiStoreCatalog .ghotiStoreCard:hover { transform:none; }
+}
+/* Keep long provider labels and URLs readable instead of inheriting six narrow columns. */
+#ghotiStoreManager .ghotiStoreProductForm .ghotiFormGrid { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+#ghotiStoreManager #storeSpringField { grid-column:1 / -1; }
+#ghotiStoreManager #storeSpringField small { font-weight:400; line-height:1.5; }
+@media(max-width:640px) {
+	#ghotiStoreManager .ghotiStoreProductForm .ghotiFormGrid { grid-template-columns:minmax(0,1fr); }
+}
