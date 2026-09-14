@@ -673,28 +673,61 @@ function showSiteSettings(){
 function showDocumentation(){
 	x_printDocumentation(printPage);
 }
-/* Dim the alert-recipient field while its checkbox is off, so the dependency is
- * visible as you toggle and not only on the next render. The field stays
- * enabled and readable on purpose - hiding it would lose sight of a saved
- * address, and disabling it would drop the value from the save payload. */
+function showBackupRestore(){
+	x_printBackupRestore(printPage);
+}
+function restoreGhotiBackup(kind){
+	var form = document.getElementById('restore-' + kind + '-form');
+	if(!form || !form.reportValidity()){ return; }
+	var button = form.querySelector('button[type="submit"]');
+	var feedback = form.querySelector('.backupRestoreFeedback');
+	var data = new FormData(form);
+	button.disabled = true;
+	feedback.textContent = 'Validating and restoring…';
+	fetch('backup.php?action=restore-' + encodeURIComponent(kind), {
+		method: 'POST',
+		credentials: 'same-origin',
+		body: data,
+		headers: { 'Accept': 'application/json' }
+	}).then(function(response){
+		return response.json().catch(function(){ return { success:false, message:'The server returned an unreadable response.' }; });
+	}).then(function(result){
+		feedback.textContent = result.message || (result.success ? 'Restore complete.' : 'Restore failed.');
+		if(result.success){ form.reset(); pageFeedBack(result.message); }
+	}).catch(function(){
+		feedback.textContent = 'The restore request could not reach the server.';
+	}).finally(function(){ button.disabled = false; });
+}
+/* Dim a dependent group of fields while its checkbox is off, so the dependency
+ * is visible as you toggle and not only on the next render. The fields stay
+ * enabled and readable on purpose - hiding them would lose sight of saved
+ * values, and disabling them would drop those values from the save payload. */
 function initSiteSettings(){
-	var box = document.getElementById('set-enableCriticalAlerts');
-	if(!box){ return; }
-	var row = box.closest('fieldset').querySelector('.settingsDependent');
-	if(!row){ return; }
-	box.addEventListener('change', function(){
-		if(box.checked){ row.removeAttribute('data-inactive'); }
-		else { row.setAttribute('data-inactive', 'true'); }
+	function bindDependent(boxId, rowId){
+		var box = document.getElementById(boxId);
+		var row = document.getElementById(rowId) || (box && box.closest('fieldset').querySelector('.settingsDependent'));
+		if(!box || !row){ return; }
+		box.addEventListener('change', function(){
+			if(box.checked){ row.removeAttribute('data-inactive'); }
+			else { row.setAttribute('data-inactive', 'true'); }
+		});
+	}
+	bindDependent('set-securityAutoBlacklist', 'security-auto-controls');
+}
+
+function clearAutoBlockedIp(ip){
+	x_clearAutoBlockedIp(ip, function(result){
+		if(result === true){ pageFeedBack('IP removed from the automatic blacklist.'); showSiteSettings(); }
+		else { pageFeedBack(result); }
 	});
 }
 function saveSiteSettings(){
 	var settings = {
 		siteTitle: $("#set-siteTitle").val(),
 		enableVhosts: $("#set-enableVhosts").is(":checked") ? 1 : 0,
+		enableStore: $("#set-enableStore").is(":checked") ? 1 : 0,
 		enableCriticalAlerts: $("#set-enableCriticalAlerts").is(":checked") ? 1 : 0,
-		criticalAlertEmail: $("#set-criticalAlertEmail").val(),
 		privacyOperator: $("#set-privacyOperator").val(),
-		privacyEmail: $("#set-privacyEmail").val(),
 		privacyRegion: $("#set-privacyRegion").val(),
 		defaultTheme: $("#set-defaultTheme").val(),
 		headerImg: $("#set-headerImg").val(),

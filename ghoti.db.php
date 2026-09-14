@@ -590,4 +590,63 @@ class ghotidb{
         }
     }
 }
+
+/*
+ * Admin contact directory.
+ *
+ * Site Settings no longer asks an admin to type contact addresses: the privacy
+ * contact and the critical-alert recipients ARE the admin accounts. One list,
+ * kept current by user management, instead of two fields that quietly go stale
+ * when the person who typed them leaves.
+ *
+ * Ordered by userId, so the founding admin (bin/create-admin.php only runs on
+ * an empty users table) is the published privacy contact.
+ */
+class GhotiAdminDirectory extends ghotidb{
+    public function emails(){
+        $rows = $this->queryArray("select email from users where admin = 1 order by userId asc");
+        $emails = array();
+        foreach($rows as $row){
+            $email = trim((string)$row[0]);
+            //Addresses come from the users table rather than a validated setting
+            //now, so every consumer still gets format-checked values - a header
+            //injection attempt stored in a profile must not reach the mailer.
+            if(filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails, true)){
+                $emails[] = $email;
+            }
+        }
+        return $emails;
+    }
+}
+
+/*
+ * Every admin e-mail address, memoized for the request. Returns an empty array
+ * when the directory cannot be read (no users table yet, DB outage): callers
+ * treat "no recipients" as "do not send" / "no contact published".
+ *
+ * Deliberately quiet on failure. This runs inside the error-alert path, where
+ * ghoti::logError() would recurse back into the alert service.
+ */
+function ghoti_admin_emails($refresh = false){
+    static $cache = null;
+    if($refresh){ $cache = null; }
+    if(is_array($cache)){ return $cache; }
+    //Assigned BEFORE the try on purpose: it is the re-entrancy guard, not just a
+    //default. A directory failure logs, logging can alert, alerting asks for the
+    //directory again - and that second call must find the memo already set.
+    $cache = array();
+    try{
+        $directory = new GhotiAdminDirectory();
+        $cache = $directory->emails();
+    }catch(Throwable $e){
+        error_log('Ghoti could not read the administrator contact list.');
+    }
+    return $cache;
+}
+
+/* The single address published as the site's contact, or '' when there is none. */
+function ghoti_admin_contact_email(){
+    $emails = ghoti_admin_emails();
+    return $emails ? $emails[0] : '';
+}
 ?>

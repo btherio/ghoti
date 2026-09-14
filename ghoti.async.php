@@ -948,10 +948,10 @@ class ghotiui{
 		$o .= "</select></label>\n";
 		$o .= $text("headerImg", "Header image", ghoti::$headerImg, "text", "(path)", "maxlength=\"200\" placeholder=\"gfx/ghoti-logo.png\" ");
 		$o .= $text("privacyOperator", "Legal operator name", ghoti::$privacyOperator, "text", "", "maxlength=\"120\" placeholder=\"Example Media Ltd.\" ");
-		$o .= $text("privacyEmail", "Public contact e-mail", ghoti::$privacyEmail, "email", "", "maxlength=\"190\" placeholder=\"privacy@example.com\" ");
 		$o .= $text("privacyRegion", "Province or territory", ghoti::$privacyRegion, "text", "", "maxlength=\"120\" placeholder=\"Alberta, Canada\" ");
 		$o .= "</div>\n";
-		$o .= "<p class=\"ghotiHelpText\">Theme and header image apply on the next page load. Public identity details appear in the footer policy and accessibility notice; leave them blank to omit that notice. The home page is chosen in <b>Manage Pages</b>.</p>\n";
+		$contact = ghoti_admin_contact_email();
+		$o .= "<p class=\"ghotiHelpText\">Theme and header image apply on the next page load. Public identity details appear in the footer policy and accessibility notice; leave them blank to omit that notice. The published contact address is the administrator account&rsquo;s own e-mail (currently <code>".$esc($contact === '' ? 'none on file' : $contact)."</code>) &mdash; change it in <b>Manage Users</b>. The home page is chosen in <b>Manage Pages</b>.</p>\n";
 		$o .= "</fieldset>\n";
 
 		/* ---- Visitor access ---- */
@@ -974,19 +974,66 @@ class ghotiui{
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-showHelpTips-help\">This hides expandable tips across admin screens. The complete guide remains available under <button type=\"button\" class=\"ghotiTextButton\" onclick=\"showDocumentation();\">Documentation</button>.</p>\n";
 		$o .= "</fieldset>\n";
 
-		/* ---- Logging and alerts. criticalAlertEmail is the dependent field of
-		 * the checkbox above it, so it is nested rather than left floating
-		 * alongside unrelated options. ---- */
+		/* ---- Security policy and IP access controls ---- */
+		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide securitySettingsSection\"><legend>Security</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">Control login abuse, network blocks, and authenticated session lifetime.</p>\n";
+		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= $choice("securityAutoBlacklist", "Automatically blacklist IPs after repeated failed logins", ghoti::$securityAutoBlacklist, "set-securityAutoBlacklist-help");
+		$o .= "</div>\n";
+		$o .= "<div id=\"security-auto-controls\" class=\"settingsDependent securityAutoControls\"".(ghoti::$securityAutoBlacklist ? "" : " data-inactive=\"true\"").">\n";
+		$o .= "<div class=\"ghotiFormGrid\">\n";
+		$o .= $text("securityFailedLoginThreshold", "Failed attempts", ghoti::$securityFailedLoginThreshold, "number", "(3–100)", "min=\"3\" max=\"100\" step=\"1\" ");
+		$o .= $text("securityFailureWindowMinutes", "Within minutes", ghoti::$securityFailureWindowMinutes, "number", "(1–1440)", "min=\"1\" max=\"1440\" step=\"1\" ");
+		$o .= $text("securityBlacklistDurationMinutes", "Block for minutes", ghoti::$securityBlacklistDurationMinutes, "number", "(5–43200)", "min=\"5\" max=\"43200\" step=\"1\" ");
+		$o .= "</div></div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-securityAutoBlacklist-help\">The default promotes 10 failures within 15 minutes to a 24-hour block. The existing short login throttle still slows earlier attempts.</p>\n";
+		$o .= "<div class=\"ghotiFormGrid securityRuleGrid\">\n";
+		$o .= $textarea("securityIpBlacklist", "Manual IP blacklist", ghoti::$securityIpBlacklist, "(one IP or CIDR per line)", "rows=\"5\" spellcheck=\"false\" placeholder=\"203.0.113.24&#10;198.51.100.0/24\" ");
+		$o .= $textarea("securityIpAllowlist", "Automatic-block allowlist", ghoti::$securityIpAllowlist, "(one IP or CIDR per line)", "rows=\"5\" spellcheck=\"false\" placeholder=\"192.0.2.10&#10;2001:db8::/48\" ");
+		$o .= "</div>\n";
+		$o .= "<div class=\"ghotiFormGrid securitySessionGrid\">\n";
+		$o .= $text("sessionTimeoutMinutes", "Session idle timeout", ghoti::$sessionTimeoutMinutes, "number", "(minutes)", "min=\"5\" max=\"1440\" step=\"1\" ");
+		$o .= "</div>\n";
+		$currentIp = ghoti_remote_addr();
+		$o .= "<p class=\"ghotiHelpText\">Your current server-observed address is <code>".$esc($currentIp === '' ? 'unavailable' : $currentIp)."</code>. Manual rules override the allowlist; your current address cannot be added while saving from it.</p>\n";
+		$o .= "<div class=\"securityBlockList\"><div class=\"securityBlockListHeader\"><strong>Automatic blacklist</strong><span>Active runtime blocks</span></div>\n";
+		try{ $activeBlocks = GhotiIpBlockStore::active(); }
+		catch(Throwable $e){ $activeBlocks = null; }
+		if($activeBlocks === null){
+			$o .= "<p class=\"ghotiHelpText\">Blacklist storage is unavailable. Check that the application directory is writable.</p>\n";
+		}elseif(!$activeBlocks){
+			$o .= "<p class=\"ghotiEmptyState\">No IPs are automatically blocked.</p>\n";
+		}else{
+			$o .= "<ul>\n";
+			foreach($activeBlocks as $ip => $entry){
+				$expires = date('Y-m-d H:i T', (int)($entry['expires'] ?? 0));
+				$failures = (int)($entry['failures'] ?? 0);
+				$ipJs = htmlspecialchars(json_encode((string)$ip), ENT_QUOTES, 'UTF-8');
+				$o .= "<li><div><code>".$esc($ip)."</code><small>".$failures." failures · expires ".$esc($expires)."</small></div><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"clearAutoBlockedIp(".$ipJs.");\">Unblock</button></li>\n";
+			}
+			$o .= "</ul>\n";
+		}
+		$o .= "</div>\n";
+		$o .= "</fieldset>\n";
+
+		/* ---- Logging and alerts. There is no recipient field: alerts go to every
+		 * administrator account, so keeping that list current is user
+		 * management's job rather than a setting to retype here. ---- */
 		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Logging &amp; alerts</legend>\n";
 		$o .= "<p class=\"siteSettingsSectionIntro\">Diagnostics, and who hears about incidents.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
 		$o .= $choice("enableDebug", "Enable debug logging", ghoti::$enableDebug);
 		$o .= $choice("enableCriticalAlerts", "E-mail critical log alerts", ghoti::$enableCriticalAlerts);
 		$o .= "</div>\n";
-		$o .= "<div class=\"settingsDependent\"".(ghoti::$enableCriticalAlerts ? "" : " data-inactive=\"true\"").">\n";
-		$o .= $text("criticalAlertEmail", "Alert recipient", ghoti::$criticalAlertEmail, "email", "", "maxlength=\"190\" placeholder=\"admin@example.com\" ");
-		$o .= "</div>\n";
-		$o .= "<p class=\"ghotiHelpText\">Sent through <b>Mail Settings</b>. Covers application errors, and 5 failed-login or suspicious-access events within 15 minutes &mdash; one delivery per category per 15 minutes.</p>\n";
+		$admins = ghoti_admin_emails();
+		if($admins){
+			$parts = array();
+			foreach($admins as $address){ $parts[] = "<code>".$esc($address)."</code>"; }
+			$o .= "<p class=\"ghotiHelpText\">Alerts go to every administrator account: ".implode(", ", $parts)."</p>\n";
+		}else{
+			$o .= "<p class=\"ghotiHelpText\">No administrator account has a valid e-mail address yet, so alerts cannot be enabled. Add one in <b>Manage Users</b>.</p>\n";
+		}
+		$o .= "<p class=\"ghotiHelpText\">Sent through <b>Mail Settings</b>, addressed to each administrator individually. Covers application errors, and 5 failed-login or suspicious-access events within 15 minutes &mdash; one delivery per category per 15 minutes.</p>\n";
 		$o .= "</fieldset>\n";
 
 		/* ---- Optional modules ---- */

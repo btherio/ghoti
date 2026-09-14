@@ -47,7 +47,7 @@ function ghoti_documentation_html(){
           <p>For an existing installation, the normal publishing loop is simple:</p>
           <ol class="ghotiGuideSteps">
             <li><span>1</span><div><strong>Open the workspace</strong><p>Sign in as an administrator and open the Workspace menu.</p></div></li>
-            <li><span>2</span><div><strong>Set the site identity</strong><p>Choose the title, theme, header image, privacy contact, and visitor options in <b>Site Settings</b>.</p></div></li>
+            <li><span>2</span><div><strong>Set the site identity</strong><p>Choose the title, theme, header image, and visitor options in <b>Site Settings</b>. The published privacy contact is the administrator account&rsquo;s own e-mail address.</p></div></li>
             <li><span>3</span><div><strong>Create and arrange pages</strong><p>Use <b>Pages</b> to add pages, choose the home page, set menu order, and control the audience.</p></div></li>
             <li><span>4</span><div><strong>Publish content</strong><p>Open a page, select Edit, compose in Visual mode, check Preview, then select <b>Save &amp; publish</b>.</p></div></li>
           </ol>
@@ -161,7 +161,7 @@ unset ghoti_admin_password</code></pre>
           <h3>Updates</h3>
           <p>Take a backup, deploy reviewed Git commits, preserve untracked per-site configuration, and let Ghoti run its guarded table provisioning. Validate login, page publishing, uploads, mail, and any enabled optional module after deployment.</p>
           <h3>Monitoring</h3>
-          <p>The Analytics screen includes recent application errors and the raw rotating log. Enable critical alerts to notify an address after repeated authentication/security events or application errors. Alerts require working Mail Settings. Debug logging is useful during diagnosis and should be disabled during normal operation.</p>
+          <p>The Analytics screen includes recent application errors, the raw rotating log, and an analyzer for the web server’s own Apache access and error logs (read-only; it can also follow a log live). Enable critical alerts to notify every administrator account after repeated authentication/security events or application errors. Alerts require working Mail Settings. Debug logging is useful during diagnosis and should be disabled during normal operation.</p>
           <h3>Production checklist</h3>
           <ul class="ghotiGuideChecklist">
             <li>HTTPS is enforced and PHP does not display errors to visitors</li>
