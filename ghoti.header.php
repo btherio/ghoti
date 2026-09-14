@@ -29,7 +29,7 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 </script>
 <?/*Third party libs*/?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('lib/jquery-4.0.0.js'); ?>"></script>
-
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7052039184749025" crossorigin="anonymous"></script>
 <?/*Main ghoti javascript*/?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('ghoti.js'); ?>"></script>
 

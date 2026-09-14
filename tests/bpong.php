@@ -237,8 +237,13 @@ bpongCheck(strpos($index, 'enableBpong') !== false, 'index.php does not bootstra
 //The board is a canvas driven by a same-origin script, so it must not have
 //needed a single origin adding. Checked against the policy block itself rather
 //than the whole file, which mentions the module for unrelated reasons.
-$policyBlock = substr($index, strpos($index, 'Security headers'), 2000);
-bpongCheck(strpos($policyBlock, 'Content-Security-Policy') !== false, 'Could not find the policy block to check');
+//Anchored on the code rather than a comment: the comments around this block
+//have already been rewritten once by another change, which broke this check
+//without anything being wrong with the module.
+$policyStart = strpos($index, 'if(!headers_sent()){');
+$policyEnd = strpos($index, 'Content-Security-Policy');
+bpongCheck($policyStart !== false && $policyEnd !== false && $policyEnd > $policyStart, 'Could not find the policy block to check');
+$policyBlock = substr($index, $policyStart, $policyEnd - $policyStart);
 bpongCheck(stripos($policyBlock, 'bpong') === false, 'The pong module widened the content-security policy');
 bpongCheck(strpos(file_get_contents('ghoti.async.php'), "'bpongObj'") !== false, 'bpongObj is not freed before the session is written');
 
