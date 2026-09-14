@@ -40,13 +40,16 @@ class storedb extends ghotidb{
 			'shippingNote'   => '',
 			'downloadHours'  => 72,
 			'downloadLimit'  => 5,
+			'dropshipEnabled'    => false,
+			'dropshipAutoSubmit' => true,
+			'dropshipConfig'     => array(),
 			'updatedAt'      => 0,
 		);
 	}
 
 	public function getSettings(){
 		try{
-			$rows = $this->queryArray("select paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,updatedAt from store where id = 1 limit 1");
+			$rows = $this->queryArray("select paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt from store where id = 1 limit 1");
 			if(isset($rows[0])){
 				$row = $rows[0];
 				return array(
@@ -58,7 +61,13 @@ class storedb extends ghotidb{
 					'shippingNote'   => (string)$row[5],
 					'downloadHours'  => (int)$row[6],
 					'downloadLimit'  => (int)$row[7],
-					'updatedAt'      => (int)$row[8],
+					'dropshipEnabled'    => (int)$row[8] === 1,
+					'dropshipAutoSubmit' => (int)$row[9] === 1,
+					//Per-provider credentials as JSON: four suppliers with three
+					//or four fields each would otherwise be a dozen columns that
+					//every new driver has to migrate.
+					'dropshipConfig'     => self::decodeConfig($row[10]),
+					'updatedAt'      => (int)$row[11],
 				);
 			}
 		}catch (Throwable $e){
@@ -67,20 +76,35 @@ class storedb extends ghotidb{
 		return self::defaultSettings();
 	}
 
+	public static function decodeConfig($raw){
+		$config = json_decode((string)$raw, true);
+		return is_array($config) ? $config : array();
+	}
+
 	public function saveSettings($settings){
 		try{
 			//The seed row may be missing if the table was created by hand; upsert
 			//rather than fail with "0 rows updated" and no explanation.
+			$current = $this->getSettings();
+			//Every caller saves one screen's worth of settings, so anything it
+			//did not send keeps the value it already had rather than being
+			//blanked by the upsert.
+			$settings = array_merge($current, $settings);
+			$config = isset($settings['dropshipConfig']) && is_array($settings['dropshipConfig']) ? $settings['dropshipConfig'] : array();
 			$this->query(
-				"insert into store (id,paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,updatedAt)"
-				." values (1,?,?,?,?,?,?,?,?,?)"
+				"insert into store (id,paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt)"
+				." values (1,?,?,?,?,?,?,?,?,?,?,?,?)"
 				." on duplicate key update paypalClientId=values(paypalClientId),paypalSecret=values(paypalSecret),paypalEnv=values(paypalEnv),"
 				." currency=values(currency),shippingCents=values(shippingCents),shippingNote=values(shippingNote),"
-				." downloadHours=values(downloadHours),downloadLimit=values(downloadLimit),updatedAt=values(updatedAt)",
+				." downloadHours=values(downloadHours),downloadLimit=values(downloadLimit),"
+				." dropshipEnabled=values(dropshipEnabled),dropshipAutoSubmit=values(dropshipAutoSubmit),dropshipConfig=values(dropshipConfig),"
+				." updatedAt=values(updatedAt)",
 				array(
 					$settings['paypalClientId'], $settings['paypalSecret'], $settings['paypalEnv'],
 					$settings['currency'], (int)$settings['shippingCents'], $settings['shippingNote'],
-					(int)$settings['downloadHours'], (int)$settings['downloadLimit'], time()
+					(int)$settings['downloadHours'], (int)$settings['downloadLimit'],
+					!empty($settings['dropshipEnabled']) ? 1 : 0, !empty($settings['dropshipAutoSubmit']) ? 1 : 0,
+					json_encode($config), time()
 				)
 			);
 			return true;
@@ -105,11 +129,22 @@ class storedb extends ghotidb{
 			'downloadPath' => (string)$row[8],
 			'active'       => (int)$row[9] === 1,
 			'sortOrder'    => (int)$row[10],
-			'createdAt'    => (int)$row[11],
+			//Fulfilment is orthogonal to kind: a dropshipped item is still a
+			//physical one, and still charges shipping and needs an address.
+			'fulfilment'    => in_array($row[11], array('dropship', 'spring'), true) ? $row[11] : 'self',
+			'dropProvider'  => (string)$row[12],
+			'dropProductId' => (string)$row[13],
+			'dropVariantId' => (string)$row[14],
+			'createdAt'    => (int)$row[15],
+			'externalUrl'  => (string)$row[16],
+			'featured'     => (int)$row[17] === 1,
+			'compareAtCents' => (int)$row[18],
+			'badge'        => (string)$row[19],
+			'deliveryNote' => (string)$row[20],
 		);
 	}
 
-	private const PRODUCT_COLUMNS = "productId,sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,createdAt";
+	private const PRODUCT_COLUMNS = "productId,sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,fulfilment,dropProvider,dropProductId,dropVariantId,createdAt,externalUrl,featured,compareAtCents,badge,deliveryNote";
 
 	//$category 'all' returns every category. Inactive products are never
 	//returned to the storefront; the admin list asks for them explicitly.
@@ -121,7 +156,7 @@ class storedb extends ghotidb{
 			if(!$includeInactive){ $where[] = "active = 1"; }
 			if($category !== 'all'){ $where[] = "category = ?"; $params[] = $category; }
 			if($where){ $sql .= " where ".implode(" and ", $where); }
-			$sql .= " order by sortOrder asc, name asc";
+			$sql .= " order by featured desc, sortOrder asc, name asc";
 			$rows = $this->queryArray($sql, $params);
 		}catch (Throwable $e){
 			ghoti::logException("store.db.php:getProducts", $e);
@@ -178,11 +213,13 @@ class storedb extends ghotidb{
 	public function addProduct($product){
 		try{
 			$this->query(
-				"insert into store_products (sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,createdAt)"
-				." values (?,?,?,?,?,?,?,?,?,?,?)",
+				"insert into store_products (sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,fulfilment,dropProvider,dropProductId,dropVariantId,createdAt,externalUrl,featured,compareAtCents,badge,deliveryNote)"
+				." values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
 				array($product['sku'], $product['name'], $product['description'], (int)$product['priceCents'],
 					$product['kind'], $product['category'], $product['imageUrl'], $product['downloadPath'],
-					$product['active'] ? 1 : 0, (int)$product['sortOrder'], time())
+					$product['active'] ? 1 : 0, (int)$product['sortOrder'],
+					$product['fulfilment'], $product['dropProvider'], $product['dropProductId'], $product['dropVariantId'], time(),
+					$product['externalUrl'], $product['featured'] ? 1 : 0, (int)$product['compareAtCents'], $product['badge'], $product['deliveryNote'])
 			);
 			return true;
 		}catch (Throwable $e){
@@ -194,10 +231,13 @@ class storedb extends ghotidb{
 	public function updateProduct($productId, $product){
 		try{
 			$this->query(
-				"update store_products set sku=?,name=?,description=?,priceCents=?,kind=?,category=?,imageUrl=?,downloadPath=?,active=?,sortOrder=? where productId=?",
+				"update store_products set sku=?,name=?,description=?,priceCents=?,kind=?,category=?,imageUrl=?,downloadPath=?,active=?,sortOrder=?,"
+				."fulfilment=?,dropProvider=?,dropProductId=?,dropVariantId=?,externalUrl=?,featured=?,compareAtCents=?,badge=?,deliveryNote=? where productId=?",
 				array($product['sku'], $product['name'], $product['description'], (int)$product['priceCents'],
 					$product['kind'], $product['category'], $product['imageUrl'], $product['downloadPath'],
-					$product['active'] ? 1 : 0, (int)$product['sortOrder'], (int)$productId)
+					$product['active'] ? 1 : 0, (int)$product['sortOrder'],
+					$product['fulfilment'], $product['dropProvider'], $product['dropProductId'], $product['dropVariantId'],
+					$product['externalUrl'], $product['featured'] ? 1 : 0, (int)$product['compareAtCents'], $product['badge'], $product['deliveryNote'], (int)$productId)
 			);
 			return true;
 		}catch (Throwable $e){
@@ -335,9 +375,21 @@ class storedb extends ghotidb{
 		return $orders;
 	}
 
+	/*
+	 * Order lines, each carrying the supplier mapping the product had at the
+	 * time. Read from the product rather than snapshotted into the line: a
+	 * mis-typed variant id has to be fixable on the product and then retried,
+	 * which is impossible if the wrong value is frozen into the order.
+	 */
 	public function getOrderItems($orderId){
 		try{
-			$rows = $this->queryArray("select itemId,productId,name,sku,kind,unitCents,quantity from store_order_items where orderId = ? order by itemId asc", array((int)$orderId));
+			$rows = $this->queryArray(
+				"select i.itemId,i.productId,i.name,i.sku,i.kind,i.unitCents,i.quantity,"
+				."coalesce(p.fulfilment,'self'),coalesce(p.dropProvider,''),coalesce(p.dropProductId,''),coalesce(p.dropVariantId,'')"
+				." from store_order_items i left join store_products p on p.productId = i.productId"
+				." where i.orderId = ? order by i.itemId asc",
+				array((int)$orderId)
+			);
 		}catch (Throwable $e){
 			ghoti::logException("store.db.php:getOrderItems", $e);
 			return array();
@@ -352,6 +404,10 @@ class storedb extends ghotidb{
 				'kind'      => (string)$row[4],
 				'unitCents' => (int)$row[5],
 				'quantity'  => (int)$row[6],
+				'fulfilment'    => isset($row[7]) && $row[7] === 'dropship' ? 'dropship' : 'self',
+				'dropProvider'  => isset($row[8]) ? (string)$row[8] : '',
+				'dropProductId' => isset($row[9]) ? (string)$row[9] : '',
+				'dropVariantId' => isset($row[10]) ? (string)$row[10] : '',
 			);
 		}
 		return $items;
@@ -457,6 +513,162 @@ class storedb extends ghotidb{
 			);
 		}
 		return $grants;
+	}
+
+	/* ---------------- supplier fulfilment ---------------- */
+
+	private static function fulfilmentRow($row){
+		return array(
+			'fulfilmentId'    => (int)$row[0],
+			'orderId'         => (int)$row[1],
+			'provider'        => (string)$row[2],
+			'providerOrderId' => (string)$row[3],
+			'status'          => (string)$row[4],
+			'trackingNumber'  => (string)$row[5],
+			'trackingUrl'     => (string)$row[6],
+			'carrier'         => (string)$row[7],
+			'lastError'       => (string)$row[8],
+			'attempts'        => (int)$row[9],
+			'createdAt'       => (int)$row[10],
+			'sentAt'          => (int)$row[11],
+			'syncedAt'        => (int)$row[12],
+		);
+	}
+
+	private const FULFILMENT_COLUMNS = "fulfilmentId,orderId,provider,providerOrderId,status,trackingNumber,trackingUrl,carrier,lastError,attempts,createdAt,sentAt,syncedAt";
+
+	/*
+	 * Queue one submission per provider for an order. Re-queuing an order that
+	 * already has a row for that provider does nothing: the unique key is on
+	 * (orderId, provider), so a capture retried by the browser cannot turn into
+	 * two supplier orders.
+	 */
+	public function queueFulfilment($orderId, $provider){
+		try{
+			$this->query(
+				"insert into store_order_fulfilments (orderId,provider,status,createdAt) values (?,?,'queued',?)"
+				." on duplicate key update orderId=orderId",
+				array((int)$orderId, (string)$provider, time())
+			);
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:queueFulfilment", $e);
+			return false;
+		}
+	}
+
+	public function getFulfilment($fulfilmentId){
+		try{
+			$rows = $this->queryArray("select ".self::FULFILMENT_COLUMNS." from store_order_fulfilments where fulfilmentId = ? limit 1", array((int)$fulfilmentId));
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getFulfilment", $e);
+			return null;
+		}
+		return isset($rows[0]) ? self::fulfilmentRow($rows[0]) : null;
+	}
+
+	public function getOrderFulfilments($orderId){
+		try{
+			$rows = $this->queryArray("select ".self::FULFILMENT_COLUMNS." from store_order_fulfilments where orderId = ? order by fulfilmentId asc", array((int)$orderId));
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getOrderFulfilments", $e);
+			return array();
+		}
+		$rowsOut = array();
+		foreach($rows as $row){ $rowsOut[] = self::fulfilmentRow($row); }
+		return $rowsOut;
+	}
+
+	//Work waiting to go to a supplier. 'queued' only: a failed row is left for a
+	//person to look at rather than hammered on a timer.
+	public function getQueuedFulfilments($limit = 25){
+		$limit = max(1, min(200, (int)$limit));
+		try{
+			$rows = $this->queryArray("select ".self::FULFILMENT_COLUMNS." from store_order_fulfilments where status = 'queued' order by createdAt asc limit ".$limit);
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getQueuedFulfilments", $e);
+			return array();
+		}
+		$rowsOut = array();
+		foreach($rows as $row){ $rowsOut[] = self::fulfilmentRow($row); }
+		return $rowsOut;
+	}
+
+	//Rows worth polling for a tracking number: accepted by the supplier and not
+	//yet shipped, cancelled or failed.
+	public function getOpenFulfilments($limit = 50){
+		$limit = max(1, min(200, (int)$limit));
+		try{
+			$rows = $this->queryArray("select ".self::FULFILMENT_COLUMNS." from store_order_fulfilments where status = 'sent' order by syncedAt asc limit ".$limit);
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getOpenFulfilments", $e);
+			return array();
+		}
+		$rowsOut = array();
+		foreach($rows as $row){ $rowsOut[] = self::fulfilmentRow($row); }
+		return $rowsOut;
+	}
+
+	/*
+	 * Claim a queued row for submission. Conditional on it still being queued,
+	 * so two drains - a cron run and an admin pressing Retry - cannot both send
+	 * the same order to the supplier.
+	 */
+	public function claimFulfilment($fulfilmentId){
+		try{
+			$statement = $this->db()->prepare("update store_order_fulfilments set status='sending',attempts=attempts+1 where fulfilmentId=? and status in ('queued','failed')");
+			$statement->execute(array((int)$fulfilmentId));
+			return $statement->rowCount() > 0;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:claimFulfilment", $e);
+			return false;
+		}
+	}
+
+	public function markFulfilmentSent($fulfilmentId, $providerOrderId, $status = 'sent'){
+		try{
+			$this->query(
+				"update store_order_fulfilments set status=?,providerOrderId=?,lastError='',sentAt=?,syncedAt=? where fulfilmentId=?",
+				array((string)$status, (string)$providerOrderId, time(), time(), (int)$fulfilmentId)
+			);
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:markFulfilmentSent", $e);
+			return false;
+		}
+	}
+
+	/*
+	 * A failed attempt. $retryable decides whether it goes back on the queue or
+	 * stops: a supplier that was unreachable is worth trying again, one that
+	 * rejected the variant id is not, until somebody fixes the product.
+	 */
+	public function markFulfilmentFailed($fulfilmentId, $error, $retryable = true){
+		try{
+			$this->query(
+				"update store_order_fulfilments set status=?,lastError=? where fulfilmentId=?",
+				array($retryable ? 'queued' : 'failed', mb_substr((string)$error, 0, 500), (int)$fulfilmentId)
+			);
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:markFulfilmentFailed", $e);
+			return false;
+		}
+	}
+
+	public function updateFulfilmentTracking($fulfilmentId, $status, $tracking){
+		try{
+			$this->query(
+				"update store_order_fulfilments set status=?,trackingNumber=?,trackingUrl=?,carrier=?,syncedAt=? where fulfilmentId=?",
+				array((string)$status, mb_substr((string)$tracking['trackingNumber'], 0, 120),
+					mb_substr((string)$tracking['trackingUrl'], 0, 500), mb_substr((string)$tracking['carrier'], 0, 80),
+					time(), (int)$fulfilmentId)
+			);
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:updateFulfilmentTracking", $e);
+			return false;
+		}
 	}
 
 	/* ---------------- reporting ---------------- */

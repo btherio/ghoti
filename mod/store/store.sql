@@ -16,6 +16,9 @@ create table if not exists store(
 	`shippingNote` varchar(255) not null default '',
 	`downloadHours` int(11) not null default 72,       -- how long a download link stays valid
 	`downloadLimit` int(11) not null default 5,        -- downloads allowed per purchased item
+	`dropshipEnabled` int(1) not null default 0,       -- route dropship products to a supplier
+	`dropshipAutoSubmit` int(1) not null default 1,    -- submit as soon as an order is paid
+	`dropshipConfig` mediumtext null,                  -- per-provider credentials as JSON; see store.db.php
 	`updatedAt` int(11) not null default 0,
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 ;
@@ -34,6 +37,15 @@ create table if not exists store_products(
 	`downloadPath` varchar(255) not null default '',   -- relative to files/store/ (web-denied), digital only
 	`active` int(1) not null default 1,
 	`sortOrder` int(11) not null default 0,
+	`fulfilment` varchar(10) not null default 'self',  -- 'self' | 'dropship' | 'spring'
+	`dropProvider` varchar(20) not null default '',    -- printful | printify | cj | webhook
+	`dropProductId` varchar(64) not null default '',   -- supplier product id, where the supplier needs one
+	`dropVariantId` varchar(64) not null default '',   -- supplier variant id: what is actually ordered
+	`externalUrl` varchar(2048) not null default '', -- Spring-hosted product checkout
+	`featured` int(1) not null default 0,
+	`compareAtCents` int(11) not null default 0,
+	`badge` varchar(32) not null default '',
+	`deliveryNote` varchar(160) not null default '',
 	`createdAt` int(11) not null default 0,
   PRIMARY KEY  (`productId`),
   UNIQUE KEY `uq_store_sku` (`sku`),
@@ -104,4 +116,32 @@ create table if not exists store_downloads(
   PRIMARY KEY  (`downloadId`),
   UNIQUE KEY `uq_store_token` (`token`),
   KEY `idx_store_download_order` (`orderId`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1 ;
+
+-- Fulfilment is a state machine of its own, deliberately not columns on the
+-- order: payment is authoritative and must never be held up, or made to look
+-- failed, by a supplier being slow or down. A paid order queues a row here and
+-- a later pass drains it.
+--
+-- One row per (order, provider): an order whose lines come from two suppliers
+-- becomes two submissions, each tracked and retried on its own. providerOrderId
+-- is empty until the supplier accepts it, which is why the unique key is on the
+-- pair above it rather than on that column.
+create table if not exists store_order_fulfilments(
+	`fulfilmentId` int(11) not null auto_increment,
+	`orderId` int(11) not null,
+	`provider` varchar(20) not null,
+	`providerOrderId` varchar(64) not null default '',
+	`status` varchar(12) not null default 'queued',    -- queued|sending|sent|shipped|failed|cancelled
+	`trackingNumber` varchar(120) not null default '',
+	`trackingUrl` varchar(500) not null default '',
+	`carrier` varchar(80) not null default '',
+	`lastError` varchar(500) not null default '',
+	`attempts` int(11) not null default 0,
+	`createdAt` int(11) not null default 0,
+	`sentAt` int(11) not null default 0,
+	`syncedAt` int(11) not null default 0,
+  PRIMARY KEY  (`fulfilmentId`),
+  UNIQUE KEY `uq_store_fulfilment` (`orderId`,`provider`),
+  KEY `idx_store_fulfilment_status` (`status`,`createdAt`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1 ;

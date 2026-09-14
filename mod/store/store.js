@@ -28,17 +28,19 @@ function storeShowCart(){
 	});
 }
 
-function storeAddToCart(productId){
-	var input = document.getElementById('storeQty-' + productId);
+function storeAddToCart(productId, button){
+	var input = button ? button.closest('.ghotiStoreBuy').querySelector('input') : document.getElementById('storeQty-' + productId);
+	if(input && !input.reportValidity()){ return; }
+	if(button){ button.disabled = true; }
 	var quantity = input ? parseInt(input.value, 10) : 1;
 	if(!(quantity > 0)){ quantity = 1; }
 	x_storeAddToCart(productId, quantity, function(result){
+		if(button){ button.disabled = false; }
 		if(!result || !result.ok){
 			pageFeedBack((result && result.error) || 'That item could not be added.');
 			return;
 		}
-		var summary = document.getElementById('ghotiStoreCartSummary');
-		if(summary){ summary.textContent = result.summary; }
+		document.querySelectorAll('.ghotiStoreCartSummary, #ghotiStoreCartSummary').forEach(function(summary){ summary.textContent = result.summary; });
 		pageFeedBack(result.name + ' added to your cart.');
 	});
 }
@@ -154,6 +156,11 @@ function storeMountPaypal(){
 							return;
 						}
 						printPage(result.html);
+						//The receipt is on screen; only now does anything reach a
+						//supplier, and nothing on this page waits for it.
+						if(result.submitQueued && typeof x_storeSubmitQueued === 'function'){
+							x_storeSubmitQueued(function(){});
+						}
 						resolve();
 					});
 				});
@@ -191,7 +198,7 @@ function storeProductData(){
 
 //The product editor is built here rather than server-side because it opens over
 //the list without a round trip; the list already carries every field as JSON.
-function storeEditProduct(productId){
+function storeEditProduct(productId, duplicate){
 	var panel = document.getElementById('ghotiStoreProductForm');
 	if(!panel){ return; }
 	var product = null;
@@ -203,7 +210,10 @@ function storeEditProduct(productId){
 		return;
 	}
 
-	var isNew = !product;
+	if(duplicate && product){
+		product = Object.assign({}, product, {productId: 0, sku: '', name: product.name.slice(0, 113) + ' (copy)', active: false});
+	}
+	var isNew = !product || duplicate;
 	var price = product ? storeCentsToText(product.priceCents) : '0.00';
 	var html = ''
 		+ '<form class="ghotiForm" action="#" onsubmit="storeSaveProduct(); return false;">'
@@ -213,6 +223,9 @@ function storeEditProduct(productId){
 		+ storeField('storeProductName', 'Name', product ? product.name : '', 'text', 'maxlength="120" required="required"')
 		+ storeField('storeProductSku', 'SKU', product ? product.sku : '', 'text', 'maxlength="60" required="required"')
 		+ storeField('storeProductPrice', 'Price', price, 'text', 'maxlength="12" required="required"')
+		+ storeField('storeProductCompareAt', 'Original price (optional)', product && product.compareAtCents ? storeCentsToText(product.compareAtCents) : '', 'text', 'maxlength="12" placeholder="Higher price before a sale"')
+		+ storeField('storeProductBadge', 'Product badge (optional)', product ? product.badge : '', 'text', 'maxlength="32" placeholder="New arrival, Limited edition…"')
+		+ storeField('storeProductDelivery', 'Delivery note (optional)', product ? product.deliveryNote : '', 'text', 'maxlength="160" placeholder="Made to order · Ships in 5–7 days"')
 		+ storeField('storeProductCategory', 'Category', product ? product.category : 'default', 'text', 'maxlength="40"')
 		+ '<label class="ghotiField"><span>Kind</span><select id="storeProductKind" onchange="storeToggleDownloadField();">'
 		+ '<option value="physical"' + (product && product.kind === 'digital' ? '' : ' selected="selected"') + '>Physical &mdash; needs shipping</option>'
@@ -222,9 +235,11 @@ function storeEditProduct(productId){
 		+ storeField('storeProductImage', 'Image URL', product ? product.imageUrl : '', 'text', 'maxlength="2048" placeholder="files/shop/mug.jpg"')
 		+ '<label class="ghotiField" id="storeDownloadField"><span>File to deliver <i>(path under files/store/)</i></span>'
 		+ '<input type="text" id="storeProductDownload" maxlength="255" value="' + storeAttr(product ? product.downloadPath : '') + '" placeholder="guide.pdf" /></label>'
+		+ storeFulfilmentFields(product)
 		+ '</div>'
 		+ '<label class="ghotiField ghotiFieldWide"><span>Description</span><textarea id="storeProductDescription" rows="4" maxlength="2000">'
 		+ storeAttr(product ? product.description : '') + '</textarea></label>'
+		+ '<label class="ghotiInlineChoice"><input type="checkbox" id="storeProductFeatured"' + (product && product.featured ? ' checked="checked"' : '') + ' /> Featured — show first in the collection</label>'
 		+ '<label class="ghotiInlineChoice"><input type="checkbox" id="storeProductActive"' + (!product || product.active ? ' checked="checked"' : '') + ' /> Show in the store</label>'
 		+ '<div class="ghotiFormActions"><button type="submit" class="ghotiButton">Save product</button>'
 		+ '<button type="button" class="ghotiButton ghotiButtonSecondary" onclick="storeCloseProduct();">Cancel</button></div>'
@@ -233,7 +248,82 @@ function storeEditProduct(productId){
 	panel.innerHTML = html;
 	panel.hidden = false;
 	storeToggleDownloadField();
+	storeToggleDropshipFields();
 	panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+//Who fulfils this product, and the supplier ids if it is not you. The provider
+//list comes from the server's driver registry, so a new supplier shows up here
+//without this file changing.
+function storeProviderData(){
+	var node = document.getElementById('ghotiStoreProviders');
+	if(!node){ return {}; }
+	try{ return JSON.parse(node.textContent || node.innerText); }
+	catch(e){ return {}; }
+}
+
+function storeFulfilmentFields(product){
+	var providers = storeProviderData();
+	var current = product ? (product.fulfilment || 'self') : 'self';
+	var chosen = product ? product.dropProvider : '';
+	var options = '<option value=""' + (chosen ? '' : ' selected="selected"') + '>Choose a supplier</option>';
+	Object.keys(providers).forEach(function(id){
+		options += '<option value="' + storeAttr(id) + '"' + (chosen === id ? ' selected="selected"' : '') + '>'
+			+ storeAttr(providers[id].label) + '</option>';
+	});
+
+	return ''
+		+ '<label class="ghotiField"><span>Fulfilled by</span><select id="storeProductFulfilment" onchange="storeToggleDropshipFields();">'
+		+ '<option value="self"' + (current === 'self' ? ' selected="selected"' : '') + '>You &mdash; you ship it</option>'
+		+ '<option value="dropship"' + (current === 'dropship' ? ' selected="selected"' : '') + '>A supplier &mdash; sent to them when paid</option>'
+		+ '<option value="spring"' + (current === 'spring' ? ' selected="selected"' : '') + '>Spring / Teespring — checkout and fulfilment on Spring</option>'
+		+ '</select></label>'
+		+ '<label class="ghotiField" id="storeSpringField"><span>Spring product URL</span><input type="url" id="storeProductExternal" maxlength="2048" value="' + storeAttr(product ? product.externalUrl : '') + '" placeholder="https://your-store.creator-spring.com/listing/your-product" /><small>Customers choose options and pay on Spring. The local price is a starting price; keep it in sync with your listing.</small></label>'
+		+ '<label class="ghotiField storeDropField"><span>Supplier</span><select id="storeProductProvider" onchange="storeToggleDropshipFields();">'
+		+ options + '</select></label>'
+		+ '<label class="ghotiField storeDropField"><span id="storeProductVariantLabel">Supplier variant id</span>'
+		+ '<input type="text" id="storeProductVariant" maxlength="64" value="' + storeAttr(product ? product.dropVariantId : '') + '" /></label>'
+		+ '<label class="ghotiField storeDropField" id="storeProductProductIdField"><span id="storeProductProductIdLabel">Supplier product id</span>'
+		+ '<input type="text" id="storeProductSupplierId" maxlength="64" value="' + storeAttr(product ? product.dropProductId : '') + '" /></label>';
+}
+
+function storeToggleDropshipFields(){
+	var route = document.getElementById('storeProductFulfilment');
+	var provider = document.getElementById('storeProductProvider');
+	var kind = document.getElementById('storeProductKind');
+	if(!route){ return; }
+	var isDrop = route.value === 'dropship';
+	var springField = document.getElementById('storeSpringField');
+	if(springField){ springField.hidden = route.value !== 'spring'; }
+	var springUrl = document.getElementById('storeProductExternal');
+	if(springUrl){
+		springUrl.disabled = route.value !== 'spring';
+		springUrl.required = route.value === 'spring';
+	}
+	var downloadField = document.getElementById('storeDownloadField');
+	if(downloadField){ downloadField.hidden = !kind || kind.value !== 'digital' || route.value === 'spring'; }
+	Array.prototype.forEach.call(document.querySelectorAll('.storeDropField'), function(field){
+		field.hidden = !isDrop;
+	});
+	//A download has no supplier; the two routes are mutually exclusive.
+	if(isDrop && kind && kind.value === 'digital'){
+		route.value = 'self';
+		storeToggleDropshipFields();
+		pageFeedBack('A digital download is delivered by this site, not by a supplier.');
+		return;
+	}
+	if(!isDrop || !provider){ return; }
+
+	//Label the id fields the way the chosen supplier names them, and hide the
+	//product id for suppliers that do not use one.
+	var providers = storeProviderData();
+	var mapping = providers[provider.value] ? providers[provider.value].mapping : null;
+	var variantLabel = document.getElementById('storeProductVariantLabel');
+	var productField = document.getElementById('storeProductProductIdField');
+	var productLabel = document.getElementById('storeProductProductIdLabel');
+	if(variantLabel){ variantLabel.textContent = mapping && mapping.variant ? mapping.variant : 'Supplier variant id'; }
+	if(productField){ productField.hidden = !(mapping && mapping.product); }
+	if(productLabel && mapping && mapping.product){ productLabel.textContent = mapping.product; }
 }
 
 function storeField(id, label, value, type, attrs){
@@ -261,6 +351,7 @@ function storeToggleDownloadField(){
 	var field = document.getElementById('storeDownloadField');
 	if(!kind || !field){ return; }
 	field.hidden = kind.value !== 'digital';
+	storeToggleDropshipFields();
 }
 
 function storeCloseProduct(){
@@ -279,11 +370,20 @@ function storeSaveProduct(){
 		name: value('storeProductName'),
 		sku: value('storeProductSku'),
 		price: value('storeProductPrice'),
+		compareAtPrice: value('storeProductCompareAt'),
+		badge: value('storeProductBadge'),
+		deliveryNote: value('storeProductDelivery'),
+		externalUrl: value('storeProductExternal'),
+		featured: document.getElementById('storeProductFeatured').checked ? 1 : 0,
 		category: value('storeProductCategory'),
 		kind: value('storeProductKind'),
 		sortOrder: value('storeProductSort'),
 		imageUrl: value('storeProductImage'),
 		downloadPath: value('storeProductDownload'),
+		fulfilment: value('storeProductFulfilment'),
+		dropProvider: value('storeProductProvider'),
+		dropVariantId: value('storeProductVariant'),
+		dropProductId: value('storeProductSupplierId'),
 		description: value('storeProductDescription'),
 		active: checkbox && checkbox.checked ? 1 : 0
 	}, function(result){
@@ -362,4 +462,132 @@ function storeSetOrderStatus(orderId, status){
 		}
 		pageFeedBack(result || 'The order could not be updated.');
 	});
+}
+
+/* ---------------- dropshipping ---------------- */
+
+function storeSaveDropship(){
+	function value(id){
+		var node = document.getElementById(id);
+		return node ? node.value : '';
+	}
+	function checked(id){
+		var node = document.getElementById(id);
+		return node && node.checked ? 1 : 0;
+	}
+	//Collect every drop-<provider>-<field> input the server rendered, so this
+	//function does not need to know which suppliers exist.
+	var providers = {};
+	Array.prototype.forEach.call(document.querySelectorAll('[id^="drop-"]'), function(input){
+		var parts = input.id.split('-');
+		if(parts.length !== 3){ return; }
+		if(!providers[parts[1]]){ providers[parts[1]] = {}; }
+		providers[parts[1]][parts[2]] = input.value;
+	});
+
+	x_saveStoreDropshipSettings({
+		enabled: checked('drop-enabled'),
+		autoSubmit: checked('drop-autoSubmit'),
+		providers: providers
+	}, function(result){
+		if(result === true){
+			pageFeedBack('Dropshipping settings saved.');
+			showStoreManager('dropship');
+			return;
+		}
+		pageFeedBack(result || 'The settings could not be saved.');
+	});
+}
+
+function storeDrainQueue(){
+	x_storeSubmitQueued(function(result){
+		if(!result || !result.ok){
+			pageFeedBack((result && result.error) || 'The queue could not be processed.');
+			return;
+		}
+		pageFeedBack(result.sent > 0 ? (result.sent + ' order(s) sent to suppliers.') : 'Nothing was sent. Check the queue for the reason.');
+		showStoreManager('dropship');
+	});
+}
+
+function storeRetryFulfilment(fulfilmentId){
+	x_storeRetryFulfilment(fulfilmentId, function(result){
+		if(result === true){
+			pageFeedBack('Sent to the supplier.');
+			showStoreManager('orders');
+			return;
+		}
+		pageFeedBack(result || 'The supplier did not accept this order.');
+	});
+}
+
+function storeRefreshFulfilment(fulfilmentId){
+	x_storeRefreshFulfilment(fulfilmentId, function(result){
+		if(result === true){
+			pageFeedBack('Supplier status updated.');
+			showStoreManager('orders');
+			return;
+		}
+		pageFeedBack(result || 'The supplier status could not be read.');
+	});
+}
+
+// Controls are scoped to the nearest catalogue, so independent shortcodes work together.
+function storeFilterCatalog(control){
+	var root = control.closest('.ghotiStoreCatalog');
+	if(!root){ return; }
+	var query = root.querySelector('[data-store-search]').value.trim().toLocaleLowerCase();
+	var kind = root.querySelector('[data-store-kind]').value;
+	var sort = root.querySelector('[data-store-sort]').value;
+	var category = root.querySelector('[data-store-category][aria-pressed="true"]').dataset.storeCategory;
+	var grid = root.querySelector('.ghotiStoreGrid');
+	var cards = Array.from(grid.children);
+	var visible = 0;
+	cards.forEach(function(card){
+		var data = card.dataset;
+		var match = (!query || data.search.toLocaleLowerCase().includes(query))
+			&& (category === 'all' || data.category === category)
+			&& (kind === 'all' || (kind === 'spring' ? data.spring === '1' : data.kind === kind));
+		card.hidden = !match;
+		if(match){ visible++; }
+	});
+	cards.sort(function(a, b){
+		var x = a.dataset, y = b.dataset, order = 0;
+		if(sort === 'price-asc'){ order = Number(x.price) - Number(y.price); }
+		else if(sort === 'price-desc'){ order = Number(y.price) - Number(x.price); }
+		else if(sort === 'newest'){ order = Number(y.created) - Number(x.created); }
+		else if(sort === 'name'){ order = x.name.localeCompare(y.name); }
+		else { order = Number(y.featured) - Number(x.featured); }
+		return order || Number(x.index) - Number(y.index);
+	}).forEach(function(card){ grid.appendChild(card); });
+	root.querySelector('.ghotiStoreResultCount').textContent = visible + ' product' + (visible === 1 ? '' : 's');
+	root.querySelector('.ghotiStoreNoResults').hidden = visible > 0;
+}
+
+function storeSelectCategory(button){
+	button.closest('.ghotiStoreChips').querySelectorAll('button').forEach(function(other){
+		other.setAttribute('aria-pressed', String(other === button));
+	});
+	storeFilterCatalog(button);
+}
+
+function storeResetFilters(button){
+	var root = button.closest('.ghotiStoreCatalog');
+	root.querySelector('[data-store-search]').value = '';
+	root.querySelector('[data-store-kind]').value = 'all';
+	root.querySelector('[data-store-sort]').value = 'featured';
+	storeSelectCategory(root.querySelector('[data-store-category="all"]'));
+	root.querySelector('[data-store-search]').focus();
+}
+
+function storeFilterProducts(input){
+	var query = input.value.trim().toLocaleLowerCase();
+	var rows = document.querySelectorAll('#ghotiStoreManager [data-store-admin-product]');
+	var count = 0;
+	rows.forEach(function(row){
+		row.hidden = !row.textContent.toLocaleLowerCase().includes(query);
+		if(!row.hidden){ count++; }
+	});
+	var status = document.getElementById('storeAdminResults');
+	if(status){ status.textContent = count + ' product' + (count === 1 ? '' : 's'); }
 }
