@@ -52,6 +52,9 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <?php if(ghoti::$enableStore){ ?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/store/store.js'); ?>"></script>
 <?php } ?>
+<?php if(ghoti::$enableBpong){ ?>
+<script type="text/javascript" src="<?php echo $ghotiAsset('mod/bpong/bpong.js'); ?>"></script>
+<?php } ?>
 
 <?/*Main ghoti stylesheet*/?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('css/ghoti/ghoti.css'); ?>" />
@@ -64,6 +67,9 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <?php } ?>
 <?php if(ghoti::$enableStore){ ?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/store/store.css'); ?>" />
+<?php } ?>
+<?php if(ghoti::$enableBpong){ ?>
+<link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/bpong/bpong.css'); ?>" />
 <?php } ?>
 
 <link rel="stylesheet" href="<?php echo $ghotiAsset('css/ghoti/privacy.css'); ?>" />

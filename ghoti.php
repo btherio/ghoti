@@ -40,6 +40,7 @@ class ghoti {
 	public static $sessionTimeoutMinutes = 30;    //authenticated idle timeout       [UI]
 	public static $enableVhosts = False;          //optional privileged module [UI]
 	public static $enableStore = False;           //optional shop module        [UI]
+	public static $enableBpong = False;           //optional pong module        [UI]
 	public static $enableCriticalAlerts = False;
 	public static $enableDebug = False;            //enable debug logging           [UI]
 
@@ -94,6 +95,7 @@ class ghoti {
 		'enableDebug'        => 'bool',
 		'enableVhosts'       => 'bool',
 		'enableStore'        => 'bool',
+		'enableBpong'        => 'bool',
 		'enableCriticalAlerts' => 'bool',
 	);
 
@@ -111,6 +113,7 @@ class ghoti {
 		$modules = array('links','login','banners','comments','analytics','gallery','filemanager','mail');
 		if(self::$enableVhosts){ $modules[] = 'vhosts'; }
 		if(self::$enableStore){ $modules[] = 'store'; }
+		if(self::$enableBpong){ $modules[] = 'bpong'; }
 		return $modules;
 	}
 	public function loadModules($modules){

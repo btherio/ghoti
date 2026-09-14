@@ -15,6 +15,7 @@ function ghoti_documentation_html(){
 	if($version === ''){ $version = 'current'; }
 	$vhostsState = ghoti::$enableVhosts ? 'Enabled on this site' : 'Optional module, currently disabled';
 	$storeState = ghoti::$enableStore ? 'Enabled on this site' : 'Optional module, currently disabled';
+	$bpongState = ghoti::$enableBpong ? 'Enabled on this site' : 'Optional module, currently disabled';
 
 	return <<<HTML
 <section id="ghotiDocumentation" class="ghotiAdminPanel">
@@ -139,6 +140,7 @@ unset ghoti_admin_password</code></pre>
             <article><h3>Analytics</h3><p>Review pageviews, sessions, pages, browsers, devices, referrers, errors, and logs. Visitors are tracked only after consent. Use Exclude admin views for visitor-focused reporting and CSV export for offline analysis. The <b>Apache logs</b> card at the bottom analyses the web server’s own access and error logs — see the <a href="docs/apache-log-analyzer.md" target="_blank" rel="noopener noreferrer">Apache log analyzer guide</a>.</p></article>
             <article><h3>Apache Vhosts</h3><p>{$vhostsState}. Enable it in Site Settings for read-only inspection. Writes require the separately installed root-owned helper, reviewed paths, a passing config test, and an explicit Allow changes setting. See the <a href="docs/vhosts-enablement.md" target="_blank" rel="noopener noreferrer">vhost enablement guide</a>.</p></article>
             <article><h3>Store</h3><p>{$storeState}. Sells physical and digital goods, taking payment through PayPal. Enable it in Site Settings, add the PayPal REST credentials under <b>Store</b>, and put a shop on any page with <code>[store:all]</code>. Prices are always computed on the server and an order is only marked paid once PayPal confirms the captured amount matches. See the <a href="docs/store.md" target="_blank" rel="noopener noreferrer">store guide</a>.</p></article>
+            <article><h3>Pong</h3><p>{$bpongState}. Puts a playable Bitcoin Pong board on any page with <code>[bpong:game]</code>, ported from the terminal game in <code>lib/bitcoin-pong</code>. The match runs in the visitor&rsquo;s browser: nothing is submitted, no score is kept, and no sign-in is required. See the <a href="docs/bpong.md" target="_blank" rel="noopener noreferrer">pong guide</a>.</p></article>
             <article><h3>Site Settings</h3><p>Controls site identity, visitor access, privacy details, operational alerts, contextual tips, themes, and optional modules. Most presentation changes appear after reload.</p></article>
           </div>
         </div>
