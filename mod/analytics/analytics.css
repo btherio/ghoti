@@ -61,6 +61,32 @@
 #ghotiAnalytics .analytics-toggle{ color: var(--text-secondary); font-size:.85rem; display:flex; gap:.4rem; align-items:center; }
 #ghotiAnalytics .analytics-export{ margin-left:auto; }
 
+/* ---- dashboard tabs: Usage data / Errors / Server logs ----
+ * Distinct from #ghotiApacheLog .report-tab, which styles the Apache report's
+ * own tabs inside the Server logs panel. Both stylesheets load together, so the
+ * two sets must not share a class name. */
+#ghotiAnalytics .analytics-tabs{
+	display:flex; gap:.25rem; flex-wrap:wrap;
+	border-bottom:1px solid var(--border);
+	margin-bottom:1rem;
+}
+#ghotiAnalytics .analytics-tab{
+	display:flex; flex-direction:column; gap:.1rem; align-items:flex-start;
+	padding:.5rem .85rem; border:0; border-bottom:2px solid transparent;
+	background:none; cursor:pointer; text-align:left;
+	color: var(--text-secondary); font: inherit;
+}
+#ghotiAnalytics .analytics-tab:hover{ color: var(--text-primary); }
+/* The strip is one tab stop with arrow keys inside it, so the focus ring has to
+   be obvious - it is the only sign of which tab the keys will act on. */
+#ghotiAnalytics .analytics-tab:focus-visible{ outline:2px solid var(--series-1); outline-offset:-2px; }
+#ghotiAnalytics .analytics-tab.is-active{
+	color: var(--text-primary); border-bottom-color: var(--series-1);
+}
+#ghotiAnalytics .analytics-tab-name{ font-weight:600; font-size:.95rem; }
+#ghotiAnalytics .analytics-tab-hint{ font-size:.74rem; color: var(--text-muted); }
+#ghotiAnalytics .analytics-tab.is-active .analytics-tab-hint{ color: var(--text-secondary); }
+
 #ghotiAnalytics .analytics-kpis{
 	display:grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
 	gap:.75rem; margin-bottom:1rem;
@@ -187,6 +213,12 @@
 	#ghotiAnalytics .analytics-ranges{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
 	#ghotiAnalytics .analytics-export{ justify-content:center; width:100%; }
 	#ghotiAnalytics .analytics-card{ padding:.75rem; }
+	/* Three tabs with descriptions do not fit a phone; the hint is the part
+	   that can go, because the tab name already says what the panel is. */
+	#ghotiAnalytics .analytics-tabs{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; }
+	#ghotiAnalytics .analytics-tab{ align-items:center; padding:.5rem .3rem; text-align:center; }
+	#ghotiAnalytics .analytics-tab-name{ font-size:.85rem; }
+	#ghotiAnalytics .analytics-tab-hint{ display:none; }
 	#ghotiAnalytics .analytics-log-errors li{ grid-template-columns:minmax(0,1fr); }
 	#ghotiAnalytics .analytics-log-last{ grid-column:1; }
 }
