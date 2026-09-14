@@ -158,7 +158,7 @@ function ghoti_csrf_verify($token){
  * pageId, theme, ...) is untouched.
  */
 function ghoti_free_request_objects(){
-	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','mailObj','vhostsObj','ghotidb') as $k){
+	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','mailObj','vhostsObj','storeObj','ghotidb') as $k){
 		unset($_SESSION[$k]);
 	}
 }
@@ -1041,8 +1041,10 @@ class ghotiui{
 		$o .= "<p class=\"siteSettingsSectionIntro\">Off by default. Turning one off leaves its saved configuration alone.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
 		$o .= $choice("enableVhosts", "Apache Vhosts &mdash; manage virtual hosts and TLS certificates", ghoti::$enableVhosts);
+		$o .= $choice("enableStore", "Store &mdash; sell physical and digital goods through PayPal", ghoti::$enableStore, "set-enableStore-help");
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\">Save and reload to show or hide it in the workspace. It opens read-only; writing to Apache needs a root-owned helper installed first.</p>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-enableStore-help\">The store sells nothing until PayPal credentials are saved under <b>Admin Menu &rarr; Store</b>. Enabling it also lets pages load PayPal&rsquo;s button script, which widens this site&rsquo;s content-security policy to PayPal&rsquo;s hosts; turning the store off restores the tighter policy. See the <a href=\"docs/store.md\" target=\"_blank\" rel=\"noopener noreferrer\">store guide</a>.</p>\n";
 		$o .= ghoti_docs_panel("Enabling Apache Vhosts", "optional, staged setup", array(
 			array('heading' => 'In stages',
 				'list' => array('Tick the box, save, and reload the page.',

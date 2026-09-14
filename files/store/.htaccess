@@ -1,0 +1,22 @@
+# Paid digital goods. Everything in here has been bought by somebody, so it must
+# never be served by the web server directly: the only legitimate way out is
+# mod/store/store.download.php, which checks a token tied to a paid order, its
+# expiry, and its remaining download count before sending a byte.
+#
+# PHP reads these files perfectly well with the deny in place - this rule stops
+# HTTP, not the filesystem. If this site runs on nginx (or Apache with
+# AllowOverride off), replicate the deny in the server config, or the download
+# tokens are decorative.
+Options -Indexes
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

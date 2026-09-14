@@ -110,6 +110,7 @@ class ghoti {
 	public static function enabledModules(){
 		$modules = array('links','login','banners','comments','analytics','gallery','filemanager','mail');
 		if(self::$enableVhosts){ $modules[] = 'vhosts'; }
+		if(self::$enableStore){ $modules[] = 'store'; }
 		return $modules;
 	}
 	public function loadModules($modules){

@@ -14,6 +14,7 @@ function ghoti_documentation_html(){
 	$version = htmlspecialchars(trim((string)@file_get_contents(__DIR__.'/VERSION')), ENT_QUOTES, 'UTF-8');
 	if($version === ''){ $version = 'current'; }
 	$vhostsState = ghoti::$enableVhosts ? 'Enabled on this site' : 'Optional module, currently disabled';
+	$storeState = ghoti::$enableStore ? 'Enabled on this site' : 'Optional module, currently disabled';
 
 	return <<<HTML
 <section id="ghotiDocumentation" class="ghotiAdminPanel">
@@ -135,8 +136,9 @@ unset ghoti_admin_password</code></pre>
             <article><h3>Galleries</h3><p>Create a gallery, upload or link images, edit captions, reorder photos, and use View for its standalone page. Browser-safe images are stored directly; supported camera formats require ImageMagick conversion.</p></article>
             <article><h3>Files</h3><p>Browse and manage files available to the site. File management is a powerful administrator tool: limit admin access and keep secrets, backups, hidden files, and runtime state outside its editable scope.</p></article>
             <article><h3>Mail Settings</h3><p>Configure a local relay or authenticated SMTP. Use STARTTLS on port 587 or implicit TLS on 465 where required, keep certificate verification enabled, save, then send a test message.</p></article>
-            <article><h3>Analytics</h3><p>Review pageviews, sessions, pages, browsers, devices, referrers, errors, and logs. Visitors are tracked only after consent. Use Exclude admin views for visitor-focused reporting and CSV export for offline analysis.</p></article>
+            <article><h3>Analytics</h3><p>Review pageviews, sessions, pages, browsers, devices, referrers, errors, and logs. Visitors are tracked only after consent. Use Exclude admin views for visitor-focused reporting and CSV export for offline analysis. The <b>Apache logs</b> card at the bottom analyses the web server’s own access and error logs — see the <a href="docs/apache-log-analyzer.md" target="_blank" rel="noopener noreferrer">Apache log analyzer guide</a>.</p></article>
             <article><h3>Apache Vhosts</h3><p>{$vhostsState}. Enable it in Site Settings for read-only inspection. Writes require the separately installed root-owned helper, reviewed paths, a passing config test, and an explicit Allow changes setting. See the <a href="docs/vhosts-enablement.md" target="_blank" rel="noopener noreferrer">vhost enablement guide</a>.</p></article>
+            <article><h3>Store</h3><p>{$storeState}. Sells physical and digital goods, taking payment through PayPal. Enable it in Site Settings, add the PayPal REST credentials under <b>Store</b>, and put a shop on any page with <code>[store:all]</code>. Prices are always computed on the server and an order is only marked paid once PayPal confirms the captured amount matches. See the <a href="docs/store.md" target="_blank" rel="noopener noreferrer">store guide</a>.</p></article>
             <article><h3>Site Settings</h3><p>Controls site identity, visitor access, privacy details, operational alerts, contextual tips, themes, and optional modules. Most presentation changes appear after reload.</p></article>
           </div>
         </div>
