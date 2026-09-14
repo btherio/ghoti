@@ -291,18 +291,141 @@ class ghotidb{
         }
     }
 
-    /* Record a module as provisioned in the persistent cache (best-effort). */
-    private function markProvisioned($moduleName){
+    /* Record a module as provisioned in the persistent cache (best-effort),
+     * along with the fingerprints of the schema file its tables now match. */
+    private function markProvisioned($moduleName, $schemaKey = null, $schemaHash = null, $stampKey = null, $stamp = null){
         $this->loadProvisioned();
-        if (!empty(self::$provisioned[$moduleName])) {
+        $known = !empty(self::$provisioned[$moduleName])
+            && ($schemaKey === null || (isset(self::$provisioned[$schemaKey]) && self::$provisioned[$schemaKey] === $schemaHash))
+            && ($stampKey === null || (isset(self::$provisioned[$stampKey]) && self::$provisioned[$stampKey] === $stamp));
+        if ($known) {
             return;
         }
         self::$provisioned[$moduleName] = true;
+        if ($schemaKey !== null) {
+            self::$provisioned[$schemaKey] = $schemaHash;
+        }
+        if ($stampKey !== null) {
+            self::$provisioned[$stampKey] = $stamp;
+        }
         try{
             @file_put_contents($this->provisionedMarkerFile(), json_encode(self::$provisioned), LOCK_EX);
         }catch (Throwable $e){
             //Cache write is best-effort; on failure we simply probe again next time.
         }
+    }
+
+    /*
+     * Does this table exist? Asked with SHOW TABLES rather than a SELECT probe
+     * on purpose: a SELECT against a missing table throws, and ghotidb::query()
+     * answers a throw by logging an ERROR and calling resetConnection(), which
+     * nulls the shared PDO mid-request. A first run then wrote "Base table or
+     * view not found" into the log for every module it was about to create.
+     */
+    protected function tableExists($table){
+        try{
+            $statement = $this->db()->prepare("SHOW TABLES LIKE ?");
+            $statement->execute(array($table));
+            $found = $statement->fetch();
+            $statement->closeCursor();
+            return !empty($found);
+        }catch (Throwable $e){
+            ghoti::logException("ghoti.db.php:tableExists", $e, $table);
+            return false;
+        }
+    }
+
+    /*
+     * Column definitions declared in a module's .sql file, as
+     * array(tableName => array(columnName => "type and constraints")).
+     *
+     * Deliberately a small, strict parser rather than a general SQL one: these
+     * files are written to one shape (`create table if not exists NAME(` then
+     * one backticked column per line, then the key definitions), and anything
+     * it does not recognise is skipped rather than guessed at.
+     */
+    public static function parseModuleColumns($sql){
+        $tables = array();
+        $sql = (string)$sql;
+        if(!preg_match_all('/create\s+table\s+(?:if\s+not\s+exists\s+)?`?([A-Za-z0-9_]+)`?\s*\((.*?)\)\s*ENGINE/is', $sql, $matches, PREG_SET_ORDER)){
+            return $tables;
+        }
+        foreach($matches as $match){
+            $table = $match[1];
+            $columns = array();
+            foreach(preg_split('/\r\n|\n|\r/', $match[2]) as $line){
+                //Strip a trailing SQL comment before anything else: definitions
+                //in these files carry explanatory text after the comma.
+                $line = preg_replace('/--.*$/', '', $line);
+                $line = trim((string)$line);
+                if($line === '' || !preg_match('/^`([A-Za-z0-9_]+)`\s+(.+?),?$/', $line, $column)){
+                    continue; //blank line, or a PRIMARY/UNIQUE/KEY definition
+                }
+                $columns[$column[1]] = trim($column[2]);
+            }
+            if($columns){ $tables[$table] = $columns; }
+        }
+        return $tables;
+    }
+
+    /*
+     * Bring an existing module's tables up to what its .sql file now declares.
+     *
+     * `create table if not exists` does nothing to a table that already exists,
+     * so upgrading a live site used to leave older tables missing every column
+     * added since - the symptom being "Unknown column 'tlsVerify'" on every
+     * mail settings read, with no way out but hand-written SQL.
+     *
+     * Strictly additive: it creates tables the module has gained and adds
+     * columns it has gained. It never drops, renames, retypes or reorders
+     * anything, so it cannot destroy data, and a definition it cannot apply is
+     * logged and stepped over rather than failing the request.
+     */
+    private function ensureModuleSchema($moduleName, $sql){
+        $declared = self::parseModuleColumns($sql);
+        if(!$declared){ return false; }
+        $changed = false;
+        foreach($declared as $table => $columns){
+            if(!$this->tableExists($table)){
+                continue; //created by the create-table pass; nothing to top up
+            }
+            try{
+                $existing = array();
+                foreach($this->queryArray("SHOW COLUMNS FROM `".$table."`") as $row){
+                    if(isset($row[0])){ $existing[(string)$row[0]] = true; }
+                }
+            }catch (Throwable $e){
+                ghoti::logException("ghoti.db.php:ensureModuleSchema", $e, $table);
+                continue;
+            }
+            foreach($columns as $column => $definition){
+                if(isset($existing[$column])){ continue; }
+                //An AUTO_INCREMENT column needs a key in the same statement;
+                //that is a table nobody can add to after the fact, so say so
+                //instead of issuing SQL that will fail.
+                if(stripos($definition, 'auto_increment') !== false){
+                    ghoti::logError("ghoti.db.php:ensureModuleSchema", "Cannot add auto_increment column `$column` to `$table`; recreate the table by hand");
+                    continue;
+                }
+                try{
+                    $this->db()->exec("ALTER TABLE `".$table."` ADD COLUMN `".$column."` ".$definition);
+                    ghoti::logInfo("ghoti.db.php:ensureModuleSchema", "Added column `$column` to `$table` for module '$moduleName'");
+                    $changed = true;
+                }catch (Throwable $e){
+                    //Two requests arriving together during an upgrade will both
+                    //try this; the loser sees "Duplicate column name" and the
+                    //column it wanted is there either way. Logging that at ERROR
+                    //would e-mail every administrator about a non-event, since
+                    //an ERROR line is what triggers a critical alert.
+                    if(stripos($e->getMessage(), 'duplicate column') !== false){
+                        ghoti::logDebug("ghoti.db.php:ensureModuleSchema", "`$column` already added to `$table` by a concurrent request");
+                        continue;
+                    }
+                    ghoti::logException("ghoti.db.php:ensureModuleSchema", $e, "ALTER TABLE `$table` ADD `$column`");
+                }
+            }
+        }
+        return $changed;
     }
 
     /* Add page-management columns once for databases created before v1. */
@@ -371,43 +494,62 @@ class ghotidb{
             return true;
         }
 
-        //Persistent fast path: if we have already confirmed this table exists on
-        //a previous request, skip the existence probe entirely.
+        $tableSqlPath = __DIR__."/mod/$moduleName/$moduleName.sql";
+        $schemaKey = 'moduleSchema.'.$moduleName;
+        $stampKey = 'moduleStamp.'.$moduleName;
+        //Two fingerprints, for two different jobs. The stamp is mtime+size, so
+        //the common path - nothing deployed since the last request - costs one
+        //stat and no file read, which is the whole point of this cache. The hash
+        //is authoritative and decides whether the upgrade pass actually runs, so
+        //a deploy that only touches mtimes does not re-ALTER every module.
+        clearstatcache(true, $tableSqlPath);
+        $stamp = (string)@filemtime($tableSqlPath).':'.(string)@filesize($tableSqlPath);
+
         $this->loadProvisioned();
-        if (!empty(self::$provisioned[$moduleName])) {
+        if (!empty(self::$provisioned[$moduleName])
+            && isset(self::$provisioned[$stampKey])
+            && self::$provisioned[$stampKey] === $stamp) {
             self::$moduleInitState[$moduleName] = 'done';
+            return true;
+        }
+
+        $tableSql = @file_get_contents($tableSqlPath);
+        if($tableSql === false){
+            self::$moduleInitState[$moduleName] = 'failed';
+            ghoti::logError("ghoti.db.php:loadModuleSql", "Failed to open table sql file for '$moduleName'");
+            return false;
+        }
+        $schemaHash = sha1($tableSql);
+
+        //Same content as last time: record the new stamp and skip the work.
+        if (!empty(self::$provisioned[$moduleName])
+            && isset(self::$provisioned[$schemaKey])
+            && self::$provisioned[$schemaKey] === $schemaHash) {
+            self::$moduleInitState[$moduleName] = 'done';
+            $this->markProvisioned($moduleName, $schemaKey, $schemaHash, $stampKey, $stamp);
             return true;
         }
 
         self::$moduleInitState[$moduleName] = 'in-progress';
 
-        $tableExisted = true;
-
-        //Check to see if our table exists in the database. If it does, skip provisioning.
-        try{
-            $this->query("SELECT 1 FROM `$moduleName` LIMIT 1");
-        }catch (Throwable $e){
-            $tableExisted = false;
-        }
-
-        if ($tableExisted) {
-            self::$moduleInitState[$moduleName] = 'done';
-            $this->markProvisioned($moduleName);
-            return true;
-        }
+        $tableExisted = $this->tableExists($moduleName);
 
         try{
-            $tableSqlPath = __DIR__."/mod/$moduleName/$moduleName.sql";
-            $tableSql = @file_get_contents($tableSqlPath);
-            if($tableSql === false){
-                throw new Exception('Failed to open table sql file.');
-            }
-            //File should contain 'create table if not exists' statements only.
+            //Every statement is `create table if not exists`, so this is a no-op
+            //for tables that are already there and creates any the module has
+            //gained since it was installed.
             $this->db()->exec($tableSql);
+
+            //Then add columns the module has gained. A create-if-not-exists
+            //never alters a table that already exists, which is what left
+            //upgraded sites reading columns their database had never heard of.
+            if($tableExisted){
+                $this->ensureModuleSchema($moduleName, $tableSql);
+            }
 
             //Perform initial seed data only the first time the table is created.
             $insertSqlPath = __DIR__."/mod/$moduleName/insert.sql";
-            if (is_file($insertSqlPath)) {
+            if (!$tableExisted && is_file($insertSqlPath)) {
                 $file = fopen($insertSqlPath, "r");
                 if($file !== false){
                     while(!feof($file)) {
@@ -429,7 +571,7 @@ class ghotidb{
         }
 
         self::$moduleInitState[$moduleName] = 'done';
-        $this->markProvisioned($moduleName);
+        $this->markProvisioned($moduleName, $schemaKey, $schemaHash, $stampKey, $stamp);
         return true;
     }
     function addPage($m_title,$m_content="Under Construction"){

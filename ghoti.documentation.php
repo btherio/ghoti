@@ -161,7 +161,7 @@ unset ghoti_admin_password</code></pre>
           <h3>Backups</h3>
           <p>Back up the database, <code>files/</code>, <code>ghoti.settings.json</code>, and the untracked database/mail configuration needed to rebuild the installation. Encrypt backups that contain credentials or user data, store a copy away from the web server, and test restoration periodically.</p>
           <h3>Updates</h3>
-          <p>Take a backup, deploy reviewed Git commits, preserve untracked per-site configuration, and let Ghoti run its guarded table provisioning. Validate login, page publishing, uploads, mail, and any enabled optional module after deployment.</p>
+          <p>Take a backup, deploy reviewed Git commits, preserve untracked per-site configuration, and let Ghoti run its guarded table provisioning. Module tables are brought up to date on the first request after a deployment — new tables created, new columns added, nothing dropped or retyped; see the <a href="docs/upgrading.md" target="_blank" rel="noopener noreferrer">upgrade notes</a>. Validate login, page publishing, uploads, mail, and any enabled optional module after deployment.</p>
           <h3>Monitoring</h3>
           <p>The Analytics screen includes recent application errors, the raw rotating log, and an analyzer for the web server’s own Apache access and error logs (read-only; it can also follow a log live). Enable critical alerts to notify every administrator account after repeated authentication/security events or application errors. Alerts require working Mail Settings. Debug logging is useful during diagnosis and should be disabled during normal operation.</p>
           <h3>Production checklist</h3>
