@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>408 – Request Timeout</title>
+  <link rel="stylesheet" href="/errors/errors.css">
+</head>
+<body>
+  <div class="particles">
+    <div class="particle" style="left:15%; top:75%;"></div>
+    <div class="particle" style="left:38%; top:22%;"></div>
+    <div class="particle" style="left:62%; top:58%;"></div>
+    <div class="particle" style="left:82%; top:32%;"></div>
+    <div class="particle" style="left:96%; top:85%;"></div>
+  </div>
+
+  <main class="error-shell">
+    <header class="error-header">
+      <div>
+        <div class="error-code" data-text="408">408</div>
+        <div class="error-label">Request timeout</div>
+      </div>
+      <div class="status-chip">
+        <span class="status-dot"></span>
+        <span>Patience exceeded</span>
+      </div>
+    </header>
+
+    <h1 class="error-title">The server waited. And waited. And then moved on.</h1>
+    <p class="error-message">
+      Your browser took too long to finish the request.  
+      Network hiccups, sleeping laptops, or flaky connections can all cause this.
+    </p>
+
+    <p class="error-meta">
+      Check your connection and try again. If this keeps happening, something upstream may be slow.
+    </p>
+
+    <div class="error-actions">
+      <button class="error-btn" onclick="location.reload()"><span>⟳</span> Retry</button>
+      <a href="/" class="error-btn secondary"><span>🏠</span> Home</a>
+    </div>
+
+    <footer class="error-footer">
+      <span class="badge-pill">Error 408 – Time waits for no request.</span>
+      <span>Consider checking proxies, VPNs, or Wi‑Fi stability.</span>
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>503 – Service Unavailable</title>
+  <link rel="stylesheet" href="/errors/errors.css">
+</head>
+<body>
+  <div class="particles">
+    <div class="particle" style="left:16%; top:74%;"></div>
+    <div class="particle" style="left:39%; top:21%;"></div>
+    <div class="particle" style="left:64%; top:61%;"></div>
+    <div class="particle" style="left:83%; top:33%;"></div>
+    <div class="particle" style="left:97%; top:86%;"></div>
+  </div>
+
+  <main class="error-shell">
+    <header class="error-header">
+      <div>
+        <div class="error-code" data-text="503">503</div>
+        <div class="error-label">Service unavailable</div>
+      </div>
+      <div class="status-chip">
+        <span class="status-dot"></span>
+        <span>Temporarily offline</span>
+      </div>
+    </header>
+
+    <h1 class="error-title">We’re down, but not out.</h1>
+    <p class="error-message">
+      The server is currently unable to handle the request due to maintenance or overload.  
+      Think of this as a “be right back” sign with extra neon.
+    </p>
+
+    <p class="error-meta">
+      Try again in a few minutes. If you’re the admin, consider proper <code>Retry-After</code> headers and health checks.
+    </p>
+
+    <div class="error-actions">
+      <button class="error-btn" onclick="location.reload()"><span>⏳</span> Check again</button>
+      <a href="/" class="error-btn secondary"><span>🏠</span> Home</a>
+    </div>
+
+    <footer class="error-footer">
+      <span class="badge-pill">Error 503 – Scheduled chaos or unexpected traffic spike.</span>
+      <span>Good time to grab a coffee.</span>
+    </footer>
+  </main>
+</body>
+</html>

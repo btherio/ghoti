@@ -366,7 +366,7 @@ form, fieldset,
   min-width: 0;
   max-width: 100%;
 }
-input[type=text], input[type=email], input[type=password], input[type=search],
+input[type=text], input[type=email], input[type=password], input[type=search], input[type=number],
 input[type=url], select, textarea{
   font: inherit; color: var(--text);
   background: var(--surface);
@@ -531,6 +531,39 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
 #ghotiSiteSettings .siteSettingsSection .ghotiDocs{
   margin-top: .35rem;
 }
+.securityAutoControls{ margin-top: -.15rem; }
+.securityRuleGrid{ align-items: start; }
+.securityRuleGrid textarea{
+  min-height: 8.25rem;
+  font-family: var(--mono);
+  font-size: .82rem;
+}
+.securitySessionGrid{ max-width: 22rem; }
+.securityBlockList{
+  display: grid;
+  gap: .55rem;
+  margin-top: .2rem;
+  padding: .85rem;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.securityBlockListHeader,
+.securityBlockList li{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+}
+.securityBlockListHeader strong{ font-size: .82rem; }
+.securityBlockListHeader span{ color: var(--muted); font-size: .72rem; }
+.securityBlockList ul{ display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.securityBlockList li{ padding-top: .5rem; border-top: 1px solid var(--border); }
+.securityBlockList li > div{ display: grid; min-width: 0; }
+.securityBlockList code{ overflow-wrap: anywhere; }
+.securityBlockList small{ color: var(--muted); font-size: .7rem; }
+.securityBlockList .ghotiEmptyState,
+.securityBlockList .ghotiHelpText{ margin: 0 !important; padding: 0 !important; }
 /* A field that only matters when the checkbox above it is ticked. Indented and
    rule-marked so the dependency is visible rather than implied by proximity;
    dimmed (never hidden) while inactive, so the saved value stays readable. */
@@ -1359,6 +1392,8 @@ img.linkIcon:hover{ transform: scale(1.15); }
   #popup-bg{ padding: .5rem; }
   #popup{ border-radius: 10px; }
   #popup-title{ padding: .8rem 3rem .8rem .85rem; }
+  .securityBlockListHeader,
+  .securityBlockList li{ align-items: stretch; flex-direction: column; }
   #popup-content{ padding: .85rem; max-height: calc(100vh - 5rem); }
   #popup-content .ghotiFormActions > input[type=button],
   #popup-content .ghotiFormActions > input[type=submit]{ width: 100%; margin: 0; }

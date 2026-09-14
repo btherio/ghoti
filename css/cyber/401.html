@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>401 – Unauthorized</title>
+  <link rel="stylesheet" href="/errors/errors.css">
+</head>
+<body>
+  <div class="particles">
+    <div class="particle" style="left:10%; top:70%;"></div>
+    <div class="particle" style="left:40%; top:20%;"></div>
+    <div class="particle" style="left:65%; top:50%;"></div>
+    <div class="particle" style="left:85%; top:25%;"></div>
+    <div class="particle" style="left:95%; top:80%;"></div>
+  </div>
+
+  <main class="error-shell">
+    <header class="error-header">
+      <div>
+        <div class="error-code" data-text="401">401</div>
+        <div class="error-label">Unauthorized</div>
+      </div>
+      <div class="status-chip">
+        <span class="status-dot"></span>
+        <span>Credentials required</span>
+      </div>
+    </header>
+
+    <h1 class="error-title">You’re almost in. We just don’t know who you are.</h1>
+    <p class="error-message">
+      This area requires valid credentials. Either you’re not logged in, your session expired,  
+      or the server didn’t receive the authentication it expected.
+    </p>
+
+    <p class="error-meta">
+      If you have an account, sign in and try again. If you don’t, you may need an invite.
+    </p>
+
+    <div class="error-actions">
+      <a href="/" class="error-btn"><span>🏠</span> Home</a>
+      <a href="/login" class="error-btn secondary"><span>🔐</span> Go to login</a>
+    </div>
+
+    <footer class="error-footer">
+      <span class="badge-pill">Error 401 – Identity crisis.</span>
+      <span>Tip: Check saved passwords or VPN/proxy settings.</span>
+    </footer>
+  </main>
+</body>
+</html>

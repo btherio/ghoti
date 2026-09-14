@@ -42,9 +42,11 @@ function ghoti_sitemap(){
     return '<article class="ghotiLegal"><h1>Sitemap</h1><p>Pages available to you right now. Sign-in is required for member pages.</p>'.ghoti_sitemap_rows($rows).'<ul><li><a href="?view=privacy">Privacy policy</a></li><li><a href="?view=accessibility">Accessibility</a></li></ul></article>';
 }
 function ghoti_privacy_contact(){
-    $email = ghoti::$privacyEmail;
+    //The site's published contact is its administrator account, resolved when
+    //the notice is rendered rather than copied into a setting that goes stale.
+    $email = ghoti_admin_contact_email();
     if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
-        return '<p>The operator has not yet published a privacy contact address. This notice is incomplete until those contact details are supplied.</p>';
+        return '<p>The operator has not yet published a privacy contact address. This notice is incomplete until an administrator account with a valid e-mail address exists.</p>';
     }
     return '<p>For privacy questions, access or correction requests, deletion requests, complaints, or accessibility assistance, email <a href="mailto:'.ghoti_privacy_escape($email).'">'.ghoti_privacy_escape($email).'</a>. Please describe your request without sending passwords or unnecessary sensitive information. Identity verification may be necessary before account information is disclosed or changed.</p>';
 }

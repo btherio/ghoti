@@ -28,13 +28,19 @@ class ghoti {
 	public static $headerImg = "gfx/ghoti-logo.png"; //header image to use            [UI]
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
 	public static $privacyOperator = "";
-	public static $privacyEmail = "";
 	public static $privacyRegion = "";
 	public static $hideLoginButton = False;       //hide public sign-in links      [UI]
 	public static $showHelpTips = True;           //contextual admin how-to panels [UI]
+	public static $securityAutoBlacklist = True;  //persistently block abusive IPs [UI]
+	public static $securityFailedLoginThreshold = 10;
+	public static $securityFailureWindowMinutes = 15;
+	public static $securityBlacklistDurationMinutes = 1440;
+	public static $securityIpBlacklist = "";      //manual IP/CIDR deny rules       [UI]
+	public static $securityIpAllowlist = "";      //automatic-block exemptions      [UI]
+	public static $sessionTimeoutMinutes = 30;    //authenticated idle timeout       [UI]
 	public static $enableVhosts = False;          //optional privileged module [UI]
+	public static $enableStore = False;           //optional shop module        [UI]
 	public static $enableCriticalAlerts = False;
-	public static $criticalAlertEmail = "";
 	public static $enableDebug = False;            //enable debug logging           [UI]
 
 	/* ---------------- Logging levels ----------------
@@ -76,13 +82,19 @@ class ghoti {
 		'enableThemeChanger' => 'bool',
 		'hideLoginButton'    => 'bool',
 		'showHelpTips'       => 'bool',
+		'securityAutoBlacklist' => 'bool',
+		'securityFailedLoginThreshold' => 'int',
+		'securityFailureWindowMinutes' => 'int',
+		'securityBlacklistDurationMinutes' => 'int',
+		'securityIpBlacklist' => 'ip_list',
+		'securityIpAllowlist' => 'ip_list',
+		'sessionTimeoutMinutes' => 'int',
 		'privacyOperator'    => 'text',
-		'privacyEmail'       => 'email',
 		'privacyRegion'      => 'text',
 		'enableDebug'        => 'bool',
 		'enableVhosts'       => 'bool',
+		'enableStore'        => 'bool',
 		'enableCriticalAlerts' => 'bool',
-		'criticalAlertEmail'   => 'email',
 	);
 
 ################################################################
@@ -98,6 +110,7 @@ class ghoti {
 	public static function enabledModules(){
 		$modules = array('links','login','banners','comments','analytics','gallery','filemanager','mail');
 		if(self::$enableVhosts){ $modules[] = 'vhosts'; }
+		if(self::$enableStore){ $modules[] = 'store'; }
 		return $modules;
 	}
 	public function loadModules($modules){
@@ -238,11 +251,40 @@ class ghoti {
 	public static function saveSettings($settings){
 		if(!is_array($settings)){ return "Invalid settings."; }
 
-		if(isset($settings['privacyEmail']) && $settings['privacyEmail'] !== '' && (!is_string($settings['privacyEmail']) || !filter_var($settings['privacyEmail'], FILTER_VALIDATE_EMAIL))){ return "Enter a valid privacy contact email."; }
+		$ranges = array(
+			'securityFailedLoginThreshold' => array(3, 100, 'Failed-login threshold'),
+			'securityFailureWindowMinutes' => array(1, 1440, 'Failure window'),
+			'securityBlacklistDurationMinutes' => array(5, 43200, 'Blacklist duration'),
+			'sessionTimeoutMinutes' => array(5, 1440, 'Session timeout'),
+		);
+		foreach($ranges as $key => $range){
+			if(!array_key_exists($key, $settings)){ continue; }
+			if(!is_scalar($settings[$key]) || !preg_match('/^\d+$/', (string)$settings[$key])){
+				return $range[2]." must be a whole number.";
+			}
+			$value = (int)$settings[$key];
+			if($value < $range[0] || $value > $range[1]){
+				return $range[2]." must be between ".$range[0]." and ".$range[1].".";
+			}
+			$settings[$key] = $value;
+		}
+		foreach(array('securityIpBlacklist','securityIpAllowlist') as $key){
+			if(!array_key_exists($key, $settings)){ continue; }
+			try{ $settings[$key] = ghoti_security_normalize_ip_list($settings[$key]); }
+			catch(InvalidArgumentException $e){ return $e->getMessage(); }
+		}
+		$currentIp = ghoti_remote_addr();
+		if($currentIp !== '' && isset($settings['securityIpBlacklist'])
+			&& ghoti_security_ip_matches_list($currentIp, $settings['securityIpBlacklist'])){
+			return "The manual blacklist includes your current IP address. Remove it before saving.";
+		}
 
+		//Alerts go to the admin accounts themselves, so there is nothing to
+		//validate here beyond "somebody would actually receive them".
 		$alertsEnabled = array_key_exists('enableCriticalAlerts', $settings) ? self::sanitizeSetting('bool', $settings['enableCriticalAlerts']) : self::$enableCriticalAlerts;
-		$alertEmail = $settings['criticalAlertEmail'] ?? self::$criticalAlertEmail;
-		if(($alertsEnabled || $alertEmail !== '') && (!is_string($alertEmail) || !filter_var($alertEmail, FILTER_VALIDATE_EMAIL))){ return "Enter a valid critical-alert recipient email."; }
+		if($alertsEnabled && !ghoti_admin_emails(true)){
+			return "No administrator account has a valid e-mail address. Add one in Manage Users before enabling alerts.";
+		}
 
 		//Give explicit feedback for a bad theme rather than silently ignoring it.
 		if(isset($settings['defaultTheme']) && $settings['defaultTheme'] !== ''
@@ -276,6 +318,11 @@ class ghoti {
 				return is_string($value) && ($value === '' || filter_var($value, FILTER_VALIDATE_EMAIL)) ? $value : null;
 			case 'bool':
 				return (bool)(is_string($value) ? ($value !== '' && $value !== '0' && strtolower($value) !== 'false') : $value);
+			case 'int':
+				return is_scalar($value) && preg_match('/^\d+$/', (string)$value) ? (int)$value : null;
+			case 'ip_list':
+				try{ return ghoti_security_normalize_ip_list($value); }
+				catch(InvalidArgumentException $e){ return null; }
 			case 'theme':
 				return self::isValidTheme($value) ? (string)$value : null;
 			case 'path':
@@ -315,4 +362,5 @@ class ghoti {
     }
 }
 include_once('ghoti.documentation.php');
+include_once('ghoti.backup.php');
 ?>

@@ -42,14 +42,29 @@ function ghoti_alert_category($level, $context, $line){
 class GhotiAlertService {
     private $limiter;
     private $transport;
+    private $recipients;
     private $busy = false;
-    public function __construct($limiter, callable $transport){ $this->limiter = $limiter; $this->transport = $transport; }
+    /* $recipients returns the addresses to alert - the admin accounts in
+     * production, a fixture under test. Resolved per notification rather than
+     * once, so adding an admin takes effect without a restart. */
+    public function __construct($limiter, callable $transport, callable $recipients = null){
+        $this->limiter = $limiter;
+        $this->transport = $transport;
+        $this->recipients = $recipients ?: 'ghoti_admin_emails';
+    }
     public function notify($category, $now){
-        if($this->busy || !ghoti::$enableCriticalAlerts || !filter_var(ghoti::$criticalAlertEmail, FILTER_VALIDATE_EMAIL)){ return false; }
+        if($this->busy || !ghoti::$enableCriticalAlerts){ return false; }
         $labels = array('critical-error'=>'Critical application error', 'failed-login'=>'Repeated failed login attempts', 'suspicious-access'=>'Repeated suspicious access attempts');
         if(!isset($labels[$category])){ return false; }
+        //Set before resolving recipients: that reads the database, which logs on
+        //failure, which re-enters this method.
         $this->busy = true;
         try {
+            $to = array();
+            foreach((array)call_user_func($this->recipients) as $address){
+                if(filter_var($address, FILTER_VALIDATE_EMAIL)){ $to[] = $address; }
+            }
+            if(!$to){ return false; }
             $decision = $this->limiter->record($category, $category === 'critical-error' ? 1 : 5, $now);
             if(!$decision['send']){ return false; }
             $site = preg_replace('/[\r\n\x00-\x1f\x7f]/', ' ', ghoti::$siteTitle);
@@ -59,10 +74,18 @@ class GhotiAlertService {
                 ."\nThese are application signals and do not confirm an intrusion."
                 ."\nRaw log messages, passwords, account names, IP addresses and session tokens are not included."
                 ."\nAt most one delivery is attempted per category every 15 minutes, including after a failed delivery."
-                ."\nManage alerts in Site Settings; delivery uses Mail Settings.\n";
-            $result = ($this->transport)(ghoti::$criticalAlertEmail, '[Ghoti alert] '.$labels[$category], $body);
-            if($result !== true){ error_log('Ghoti critical alert could not be delivered; check Mail Settings.'); return false; }
-            return true;
+                ."\nEvery administrator account receives this alert. Manage alerts in Site Settings; delivery uses Mail Settings.\n";
+            //One delivery per admin rather than one message addressed to all of
+            //them: admins do not see each other's addresses, and a mailer that
+            //does not parse recipient lists still works. A failure for one
+            //admin must not cancel the rest.
+            $delivered = false;
+            foreach($to as $address){
+                $result = ($this->transport)($address, '[Ghoti alert] '.$labels[$category], $body);
+                if($result === true){ $delivered = true; }
+                else { error_log('Ghoti critical alert could not be delivered to an administrator; check Mail Settings.'); }
+            }
+            return $delivered;
         } catch(Throwable $e){
             // Do not call ghoti::logError here: that would recursively send alerts.
             error_log('Ghoti critical alert unavailable; check mail configuration and alert-state permissions.');

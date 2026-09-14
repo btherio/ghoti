@@ -6,6 +6,7 @@ require_once 'ghoti.php';
 //apply admin-managed Site Settings (ghoti.settings.json) over the defaults
 ghoti::loadSettings();
 ghoti_install_error_handlers();
+ghoti_security_enforce_ip_access();
 
 //initialize session
 $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
@@ -22,7 +23,7 @@ if (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70300) {
 @session_set_cookie_params(0, '/', '', $secure, true);
 @session_start();
 
-$timeout = 1800; // 30 minutes inactivity timeout
+$timeout = max(5, min(1440, (int)ghoti::$sessionTimeoutMinutes)) * 60;
 if (!isset($_SESSION['created'])) {
     $_SESSION['created'] = time();
 }
@@ -73,6 +74,8 @@ $_SESSION['mailObj'] = new mail();
 $_SESSION['filemanagerObj'] = new filemanager();
 if(ghoti::$enableVhosts){ $_SESSION['vhostsObj'] = new vhosts(); }
 else { unset($_SESSION['vhostsObj']); }
+if(ghoti::$enableStore){ $_SESSION['storeObj'] = new store(); }
+else { unset($_SESSION['storeObj']); }
 //(removed the unused $_SESSION['ghotidb'] = new ghotidb() - it was written every
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
 // Revoke deleted accounts and sessions created before a password change.
@@ -93,7 +96,21 @@ if(!headers_sent()){
 	header('X-Frame-Options: DENY');
 	header('Referrer-Policy: strict-origin-when-cross-origin');
 	header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-	header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:; img-src 'self' data: http: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+	//The store module pays for itself in policy: PayPal's button SDK is a
+	//third-party script that opens a third-party frame and talks to PayPal's own
+	//hosts, none of which the base policy allows. The widening is therefore
+	//applied only while the module is enabled - a site with no shop keeps the
+	//tighter policy - and is limited to PayPal's documented origins.
+	$scriptSrc = "'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
+	$connectSrc = "'self'";
+	$frameSrc = "'none'";
+	if(ghoti::$enableStore){
+		$paypal = "https://www.paypal.com https://www.sandbox.paypal.com https://www.paypalobjects.com";
+		$scriptSrc .= " ".$paypal;
+		$connectSrc .= " ".$paypal;
+		$frameSrc = $paypal;
+	}
+	header("Content-Security-Policy: default-src 'self'; script-src ".$scriptSrc."; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:; img-src 'self' data: http: https:; connect-src ".$connectSrc."; frame-src ".$frameSrc."; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
 }
 
 //process GET & SESSION variables

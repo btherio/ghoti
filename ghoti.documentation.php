@@ -14,6 +14,7 @@ function ghoti_documentation_html(){
 	$version = htmlspecialchars(trim((string)@file_get_contents(__DIR__.'/VERSION')), ENT_QUOTES, 'UTF-8');
 	if($version === ''){ $version = 'current'; }
 	$vhostsState = ghoti::$enableVhosts ? 'Enabled on this site' : 'Optional module, currently disabled';
+	$storeState = ghoti::$enableStore ? 'Enabled on this site' : 'Optional module, currently disabled';
 
 	return <<<HTML
 <section id="ghotiDocumentation" class="ghotiAdminPanel">
@@ -47,7 +48,7 @@ function ghoti_documentation_html(){
           <p>For an existing installation, the normal publishing loop is simple:</p>
           <ol class="ghotiGuideSteps">
             <li><span>1</span><div><strong>Open the workspace</strong><p>Sign in as an administrator and open the Workspace menu.</p></div></li>
-            <li><span>2</span><div><strong>Set the site identity</strong><p>Choose the title, theme, header image, privacy contact, and visitor options in <b>Site Settings</b>.</p></div></li>
+            <li><span>2</span><div><strong>Set the site identity</strong><p>Choose the title, theme, header image, and visitor options in <b>Site Settings</b>. The published privacy contact is the administrator account&rsquo;s own e-mail address.</p></div></li>
             <li><span>3</span><div><strong>Create and arrange pages</strong><p>Use <b>Pages</b> to add pages, choose the home page, set menu order, and control the audience.</p></div></li>
             <li><span>4</span><div><strong>Publish content</strong><p>Open a page, select Edit, compose in Visual mode, check Preview, then select <b>Save &amp; publish</b>.</p></div></li>
           </ol>
@@ -135,8 +136,9 @@ unset ghoti_admin_password</code></pre>
             <article><h3>Galleries</h3><p>Create a gallery, upload or link images, edit captions, reorder photos, and use View for its standalone page. Browser-safe images are stored directly; supported camera formats require ImageMagick conversion.</p></article>
             <article><h3>Files</h3><p>Browse and manage files available to the site. File management is a powerful administrator tool: limit admin access and keep secrets, backups, hidden files, and runtime state outside its editable scope.</p></article>
             <article><h3>Mail Settings</h3><p>Configure a local relay or authenticated SMTP. Use STARTTLS on port 587 or implicit TLS on 465 where required, keep certificate verification enabled, save, then send a test message.</p></article>
-            <article><h3>Analytics</h3><p>Review pageviews, sessions, pages, browsers, devices, referrers, errors, and logs. Visitors are tracked only after consent. Use Exclude admin views for visitor-focused reporting and CSV export for offline analysis.</p></article>
+            <article><h3>Analytics</h3><p>Review pageviews, sessions, pages, browsers, devices, referrers, errors, and logs. Visitors are tracked only after consent. Use Exclude admin views for visitor-focused reporting and CSV export for offline analysis. The <b>Apache logs</b> card at the bottom analyses the web server’s own access and error logs — see the <a href="docs/apache-log-analyzer.md" target="_blank" rel="noopener noreferrer">Apache log analyzer guide</a>.</p></article>
             <article><h3>Apache Vhosts</h3><p>{$vhostsState}. Enable it in Site Settings for read-only inspection. Writes require the separately installed root-owned helper, reviewed paths, a passing config test, and an explicit Allow changes setting. See the <a href="docs/vhosts-enablement.md" target="_blank" rel="noopener noreferrer">vhost enablement guide</a>.</p></article>
+            <article><h3>Store</h3><p>{$storeState}. Sells physical and digital goods, taking payment through PayPal. Enable it in Site Settings, add the PayPal REST credentials under <b>Store</b>, and put a shop on any page with <code>[store:all]</code>. Prices are always computed on the server and an order is only marked paid once PayPal confirms the captured amount matches. See the <a href="docs/store.md" target="_blank" rel="noopener noreferrer">store guide</a>.</p></article>
             <article><h3>Site Settings</h3><p>Controls site identity, visitor access, privacy details, operational alerts, contextual tips, themes, and optional modules. Most presentation changes appear after reload.</p></article>
           </div>
         </div>
@@ -161,7 +163,7 @@ unset ghoti_admin_password</code></pre>
           <h3>Updates</h3>
           <p>Take a backup, deploy reviewed Git commits, preserve untracked per-site configuration, and let Ghoti run its guarded table provisioning. Validate login, page publishing, uploads, mail, and any enabled optional module after deployment.</p>
           <h3>Monitoring</h3>
-          <p>The Analytics screen includes recent application errors and the raw rotating log. Enable critical alerts to notify an address after repeated authentication/security events or application errors. Alerts require working Mail Settings. Debug logging is useful during diagnosis and should be disabled during normal operation.</p>
+          <p>The Analytics screen includes recent application errors, the raw rotating log, and an analyzer for the web server’s own Apache access and error logs (read-only; it can also follow a log live). Enable critical alerts to notify every administrator account after repeated authentication/security events or application errors. Alerts require working Mail Settings. Debug logging is useful during diagnosis and should be disabled during normal operation.</p>
           <h3>Production checklist</h3>
           <ul class="ghotiGuideChecklist">
             <li>HTTPS is enforced and PHP does not display errors to visitors</li>

@@ -5,6 +5,12 @@
  * re-checked here directly against the DB rather than trusting a session
  * object that may not be populated on a request that skipped index.php.
  */
+/* Apache (and PHP's built-in server) run a script with the working directory set
+ * to the script's own directory, not the application root. ghoti::$ghotiLog and
+ * the other runtime paths are relative, so without this a log line written from
+ * here would create a second ghoti.log inside mod/analytics/. index.php's
+ * endpoints never hit this because the request starts at the application root. */
+chdir(__DIR__.'/../..');
 require_once __DIR__.'/../../ghoti.php';
 require_once __DIR__.'/../login/login.db.php';
 require_once __DIR__.'/analytics.db.php';

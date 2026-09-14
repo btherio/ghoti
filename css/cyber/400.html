@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>400 – Bad Request</title>
+  <link rel="stylesheet" href="/errors/errors.css">
+</head>
+<body>
+  <div class="particles">
+    <div class="particle" style="left:5%; top:80%;"></div>
+    <div class="particle" style="left:25%; top:10%;"></div>
+    <div class="particle" style="left:55%; top:60%;"></div>
+    <div class="particle" style="left:75%; top:30%;"></div>
+    <div class="particle" style="left:90%; top:70%;"></div>
+  </div>
+
+  <main class="error-shell">
+    <header class="error-header">
+      <div>
+        <div class="error-code" data-text="400">400</div>
+        <div class="error-label">Bad request</div>
+      </div>
+      <div class="status-chip">
+        <span class="status-dot"></span>
+        <span>Client-side glitch detected</span>
+      </div>
+    </header>
+
+    <h1 class="error-title">Your browser said something I don’t understand.</h1>
+    <p class="error-message">
+      The request that just arrived is malformed, incomplete, or otherwise confusing.  
+      Think of it as sending a letter with no address, no stamp, and a doodle where the name should be.
+    </p>
+
+    <p class="error-meta">
+      Try refreshing the page, checking the URL for typos, or going back to a known-good link.
+    </p>
+
+    <div class="error-actions">
+      <a href="/" class="error-btn"><span>⟵</span> Back to safety</a>
+      <button class="error-btn secondary" onclick="location.reload()"><span>⟳</span> Try again</button>
+    </div>
+
+    <footer class="error-footer">
+      <span class="badge-pill">Error 400 – Syntax matters, even on the web.</span>
+      <span>Request ID: <code>400-<span id="rid">local</span></code></span>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById('rid').textContent = Math.random().toString(36).slice(2, 8);
+  </script>
+</body>
+</html>

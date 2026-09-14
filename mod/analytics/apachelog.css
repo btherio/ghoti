@@ -1,0 +1,245 @@
+/* Apache log analyzer card. Scoped under #ghotiApacheLog, which sits inside
+ * #ghotiAnalytics and inherits its surface/text/series variables, so this card
+ * follows the dashboard's light and dark themes instead of carrying the
+ * standalone tool's fixed light palette.
+ *
+ * Severity colour is a class (level-error, level-warn, ...) applied to badges,
+ * ring segments, scatter points and legend swatches alike - one definition per
+ * level, used by every mark that represents it. */
+#ghotiApacheLog{
+	--level-severe:  var(--series-6);
+	--level-warn:    var(--series-3);
+	--level-notice:  var(--series-1);
+	--level-info:    var(--series-2);
+	--level-quiet:   var(--text-muted);
+}
+
+#ghotiApacheLog h3{ margin: 0; font-size: 1rem; }
+#ghotiApacheLog h4{ margin: 0 0 .6rem; font-size: .9rem; color: var(--text-secondary); font-weight: 600; }
+#ghotiApacheLog .sr-only{
+	position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+	overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+/* ---- controls ---- */
+#ghotiApacheLog .control-panel{ margin-bottom: 1rem; }
+#ghotiApacheLog .control-grid{
+	display:flex; align-items:flex-end; flex-wrap:wrap; gap:.6rem;
+}
+#ghotiApacheLog .field{ display:flex; flex-direction:column; gap:.25rem; flex:1 1 18rem; min-width:0; }
+#ghotiApacheLog .field span{ font-size:.78rem; color: var(--text-muted); }
+#ghotiApacheLog .field select{ width:100%; }
+#ghotiApacheLog .toggle{
+	display:flex; align-items:center; gap:.4rem;
+	color: var(--text-secondary); font-size:.85rem; white-space:nowrap;
+}
+#ghotiApacheLog .control-meta{
+	display:flex; align-items:center; justify-content:space-between;
+	gap:.6rem; flex-wrap:wrap; margin-top:.6rem;
+}
+#ghotiApacheLog .status{
+	margin-top:.6rem; padding:.5rem .7rem;
+	background: var(--surface-2); border:1px solid var(--border); border-radius:10px;
+	color: var(--text-secondary); font-size:.85rem;
+}
+#ghotiApacheLog .status.is-error{
+	border-color: color-mix(in srgb, var(--level-severe) 45%, transparent);
+	color: var(--level-severe);
+}
+
+/* ---- report head and tabs ---- */
+#ghotiApacheLog .report-head{
+	display:flex; align-items:flex-end; justify-content:space-between;
+	gap:.8rem; flex-wrap:wrap; margin-bottom:.8rem;
+}
+#ghotiApacheLog .file-meta{ margin:.25rem 0 0; color: var(--text-muted); font-size:.8rem; }
+#ghotiApacheLog .actions{ display:flex; gap:.4rem; flex-wrap:wrap; }
+
+#ghotiApacheLog .report-tabs{
+	display:flex; gap:.3rem; flex-wrap:wrap;
+	border-bottom:1px solid var(--border); margin-bottom:1rem;
+}
+#ghotiApacheLog .report-tab{
+	padding:.45rem .8rem; border:0; border-bottom:2px solid transparent;
+	background:none; color: var(--text-secondary);
+	font: inherit; font-size:.85rem; cursor:pointer;
+}
+#ghotiApacheLog .report-tab:hover{ color: var(--text-primary); }
+#ghotiApacheLog .report-tab:focus-visible{ outline:2px solid var(--series-1); outline-offset:2px; }
+#ghotiApacheLog .report-tab.is-active{
+	color: var(--text-primary); border-bottom-color: var(--series-1); font-weight:600;
+}
+
+/* ---- panels, metrics, charts ---- */
+#ghotiApacheLog .panel{
+	background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:.9rem;
+}
+#ghotiApacheLog .charts-grid{
+	display:grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap:1rem;
+}
+#ghotiApacheLog .metric-grid{
+	display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+	gap:.7rem; margin-bottom:1rem;
+}
+#ghotiApacheLog .apache-metric{
+	display:flex; flex-direction:column; gap:.2rem;
+	padding:.75rem .85rem;
+	background: var(--surface-2); border:1px solid var(--border); border-radius:12px;
+}
+#ghotiApacheLog .apache-metric-label{ font-size:.75rem; color: var(--text-muted); }
+#ghotiApacheLog .apache-metric-value{ font-size:1.3rem; font-weight:600; }
+#ghotiApacheLog .apache-metric-note{ font-size:.75rem; color: var(--text-muted); }
+
+#ghotiApacheLog .ranked-row{ display:flex; align-items:center; gap:.5rem; font-size:.82rem; }
+#ghotiApacheLog .ranked-row + .ranked-row{ margin-top:.4rem; }
+#ghotiApacheLog .ranked-label{
+	flex:0 0 34%; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+	color: var(--text-secondary);
+}
+#ghotiApacheLog .ranked-track{ flex:1 1 auto; height:10px; background: var(--surface-1); border-radius:4px; overflow:hidden; }
+#ghotiApacheLog .ranked-fill{ display:block; height:100%; min-width:4px; background: var(--series-1); border-radius:0 4px 4px 0; }
+#ghotiApacheLog .ranked-value{
+	flex:0 0 auto; width:6.5em; text-align:right; color: var(--text-primary);
+	font-variant-numeric: tabular-nums; font-weight:600;
+}
+
+#ghotiApacheLog .apache-ring-layout{
+	display:grid; grid-template-columns: 170px minmax(0,1fr); gap:1rem; align-items:center;
+}
+#ghotiApacheLog .apache-ring{ width:170px; height:170px; }
+#ghotiApacheLog .apache-ring-track{ stroke: var(--gridline); }
+#ghotiApacheLog .apache-ring-total{
+	text-anchor:middle; font-size:26px; font-weight:700; fill: var(--text-primary);
+}
+#ghotiApacheLog .apache-ring-caption{
+	text-anchor:middle; font-size:11px; fill: var(--text-muted); text-transform:uppercase;
+}
+#ghotiApacheLog .apache-legend-row{
+	display:inline-flex; align-items:center; gap:.35rem;
+	font-variant-numeric: tabular-nums;
+}
+#ghotiApacheLog .chart-legend .swatch{
+	display:inline-block; width:10px; height:10px; border-radius:3px; vertical-align:middle;
+}
+
+#ghotiApacheLog .apache-scatter{ display:block; width:100%; height:auto; overflow:visible; }
+#ghotiApacheLog .apache-gridline{ stroke: var(--gridline); stroke-width:1; }
+#ghotiApacheLog .apache-axis-line{ stroke: var(--baseline); stroke-width:1; }
+#ghotiApacheLog .apache-axis-label{ font-size:11px; fill: var(--text-muted); }
+#ghotiApacheLog .apache-point{ opacity:.85; }
+
+#ghotiApacheLog .recommendations{ margin:0; padding-left:1.2rem; color: var(--text-secondary); font-size:.88rem; }
+#ghotiApacheLog .recommendations li{ margin-bottom:.5rem; }
+#ghotiApacheLog .recommendations li:last-child{ margin-bottom:0; }
+
+/* ---- entries table ---- */
+#ghotiApacheLog .details{ padding:0; overflow:hidden; }
+#ghotiApacheLog .details-head{
+	display:flex; align-items:center; justify-content:space-between;
+	gap:.8rem; flex-wrap:wrap; padding:.9rem .9rem .6rem;
+}
+#ghotiApacheLog .details-head h4{ margin:0; }
+#ghotiApacheLog .filters{ display:flex; gap:.4rem; flex-wrap:wrap; }
+#ghotiApacheLog .table-wrap{ max-height:460px; overflow:auto; border-top:1px solid var(--border); }
+#ghotiApacheLog .table-wrap table{ width:100%; border-collapse:collapse; font-size:.82rem; }
+#ghotiApacheLog .table-wrap th{
+	position:sticky; top:0; z-index:1;
+	padding:.45rem .6rem; text-align:left;
+	background: var(--surface-1); color: var(--text-muted);
+	font-weight:600; font-size:.72rem; text-transform:uppercase;
+	border-bottom:1px solid var(--border);
+}
+#ghotiApacheLog .table-wrap td{
+	padding:.5rem .6rem; border-bottom:1px solid var(--gridline);
+	vertical-align:top; color: var(--text-secondary);
+}
+#ghotiApacheLog .table-wrap tr:hover td{ background: var(--surface-2); }
+#ghotiApacheLog .apache-message{ min-width:18rem; overflow-wrap:anywhere; color: var(--text-primary); }
+#ghotiApacheLog .apache-empty{ text-align:center; color: var(--text-muted); padding:1.2rem 0; }
+#ghotiApacheLog .table-footer{ margin:0; padding:.7rem .9rem .9rem; color: var(--text-muted); font-size:.78rem; }
+
+#ghotiApacheLog .apache-badge{
+	display:inline-block; padding:.1rem .45rem; border-radius:999px;
+	font-size:.7rem; font-weight:700; text-transform:uppercase;
+	background: color-mix(in srgb, var(--level-quiet) 16%, transparent);
+	color: var(--text-secondary);
+}
+#ghotiApacheLog .apache-hint-chip{
+	display:inline-flex; align-items:center; margin-top:.4rem;
+	padding:.12rem .5rem; border-radius:999px;
+	border:1px solid color-mix(in srgb, var(--series-1) 40%, transparent);
+	background: color-mix(in srgb, var(--series-1) 10%, transparent);
+	color: var(--series-1);
+	font: inherit; font-size:.72rem; font-weight:600; line-height:1.3;
+	cursor:pointer;
+}
+#ghotiApacheLog .apache-hint-chip:hover,
+#ghotiApacheLog .apache-hint-chip:focus-visible{
+	background: color-mix(in srgb, var(--series-1) 18%, transparent);
+	outline:none;
+}
+
+/* ---- one severity palette, shared by every mark ---- */
+#ghotiApacheLog .level-emerg,
+#ghotiApacheLog .level-alert,
+#ghotiApacheLog .level-crit,
+#ghotiApacheLog .level-error{ --level: var(--level-severe); }
+#ghotiApacheLog .level-warn{ --level: var(--level-warn); }
+#ghotiApacheLog .level-notice{ --level: var(--level-notice); }
+#ghotiApacheLog .level-info{ --level: var(--level-info); }
+#ghotiApacheLog .level-debug,
+#ghotiApacheLog .level-trace,
+#ghotiApacheLog .level-unknown{ --level: var(--level-quiet); }
+
+#ghotiApacheLog span.swatch[class*="level-"]{ background: var(--level, var(--level-quiet)); }
+#ghotiApacheLog circle[class*="level-"]{ fill: var(--level, var(--level-quiet)); }
+#ghotiApacheLog circle.apache-ring-segment[class*="level-"]{ fill:none; stroke: var(--level, var(--level-quiet)); }
+#ghotiApacheLog .apache-badge[class*="level-"]{
+	background: color-mix(in srgb, var(--level, var(--level-quiet)) 16%, transparent);
+	color: var(--level, var(--level-quiet));
+}
+
+/* ---- diagnostic hint tooltip (attached to <body>, so unscoped) ---- */
+.ghotiApacheHint{
+	position:fixed; z-index:60;
+	width:min(380px, calc(100vw - 28px));
+	padding:.85rem;
+	border:1px solid rgba(11,11,11,.14); border-radius:12px;
+	background:#fcfcfb; color:#0b0b0b;
+	box-shadow:0 18px 45px rgba(12,24,54,.22);
+	opacity:0; pointer-events:none;
+	transform:translateY(6px) scale(.98);
+	transition:opacity .12s ease, transform .12s ease;
+}
+.ghotiApacheHint.is-visible{ opacity:1; transform:translateY(0) scale(1); }
+.ghotiApacheHint .apache-hint-kicker{
+	margin:0 0 .2rem; color:#2a78d6;
+	font-size:.7rem; font-weight:700; text-transform:uppercase;
+}
+.ghotiApacheHint .apache-hint-title{ margin:0 0 .5rem; font-size:.9rem; font-weight:700; }
+.ghotiApacheHint .apache-hint-list{ margin:0; padding-left:1.1rem; font-size:.8rem; color:#52514e; }
+.ghotiApacheHint .apache-hint-list li{ margin-bottom:.4rem; }
+.ghotiApacheHint .apache-hint-list li:last-child{ margin-bottom:0; }
+
+@media (prefers-color-scheme: dark){
+	.ghotiApacheHint{
+		border-color:rgba(255,255,255,.14);
+		background:#1a1a19; color:#ffffff;
+	}
+	.ghotiApacheHint .apache-hint-kicker{ color:#3987e5; }
+	.ghotiApacheHint .apache-hint-list{ color:#c3c2b7; }
+}
+
+@media (max-width: 640px){
+	#ghotiApacheLog .charts-grid{ grid-template-columns:minmax(0,1fr); }
+	#ghotiApacheLog .apache-ring-layout{ grid-template-columns:minmax(0,1fr); justify-items:center; }
+	#ghotiApacheLog .report-head,
+	#ghotiApacheLog .details-head{ align-items:stretch; flex-direction:column; }
+	#ghotiApacheLog .ranked-label{ flex-basis:42%; max-width:42%; }
+}
+
+@media (max-width: 420px){
+	#ghotiApacheLog .control-grid{ align-items:stretch; flex-direction:column; }
+	#ghotiApacheLog .metric-grid{ grid-template-columns:minmax(0,1fr); }
+	#ghotiApacheLog .filters{ flex-direction:column; }
+}

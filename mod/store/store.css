@@ -1,0 +1,173 @@
+/* Store module. Scoped under .ghotiStore (storefront, cart, checkout, receipt)
+ * and #ghotiStoreManager (admin), so nothing here leaks into the rest of the
+ * site. Colours come from tokens defined on each root below rather than being
+ * hard-coded per rule, so both surfaces follow the visitor's light/dark theme. */
+.ghotiStore,
+#ghotiStoreManager{
+	--store-surface:   #fcfcfb;
+	--store-raised:    #f4f4f1;
+	--store-text:      #0b0b0b;
+	--store-muted:     #6a6963;
+	--store-line:      rgba(11,11,11,0.12);
+	--store-accent:    #2a6fd6;
+	--store-good:      #1b8a5a;
+	--store-warn:      #b06a00;
+	--store-bad:       #c0392b;
+}
+@media (prefers-color-scheme: dark){
+	.ghotiStore,
+	#ghotiStoreManager{
+		--store-surface: #1a1a19;
+		--store-raised:  #232322;
+		--store-text:    #ffffff;
+		--store-muted:   #a8a79f;
+		--store-line:    rgba(255,255,255,0.14);
+		--store-accent:  #6aa5f0;
+		--store-good:    #4cc38a;
+		--store-warn:    #e0a33a;
+		--store-bad:     #e06a5c;
+	}
+}
+
+.ghotiStore{ color: var(--store-text); }
+.ghotiStore .sr-only{
+	position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+	overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+.ghotiStoreBar{
+	display:flex; align-items:center; justify-content:space-between;
+	gap:1rem; flex-wrap:wrap; margin-bottom:1rem;
+}
+.ghotiStoreTitle{ margin:0; font-size:1.5rem; }
+.ghotiStoreLead{ margin:0 0 1rem; color: var(--store-muted); }
+.ghotiStoreEmpty{ color: var(--store-muted); padding:1.5rem 0; }
+.ghotiStoreHelpText{ margin:1rem 0 0; color: var(--store-muted); font-size:.85rem; }
+.ghotiStoreCartButton{ white-space:nowrap; }
+
+/* ---- catalogue ---- */
+.ghotiStoreGrid{
+	display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:1rem;
+}
+.ghotiStoreCard{
+	display:flex; flex-direction:column; gap:.5rem;
+	padding:1rem; border:1px solid var(--store-line); border-radius:14px;
+	background: var(--store-surface);
+}
+.ghotiStoreCard h2{ margin:0; font-size:1.05rem; }
+.ghotiStoreThumb{
+	aspect-ratio: 4 / 3; overflow:hidden; border-radius:10px; background: var(--store-raised);
+}
+.ghotiStoreThumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.ghotiStoreBlurb{ margin:0; color: var(--store-muted); font-size:.88rem; }
+.ghotiStoreTag{
+	align-self:flex-start; padding:.1rem .45rem; border-radius:999px;
+	background: color-mix(in srgb, var(--store-accent) 16%, transparent);
+	color: var(--store-accent); font-size:.7rem; font-weight:700; text-transform:uppercase;
+}
+.ghotiStoreBuy{
+	display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-top:auto; padding-top:.5rem;
+}
+.ghotiStorePrice{ font-size:1.1rem; font-weight:700; margin-right:auto; }
+.ghotiStoreQty input,
+.ghotiStoreQtyInput{ width:4.5rem; }
+
+/* ---- cart, checkout, receipt ---- */
+.ghotiStoreTable{ width:100%; border-collapse:collapse; font-size:.9rem; }
+.ghotiStoreTable th{
+	text-align:left; padding:.45rem .6rem; color: var(--store-muted);
+	font-size:.75rem; text-transform:uppercase; border-bottom:1px solid var(--store-line);
+}
+.ghotiStoreTable td{ padding:.6rem; border-bottom:1px solid var(--store-line); vertical-align:middle; }
+
+.ghotiStoreTotals{ margin:1rem 0 0; display:flex; flex-direction:column; gap:.3rem; }
+.ghotiStoreTotals > div{ display:flex; justify-content:space-between; gap:1rem; }
+.ghotiStoreTotals dt{ color: var(--store-muted); }
+.ghotiStoreTotals dd{ margin:0; font-variant-numeric: tabular-nums; }
+.ghotiStoreTotals .ghotiStoreGrand{
+	border-top:1px solid var(--store-line); margin-top:.3rem; padding-top:.4rem; font-weight:700;
+}
+.ghotiStoreTotals .ghotiStoreGrand dt{ color: var(--store-text); }
+.ghotiStoreActions{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1rem; }
+
+.ghotiStoreSummary{
+	padding:1rem; border:1px solid var(--store-line); border-radius:14px;
+	background: var(--store-raised); margin-bottom:1rem;
+}
+.ghotiStoreSummary h2{ margin:0 0 .6rem; font-size:1rem; }
+.ghotiStoreSummary ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.35rem; }
+.ghotiStoreSummary li{ display:flex; justify-content:space-between; gap:1rem; font-size:.9rem; }
+.ghotiStoreSummary li.ghotiStoreGrand{
+	border-top:1px solid var(--store-line); margin-top:.3rem; padding-top:.4rem; font-weight:700;
+}
+.ghotiStoreFieldset{
+	border:1px solid var(--store-line); border-radius:12px; padding:.9rem; margin:0 0 1rem;
+}
+.ghotiStoreFieldset legend{ padding:0 .4rem; color: var(--store-muted); font-size:.8rem; text-transform:uppercase; }
+
+.ghotiStoreStatus{ min-height:1.4rem; margin:.5rem 0; color: var(--store-muted); font-size:.9rem; }
+.ghotiStoreStatus.is-error{ color: var(--store-bad); }
+/* The PayPal buttons render into an iframe of their own; give them a sane
+   maximum so they do not stretch the width of a wide page. */
+.ghotiStorePaypal{ max-width:420px; margin-top:.5rem; }
+
+.ghotiStoreDownloads{
+	margin-top:1.2rem; padding:1rem; border:1px solid var(--store-line);
+	border-radius:14px; background: var(--store-raised);
+}
+.ghotiStoreDownloads h2{ margin:0 0 .5rem; font-size:1rem; }
+.ghotiStoreDownloads ul{ margin:0; padding-left:1.1rem; }
+.ghotiStoreDownloads li{ margin-bottom:.35rem; }
+.ghotiStoreDownloads small{ color: var(--store-muted); }
+.ghotiStoreMissing{ color: var(--store-bad); }
+
+/* ---- admin ---- */
+#ghotiStoreManager .ghotiStoreTabs{
+	display:flex; gap:.3rem; flex-wrap:wrap;
+	border-bottom:1px solid var(--store-line); margin-bottom:1rem;
+}
+#ghotiStoreManager .ghotiStoreTab{
+	padding:.45rem .85rem; border:0; border-bottom:2px solid transparent;
+	background:none; color: var(--store-muted); font: inherit; font-size:.9rem; cursor:pointer;
+}
+#ghotiStoreManager .ghotiStoreTab:hover{ color: var(--store-text); }
+#ghotiStoreManager .ghotiStoreTab.is-active{
+	color: var(--store-text); border-bottom-color: var(--store-accent); font-weight:600;
+}
+#ghotiStoreManager .ghotiStoreAdminHead{
+	display:flex; align-items:center; justify-content:space-between;
+	gap:1rem; flex-wrap:wrap; margin-bottom:.8rem;
+}
+#ghotiStoreManager .ghotiStoreAdminHead h2,
+#ghotiStoreManager .ghotiStoreAdminHead h3{ margin:0; font-size:1.05rem; }
+#ghotiStoreManager .ghotiStoreAdminTableWrap{ overflow-x:auto; }
+#ghotiStoreManager .ghotiStoreProductForm,
+#ghotiStoreManager .ghotiStoreOrderDetail{
+	margin-bottom:1rem; padding:1rem;
+	border:1px solid var(--store-line); border-radius:14px; background: var(--store-raised);
+}
+#ghotiStoreManager .ghotiStoreDetailGrid{
+	display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+	gap:.6rem; margin:0 0 1rem;
+}
+#ghotiStoreManager .ghotiStoreDetailGrid dt{ color: var(--store-muted); font-size:.75rem; text-transform:uppercase; }
+#ghotiStoreManager .ghotiStoreDetailGrid dd{ margin:.15rem 0 0; }
+#ghotiStoreManager .ghotiStoreOrderTotal{ font-weight:700; text-align:right; margin:.6rem 0 0; }
+#ghotiStoreManager .ghotiStoreDownloadList{ margin:.3rem 0 0; padding-left:1.1rem; color: var(--store-muted); font-size:.85rem; }
+
+.ghotiStoreBadge{
+	display:inline-block; padding:.1rem .5rem; border-radius:999px;
+	font-size:.72rem; font-weight:700; text-transform:uppercase;
+	background: color-mix(in srgb, var(--store-muted) 18%, transparent); color: var(--store-muted);
+}
+.ghotiStoreBadge-paid{ background: color-mix(in srgb, var(--store-good) 18%, transparent); color: var(--store-good); }
+.ghotiStoreBadge-shipped{ background: color-mix(in srgb, var(--store-accent) 18%, transparent); color: var(--store-accent); }
+.ghotiStoreBadge-pending{ background: color-mix(in srgb, var(--store-warn) 20%, transparent); color: var(--store-warn); }
+.ghotiStoreBadge-failed,
+.ghotiStoreBadge-cancelled{ background: color-mix(in srgb, var(--store-bad) 18%, transparent); color: var(--store-bad); }
+
+@media (max-width: 640px){
+	.ghotiStoreGrid{ grid-template-columns:minmax(0,1fr); }
+	.ghotiStoreBar{ align-items:stretch; flex-direction:column; }
+	.ghotiStorePrice{ margin-right:0; width:100%; }
+}
