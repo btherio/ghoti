@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>429 – Too Many Requests</title>
+  <link rel="stylesheet" href="/errors/errors.css">
+</head>
+<body>
+  <div class="particles">
+    <div class="particle" style="left:20%; top:70%;"></div>
+    <div class="particle" style="left:45%; top:20%;"></div>
+    <div class="particle" style="left:63%; top:55%;"></div>
+    <div class="particle" style="left:82%; top:33%;"></div>
+    <div class="particle" style="left:97%; top:80%;"></div>
+  </div>
+
+  <main class="error-shell">
+    <header class="error-header">
+      <div>
+        <div class="error-code" data-text="429">429</div>
+        <div class="error-label">Too many requests</div>
+      </div>
+      <div class="status-chip">
+        <span class="status-dot"></span>
+        <span>Rate limit engaged</span>
+      </div>
+    </header>
+
+    <h1 class="error-title">Easy there, turbo.</h1>
+    <p class="error-message">
+      You’ve sent too many requests in a short period of time.  
+      To keep things stable for everyone, the server has temporarily throttled you.
+    </p>
+
+    <p class="error-meta">
+      Wait a moment and try again. If you’re running a script or bot, slow it down a bit.
+    </p>
+
+    <div class="error-actions">
+      <button class="error-btn" onclick="location.reload()"><span>⏱️</span> Retry after a pause</button>
+      <a href="/" class="error-btn secondary"><span>🏠</span> Home</a>
+    </div>
+
+    <footer class="error-footer">
+      <span class="badge-pill">Error 429 – You broke the speed limit.</span>
+      <span>Respecting rate limits keeps the service happy.</span>
+    </footer>
+  </main>
+</body>
+</html>

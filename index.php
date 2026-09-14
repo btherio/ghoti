@@ -6,6 +6,7 @@ require_once 'ghoti.php';
 //apply admin-managed Site Settings (ghoti.settings.json) over the defaults
 ghoti::loadSettings();
 ghoti_install_error_handlers();
+ghoti_security_enforce_ip_access();
 
 //initialize session
 $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
@@ -22,7 +23,7 @@ if (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70300) {
 @session_set_cookie_params(0, '/', '', $secure, true);
 @session_start();
 
-$timeout = 1800; // 30 minutes inactivity timeout
+$timeout = max(5, min(1440, (int)ghoti::$sessionTimeoutMinutes)) * 60;
 if (!isset($_SESSION['created'])) {
     $_SESSION['created'] = time();
 }

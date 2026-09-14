@@ -1,0 +1,630 @@
+/* ============================================================
+   errors.css — "NEON VOID" error page theme
+   Synthwave / outrun rework. Pure CSS, zero JavaScript.
+   All existing HTML class names are preserved.
+   ============================================================ */
+
+:root {
+  /* deep-space palette */
+  --bg-0: #050212;
+  --bg-1: #0d0626;
+  --bg-2: #170a34;
+  --panel-a: rgba(37, 17, 71, 0.78);
+  --panel-b: rgba(13, 6, 30, 0.88);
+  --line: rgba(139, 92, 246, 0.32);
+  --line-strong: rgba(0, 229, 255, 0.55);
+
+  /* neon accent set */
+  --neon-pink: #ff2d95;
+  --neon-cyan: #00e5ff;
+  --neon-violet: #a855f7;
+  --neon-yellow: #f9f002;
+
+  /* text */
+  --text-main: #f4ecff;
+  --text-muted: #c8b8ea;
+  --text-dim: #8a79b4;
+
+  --font-main: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  color: var(--text-main);
+  font-family: var(--font-main);
+  background:
+    /* faint cyber grid */
+    linear-gradient(rgba(168, 85, 247, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 85, 247, 0.055) 1px, transparent 1px),
+    /* nebula blobs */
+    radial-gradient(38rem 26rem at 12% 6%, rgba(255, 45, 149, 0.16), transparent 62%),
+    radial-gradient(34rem 24rem at 88% 10%, rgba(0, 229, 255, 0.13), transparent 62%),
+    /* synthwave sun glow rising from the bottom */
+    radial-gradient(52rem 34rem at 50% 112%, rgba(168, 85, 247, 0.28), rgba(255, 45, 149, 0.10) 42%, transparent 68%),
+    /* deep space falloff */
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 52%, var(--bg-2) 100%);
+  background-size: 32px 32px, 32px 32px, auto, auto, auto, auto;
+  background-attachment: fixed;
+}
+
+/* ---------- starfield (twinkling, drifting) ---------- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, 0.95), transparent 60%),
+    radial-gradient(1px 1px at 27% 68%, rgba(0, 229, 255, 0.95), transparent 60%),
+    radial-gradient(1.5px 1.5px at 41% 12%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(1px 1px at 58% 41%, rgba(255, 45, 149, 0.95), transparent 60%),
+    radial-gradient(1.5px 1.5px at 71% 78%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 84% 28%, rgba(0, 229, 255, 0.9), transparent 60%),
+    radial-gradient(2px 2px at 93% 61%, rgba(255, 255, 255, 0.95), transparent 60%),
+    radial-gradient(1px 1px at 8% 88%, rgba(249, 240, 2, 0.8), transparent 60%);
+  background-size: 260px 260px, 340px 340px, 300px 300px, 380px 380px,
+                    280px 280px, 360px 360px, 320px 320px, 400px 400px;
+  background-repeat: repeat;
+  opacity: 0.85;
+  animation: starfield 26s linear infinite;
+}
+
+@keyframes starfield {
+  0%   { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; opacity: 0.8; }
+  50%  { opacity: 1; }
+  100% { background-position: 40px -40px, -60px 30px, 80px -20px, -30px 60px,
+                            50px 20px, -80px -50px, 20px 40px, -40px -30px; opacity: 0.8; }
+}
+
+/* ---------- CRT scanlines + animated scan beam + vignette ---------- */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    /* moving scan beam */
+    linear-gradient(180deg, transparent 0%, transparent 48%, rgba(0, 229, 255, 0.045) 50%, transparent 52%),
+    /* scanlines */
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0px, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px),
+    /* vignette */
+    radial-gradient(ellipse at center, transparent 52%, rgba(3, 0, 12, 0.6) 100%);
+  background-size: 100% 140px, auto, auto;
+  opacity: 0.5;
+  animation: scanbeam 8s linear infinite;
+}
+
+@keyframes scanbeam {
+  from { background-position: 0 -140px, 0 0, 0 0; }
+  to   { background-position: 0 100vh, 0 0, 0 0; }
+}
+
+/* ---------- ambient particle orbs ---------- */
+.particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--neon-cyan);
+  box-shadow: 0 0 12px 3px rgba(0, 229, 255, 0.55);
+  animation: drift 9s ease-in-out infinite alternate;
+}
+
+.particle:nth-child(1) { background: var(--neon-pink);  box-shadow: 0 0 12px 3px rgba(255, 45, 149, 0.55); }
+.particle:nth-child(2) { background: var(--neon-violet); box-shadow: 0 0 12px 3px rgba(168, 85, 247, 0.55); animation-delay: -3s; }
+.particle:nth-child(3) { background: var(--neon-yellow); box-shadow: 0 0 12px 3px rgba(249, 240, 2, 0.5);   animation-delay: -5s; }
+.particle:nth-child(4) { background: var(--neon-cyan);   box-shadow: 0 0 12px 3px rgba(0, 229, 255, 0.55);   animation-delay: -1.5s; }
+.particle:nth-child(5) { background: var(--neon-pink);   box-shadow: 0 0 12px 3px rgba(255, 45, 149, 0.5);   animation-delay: -7s; }
+
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0) scale(0.8);  opacity: 0.45; }
+  100% { transform: translate3d(14px, -34px, 0) scale(1.25); opacity: 1; }
+}
+
+/* ============================================================
+   THE CARD
+   ============================================================ */
+
+.error-shell {
+  position: relative;
+  z-index: 1;
+  width: min(92vw, 780px);
+  padding: 34px 36px 30px;
+  border-radius: 22px;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.05), transparent 38%),
+    linear-gradient(160deg, var(--panel-a), var(--panel-b));
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  backdrop-filter: blur(16px) saturate(1.35);
+  box-shadow:
+    0 0 0 1px rgba(168, 85, 247, 0.22),
+    0 34px 90px rgba(0, 0, 0, 0.65),
+    0 0 70px rgba(255, 45, 149, 0.14),
+    0 0 130px rgba(0, 229, 255, 0.10);
+  animation: float 7s ease-in-out infinite;
+}
+
+/* gradient neon border */
+.error-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(135deg,
+    rgba(255, 45, 149, 0.85),
+    rgba(168, 85, 247, 0.35) 32%,
+    rgba(0, 229, 255, 0.35) 68%,
+    rgba(249, 240, 2, 0.75));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+}
+
+/* glowing top accent strip */
+.error-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16%;
+  right: 16%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--neon-pink) 28%,
+    var(--neon-violet) 50%,
+    var(--neon-cyan) 72%,
+    transparent);
+  box-shadow:
+    0 0 16px rgba(255, 45, 149, 0.85),
+    0 0 34px rgba(0, 229, 255, 0.5);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+/* ============================================================
+   HEADER / ERROR CODE
+   ============================================================ */
+
+.error-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 20px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.error-code {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 8px;
+  color: transparent;
+  font-family: var(--font-mono);
+  font-size: clamp(4.2rem, 11vw, 7.5rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  background: linear-gradient(115deg, var(--neon-pink) 8%, var(--neon-violet) 46%, var(--neon-cyan) 92%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(255, 45, 149, 0.35))
+          drop-shadow(0 0 44px rgba(0, 229, 255, 0.28));
+  animation: neon-flicker 6s infinite;
+}
+
+/* chromatic glitch slices (copies of the code via data-text) */
+.error-code::before,
+.error-code::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation-timing-function: steps(1, end);
+}
+
+.error-code::before {
+  color: var(--neon-cyan);
+  opacity: 0.8;
+  clip-path: inset(0 0 58% 0);
+  animation-name: glitch-slice-a;
+  animation-duration: 3.4s;
+  animation-iteration-count: infinite;
+}
+
+.error-code::after {
+  color: var(--neon-pink);
+  opacity: 0.85;
+  clip-path: inset(60% 0 0 0);
+  animation-name: glitch-slice-b;
+  animation-duration: 2.6s;
+  animation-iteration-count: infinite;
+}
+
+@keyframes neon-flicker {
+  0%, 89%, 93%, 100% { opacity: 1; }
+  90% { opacity: 0.82; }
+  91% { opacity: 0.96; }
+  92% { opacity: 0.78; }
+}
+
+@keyframes glitch-slice-a {
+  0%   { clip-path: inset(0 0 58% 0); transform: translate(-3px, -1px); }
+  12%  { clip-path: inset(12% 0 62% 0); transform: translate(3px, 1px); }
+  24%  { clip-path: inset(42% 0 22% 0); transform: translate(-2px, 0); }
+  36%  { clip-path: inset(0 0 78% 0); transform: translate(2px, -2px); }
+  48%  { clip-path: inset(24% 0 44% 0); transform: translate(-4px, 1px); }
+  60%  { clip-path: inset(4% 0 70% 0); transform: translate(3px, 2px); }
+  72%  { clip-path: inset(50% 0 20% 0); transform: translate(-2px, -1px); }
+  84%  { clip-path: inset(18% 0 56% 0); transform: translate(2px, 0); }
+  100% { clip-path: inset(0 0 58% 0); transform: translate(-3px, -1px); }
+}
+
+@keyframes glitch-slice-b {
+  0%   { clip-path: inset(60% 0 0 0); transform: translate(3px, 1px); }
+  15%  { clip-path: inset(70% 0 0 0); transform: translate(-3px, -1px); }
+  30%  { clip-path: inset(45% 0 0 0); transform: translate(4px, 2px); }
+  45%  { clip-path: inset(80% 0 0 0); transform: translate(-2px, 1px); }
+  60%  { clip-path: inset(55% 0 0 0); transform: translate(3px, -1px); }
+  75%  { clip-path: inset(66% 0 0 0); transform: translate(-4px, 2px); }
+  90%  { clip-path: inset(48% 0 0 0); transform: translate(2px, 1px); }
+  100% { clip-path: inset(60% 0 0 0); transform: translate(3px, 1px); }
+}
+
+.error-label {
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.55);
+}
+
+.error-label::before {
+  content: "// ";
+  color: var(--neon-pink);
+  text-shadow: 0 0 10px rgba(255, 45, 149, 0.6);
+}
+
+/* ---------- status chip ---------- */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 9px;
+  max-width: 100%;
+  padding: 8px 13px;
+  border: 1px solid rgba(255, 45, 149, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 45, 149, 0.09);
+  color: #ffd3e8;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  box-shadow: 0 0 18px rgba(255, 45, 149, 0.18), inset 0 0 10px rgba(255, 45, 149, 0.08);
+  -webkit-backdrop-filter: blur(6px);
+          backdrop-filter: blur(6px);
+}
+
+.status-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neon-pink);
+  animation: status-pulse 1.6s ease-out infinite;
+}
+
+@keyframes status-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 45, 149, 0.55), 0 0 10px var(--neon-pink); }
+  70%  { box-shadow: 0 0 0 8px rgba(255, 45, 149, 0), 0 0 16px var(--neon-pink); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 45, 149, 0), 0 0 10px var(--neon-pink); }
+}
+
+/* ============================================================
+   TITLE / BODY COPY
+   ============================================================ */
+
+.error-title {
+  margin: 0 0 14px;
+  max-width: 46rem;
+  color: var(--text-main);
+  font-size: clamp(1.55rem, 3.2vw, 2.15rem);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 34px rgba(168, 85, 247, 0.35);
+}
+
+/* gradient underline accent */
+.error-title::after {
+  content: "";
+  display: block;
+  width: 74px;
+  height: 3px;
+  margin-top: 12px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-violet), var(--neon-cyan));
+  box-shadow: 0 0 14px rgba(255, 45, 149, 0.65), 0 0 24px rgba(0, 229, 255, 0.4);
+}
+
+.error-message {
+  max-width: 62ch;
+  margin: 0 0 22px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* ---------- terminal-style hint box ---------- */
+.error-meta {
+  position: relative;
+  margin: 0 0 26px;
+  padding: 13px 16px 13px 40px;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, rgba(0, 229, 255, 0.07), transparent 46%),
+    rgba(4, 2, 16, 0.6);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  box-shadow: inset 0 0 22px rgba(0, 229, 255, 0.05);
+}
+
+.error-meta::before {
+  content: ">";
+  position: absolute;
+  left: 17px;
+  top: 13px;
+  color: var(--neon-pink);
+  font-weight: 700;
+  text-shadow: 0 0 9px rgba(255, 45, 149, 0.8);
+}
+
+/* blinking cursor block at the end of the "terminal" */
+.error-meta::after {
+  content: "";
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 15px;
+  background: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.9);
+  opacity: 0.8;
+  animation: cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes cursor-blink {
+  0% { opacity: 0.85; }
+  50% { opacity: 0; }
+  100% { opacity: 0.85; }
+}
+
+/* ============================================================
+   ACTIONS / BUTTONS
+   ============================================================ */
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.error-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  gap: 9px;
+  padding: 0 20px;
+  appearance: none;
+  border: 1px solid rgba(0, 229, 255, 0.55);
+  border-radius: 0;
+  background: linear-gradient(135deg, rgba(255, 45, 149, 0.18), rgba(0, 229, 255, 0.12));
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  /* cyberpunk notched corner */
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  box-shadow:
+    0 0 16px rgba(0, 229, 255, 0.22),
+    inset 0 0 14px rgba(255, 45, 149, 0.12);
+  transition: transform 0.18s ease, box-shadow 0.18s ease,
+              background 0.18s ease, color 0.18s ease;
+}
+
+.error-btn span {
+  color: var(--neon-cyan);
+  font-size: 1.05rem;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.error-btn:hover,
+.error-btn:focus-visible {
+  transform: translateY(-3px);
+  background: linear-gradient(135deg, rgba(255, 45, 149, 0.32), rgba(0, 229, 255, 0.24));
+  box-shadow:
+    0 8px 26px rgba(0, 0, 0, 0.45),
+    0 0 26px rgba(255, 45, 149, 0.5),
+    0 0 40px rgba(0, 229, 255, 0.35),
+    inset 0 0 18px rgba(255, 45, 149, 0.2);
+  outline: none;
+}
+
+.error-btn:hover span,
+.error-btn:focus-visible span {
+  color: var(--neon-pink);
+  text-shadow: 0 0 10px rgba(255, 45, 149, 0.9);
+  transform: translateX(1px);
+}
+
+.error-btn.secondary {
+  background: transparent;
+  border-color: rgba(168, 85, 247, 0.55);
+  color: var(--text-muted);
+  box-shadow: inset 0 0 12px rgba(168, 85, 247, 0.1);
+}
+
+.error-btn.secondary span {
+  color: var(--neon-violet);
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
+}
+
+.error-btn.secondary:hover,
+.error-btn.secondary:focus-visible {
+  background: rgba(168, 85, 247, 0.16);
+  border-color: var(--neon-pink);
+  color: #ffffff;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 0 26px rgba(168, 85, 247, 0.45);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.error-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(139, 92, 246, 0.22);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.badge-pill {
+  display: inline-block;
+  padding: 5px 10px;
+  border: 1px solid rgba(249, 240, 2, 0.42);
+  border-radius: 6px;
+  background: rgba(249, 240, 2, 0.08);
+  color: #ffe86a;
+  text-shadow: 0 0 10px rgba(249, 240, 2, 0.45);
+  box-shadow: 0 0 14px rgba(249, 240, 2, 0.12);
+}
+
+code {
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.45);
+}
+
+/* ---------- extras ---------- */
+::selection {
+  background: rgba(255, 45, 149, 0.55);
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-0);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--neon-pink), var(--neon-violet), var(--neon-cyan));
+  border-radius: 8px;
+  border: 3px solid var(--bg-0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 600px) {
+  body {
+    padding: 18px;
+    align-items: flex-start;
+  }
+
+  .error-shell {
+    width: 100%;
+    padding: 26px 20px 24px;
+    border-radius: 16px;
+  }
+
+  .error-header {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .error-actions {
+    flex-direction: column;
+  }
+
+  .error-btn {
+    width: 100%;
+  }
+
+  .error-code {
+    font-size: clamp(3.4rem, 16vw, 5rem);
+  }
+}
+
+/* ---------- reduced motion: keep it calm ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .error-shell {
+    animation: none;
+  }
+}

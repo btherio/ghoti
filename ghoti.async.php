@@ -911,6 +911,12 @@ class ghotiui{
 			$aria = $describedBy !== "" ? " aria-describedby=\"".$describedBy."\"" : "";
 			return "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-".$id."\"".$chk($checked).$aria." /> ".$label."</label>\n";
 		};
+		$textarea = function($id, $label, $value, $hint = "", $attrs = "") use ($esc){
+			$o = "<label class=\"ghotiField ghotiFieldWide\"><span>".$label;
+			if($hint !== ""){ $o .= " <i>".$hint."</i>"; }
+			$o .= "</span><textarea id=\"set-".$id."\" ".$attrs.">".$esc($value)."</textarea></label>\n";
+			return $o;
+		};
 
 		//Installed themes: a directory under css/ with a matching loader.
 		$themes = array();

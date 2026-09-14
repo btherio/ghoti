@@ -81,7 +81,7 @@ class login_throttle{
 			if(!is_array($data)){ throw new RuntimeException('Login protection is unavailable. Please contact the site operator.'); }
 			$result = $callback($data);
 			if($write){
-				$cutoff = time() - 7200;
+				$cutoff = time() - 86400;
 				foreach($data as $key => $times){
 					$data[$key] = array_values(array_filter((array)$times, function($ts) use ($cutoff){ return (int)$ts >= $cutoff; }));
 					if(!$data[$key]){ unset($data[$key]); }
@@ -106,7 +106,7 @@ class login_throttle{
 			return count($recent) >= $limit ? max(0, min($recent) + $window - time()) : 0;
 		});
 	}
-	public function recordFailure($key, $max = 20){
+	public function recordFailure($key, $max = 200){
 		$this->access(function(&$data) use ($key,$max){
 			$data[$key][] = time();
 			$data[$key] = array_slice($data[$key], -$max);
@@ -204,6 +204,15 @@ function login($username,$password){
 	$attempts = isset($_SESSION['login_attempts']) ? (int) $_SESSION['login_attempts'] : 0;
 	$lastAttempt = isset($_SESSION['login_last_attempt']) ? (int) $_SESSION['login_last_attempt'] : 0;
 
+	//A manual or automatic IP block applies before database work. The same
+	//check also runs at request bootstrap; keeping it here protects direct unit
+	//and module use that does not pass through index.php.
+	$ipBlock = ghoti_security_block_status(loginRemoteAddr());
+	if($ipBlock !== null){
+		ghoti::logWarn("login.async.php:login", "Login denied for blacklisted IP ".loginRemoteAddr());
+		return "Access from this network address is blocked.";
+	}
+
 	//Server-side throttle: per-IP AND per-username, persistent across sessions.
 	//The session counter below still applies too; this one survives cookie
 	//rotation and is the actual brute-force control.
@@ -214,6 +223,10 @@ function login($username,$password){
 		if($throttle->isBlocked($throttleKey)){ $blocked = true; break; }
 	}
 	if($blocked){
+		//Count repeated requests during the short throttle too. This lets ten
+		//continued failures graduate into the longer automatic IP blacklist.
+		$throttle->recordFailure('ip:'.loginRemoteAddr());
+		ghoti_security_record_failed_login($throttle);
 		ghoti::logWarn("login.async.php:login", "Login blocked (server throttle) for '$username' from ".loginRemoteAddr());
 		return "Too many login attempts. Please try again later.";
 	}
@@ -266,6 +279,7 @@ function login($username,$password){
 	} else {
 		//Record the failure in the server-side throttle (best-effort).
 		foreach($throttleKeys as $throttleKey){ $throttle->recordFailure($throttleKey); }
+		ghoti_security_record_failed_login($throttle);
 		ghoti::logWarn("login.async.php:login", "Login failed for '$username'");
 	}
 	return $id;

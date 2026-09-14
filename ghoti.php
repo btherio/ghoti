@@ -276,6 +276,11 @@ class ghoti {
 				return is_string($value) && ($value === '' || filter_var($value, FILTER_VALIDATE_EMAIL)) ? $value : null;
 			case 'bool':
 				return (bool)(is_string($value) ? ($value !== '' && $value !== '0' && strtolower($value) !== 'false') : $value);
+			case 'int':
+				return is_scalar($value) && preg_match('/^\d+$/', (string)$value) ? (int)$value : null;
+			case 'ip_list':
+				try{ return ghoti_security_normalize_ip_list($value); }
+				catch(InvalidArgumentException $e){ return null; }
 			case 'theme':
 				return self::isValidTheme($value) ? (string)$value : null;
 			case 'path':
@@ -315,4 +320,5 @@ class ghoti {
     }
 }
 include_once('ghoti.documentation.php');
+include_once('ghoti.backup.php');
 ?>

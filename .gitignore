@@ -17,10 +17,15 @@ ghoti.log.*
 # Server-side login throttling state (mod/login/login.async.php).
 login.throttle.json
 
-# Local AI coding-agent instructions.
+# Automatic IP blocks are runtime security state managed from Site Settings.
+security.blacklist.json
+
+# Local AI coding-agent instructions and per-tool state.
 agents.md
 AGENTS.md
 CLAUDE.md
+.reasonix/
+reasonix.toml
 
 # Throttled operational alert counters; never commit runtime state.
 critical-alerts.json

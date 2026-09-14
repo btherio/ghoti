@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>500 – Internal Server Error</title>
+  <link rel="stylesheet" href="/errors/errors.css">
+</head>
+<body>
+  <div class="particles">
+    <div class="particle" style="left:10%; top:68%;"></div>
+    <div class="particle" style="left:32%; top:16%;"></div>
+    <div class="particle" style="left:58%; top:57%;"></div>
+    <div class="particle" style="left:79%; top:29%;"></div>
+    <div class="particle" style="left:93%; top:81%;"></div>
+  </div>
+
+  <main class="error-shell">
+    <header class="error-header">
+      <div>
+        <div class="error-code" data-text="500">500</div>
+        <div class="error-label">Internal server error</div>
+      </div>
+      <div class="status-chip">
+        <span class="status-dot"></span>
+        <span>Server had a meltdown</span>
+      </div>
+    </header>
+
+    <h1 class="error-title">It’s not you. It’s definitely us.</h1>
+    <p class="error-message">
+      Something unexpected happened on the server and your request couldn’t be completed.  
+      A misbehaving script, a misconfigured module, or just a bad day in the stack.
+    </p>
+
+    <p class="error-meta">
+      If this persists, the administrator should check the server error logs for details.
+    </p>
+
+    <div class="error-actions">
+      <button class="error-btn" onclick="location.reload()"><span>⟳</span> Try again</button>
+      <a href="/" class="error-btn secondary"><span>🏠</span> Home</a>
+    </div>
+
+    <footer class="error-footer">
+      <span class="badge-pill">Error 500 – The server tripped over its own feet.</span>
+      <span>Admin hint: check <code>error_log</code> and recent deployments.</span>
+    </footer>
+  </main>
+</body>
+</html>

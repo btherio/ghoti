@@ -702,6 +702,13 @@ function saveSiteSettings(){
 		enableThemeChanger: $("#set-enableThemeChanger").is(":checked") ? 1 : 0,
 		hideLoginButton: $("#set-hideLoginButton").is(":checked") ? 1 : 0,
 		showHelpTips: $("#set-showHelpTips").is(":checked") ? 1 : 0,
+		securityAutoBlacklist: $("#set-securityAutoBlacklist").is(":checked") ? 1 : 0,
+		securityFailedLoginThreshold: $("#set-securityFailedLoginThreshold").val(),
+		securityFailureWindowMinutes: $("#set-securityFailureWindowMinutes").val(),
+		securityBlacklistDurationMinutes: $("#set-securityBlacklistDurationMinutes").val(),
+		securityIpBlacklist: $("#set-securityIpBlacklist").val(),
+		securityIpAllowlist: $("#set-securityIpAllowlist").val(),
+		sessionTimeoutMinutes: $("#set-sessionTimeoutMinutes").val(),
 		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0
 	};
 	x_saveSiteSettings(settings, saveSiteSettings_cb);
