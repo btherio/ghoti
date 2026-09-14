@@ -37,6 +37,11 @@ $expected = array(
 	'gallery'   => array('gallery' => array('galleryId','name','title'),
 	                     'gallery_photos' => array('photoId','galleryId','imageUrl')),
 	'analytics' => array('analytics' => array('id')),
+	//banners is the shape the loader is most easily wrong about: an install
+	//from before ad support has `banners` but no `banner_settings`, so the
+	//upgrade has to CREATE a table rather than only ALTER existing ones.
+	'banners'   => array('banners' => array('id','alt','imgUrl','linkUrl','smallBanner'),
+	                     'banner_settings' => array('source','adClient','adSlotSmall','adSlotLarge','adFormat','adTest')),
 	'store'     => array('store' => array('paypalClientId','paypalSecret','currency'),
 	                     'store_products' => array('productId','sku','priceCents','kind','downloadPath'),
 	                     'store_orders' => array('orderId','reference','status','paypalOrderId','totalCents'),

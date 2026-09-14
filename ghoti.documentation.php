@@ -131,7 +131,7 @@ unset ghoti_admin_password</code></pre>
         <div>
           <h2>Site tools</h2>
           <div class="ghotiGuideFeatureList">
-            <article><h3>Banners</h3><p>Add an image URL, destination URL, accessible description, and size. Banners are selected randomly by themes that display them. Use HTTPS image sources you control.</p></article>
+            <article><h3>Banners</h3><p>Add an image URL, destination URL, accessible description, and size. Banners are selected randomly by themes that display them. Use HTTPS image sources you control. The same screen chooses what fills those positions: your own banners, Google AdSense, or both drawn from one pool. AdSense needs a publisher ID, an ad slot for each size, and an <code>ads.txt</code> file at your domain root &mdash; see <code>docs/banners.md</code>.</p></article>
             <article><h3>Links</h3><p>Create sidebar links and organize them by group. Web and email links accept safe HTTP, HTTPS, mailto, or site-relative addresses.</p></article>
             <article><h3>Galleries</h3><p>Create a gallery, upload or link images, edit captions, reorder photos, and use View for its standalone page. Browser-safe images are stored directly; supported camera formats require ImageMagick conversion.</p></article>
             <article><h3>Files</h3><p>Browse and manage files available to the site. File management is a powerful administrator tool: limit admin access and keep secrets, backups, hidden files, and runtime state outside its editable scope.</p></article>
