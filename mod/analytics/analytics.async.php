@@ -57,7 +57,69 @@ function showAnalytics($days=30,$excludeAdmin=true){
 	return $_SESSION['analyticsObj']->analyticsui->printDashboard($days,(bool)$excludeAdmin);
 }
 
-ghoti_async_register("showAnalytics");
+/* ---------------------------------------------------------------- *
+ *  Apache log analyzer endpoints.
+ *
+ *  The analyzer library (apachelog.php) is required lazily: it is a large
+ *  file with declare(strict_types=1), and no ordinary page view needs it.
+ *
+ *  Both endpoints answer with an array the browser reads directly, rather
+ *  than rendered HTML, because mod/analytics/apachelog.js redraws the same
+ *  report shape from a live stream as well as from these calls. Errors come
+ *  back as {ok:false,error} - the analyzer's HTTP status codes are dropped
+ *  here, the same way showAnalytics() answers with a message and not a code.
+ * ---------------------------------------------------------------- */
+
+function apacheLogRequireAdmin(){
+	analyticsRequireAdmin();
+	require_once __DIR__.'/apachelog.php';
+}
+
+function listApacheLogs(){
+	try{
+		apacheLogRequireAdmin();
+	}catch (Exception $e){
+		ghoti::logWarn("analytics.async.php:listApacheLogs", "Unauthorized Apache log access attempt from ".analyticsServerValue('REMOTE_ADDR'));
+		return array('ok' => false, 'error' => 'Admin access required.');
+	}
+	$config = apache_log_config();
+	try{
+		return array(
+			'ok' => true,
+			'logDir' => $config['log_dir'],
+			'files' => apache_list_log_files($config),
+		);
+	}catch (ApacheLogHttpException $e){
+		return array('ok' => false, 'error' => $e->getMessage());
+	}catch (Throwable $e){
+		ghoti::logException("analytics.async.php:listApacheLogs", $e);
+		return array('ok' => false, 'error' => 'The log directory could not be read.');
+	}
+}
+
+function analyzeApacheLog($fileId){
+	try{
+		apacheLogRequireAdmin();
+	}catch (Exception $e){
+		ghoti::logWarn("analytics.async.php:analyzeApacheLog", "Unauthorized Apache log access attempt from ".analyticsServerValue('REMOTE_ADDR'));
+		return array('ok' => false, 'error' => 'Admin access required.');
+	}
+	$config = apache_log_config();
+	try{
+		list($path, $name) = apache_safe_log_path((string)$fileId, $config);
+		return array(
+			'ok' => true,
+			'report' => apache_analyze_file($path, $name, $config, $config['json_entry_limit']),
+		);
+	}catch (ApacheLogHttpException $e){
+		return array('ok' => false, 'error' => $e->getMessage());
+	}catch (Throwable $e){
+		ghoti::logException("analytics.async.php:analyzeApacheLog", $e);
+		return array('ok' => false, 'error' => 'The selected log could not be analyzed.');
+	}
+}
+
+ghoti_async_register("showAnalytics", "listApacheLogs", "analyzeApacheLog");
 
 /* ---------------------------------------------------------------- *
  *  UI renderer (formerly analytics.ui.php / class analyticsui)
@@ -104,7 +166,7 @@ class analyticsui{
 		);
 
 		$out  = "<div id=\"ghotiAnalytics\">\n";
-		$docs = ghoti_docs_panel("How to use analytics", "ranges, tiles, export, log", array(
+		$docs = ghoti_docs_panel("How to use analytics", "ranges, tiles, export, logs", array(
 			array('heading' => 'Choose a range',
 				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons switch the whole dashboard &mdash; including the CSV export.')),
 			array('heading' => 'Exclude admin views',
@@ -113,6 +175,8 @@ class analyticsui{
 				'list' => array('<b>Pageviews</b> &mdash; total page loads tracked.', '<b>Unique sessions</b> &mdash; distinct browser sessions (a new session starts after 30 minutes of inactivity).', '<b>Visitor identification</b> &mdash; new analytics does not collect IP addresses or account identifiers. Counts include only sessions that opt in. Historical data may contain identifying fields.', '<b>Pages viewed</b> &mdash; distinct pages hit.', '<b>Avg. views/day</b> &mdash; pageviews divided by the range.')),
 			array('heading' => 'CSV export',
 				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range.')),
+			array('heading' => 'Apache logs',
+				'list' => array('Pick a file from the web server\u{2019}s log directory and press <b>Analyze</b> to group its entries by severity and category.', 'Tick <b>Follow live</b> before analyzing to watch a file as it is written; press <b>Stop stream</b> when you are done.', 'A row with <b>Diagnostic hints available</b> explains what usually causes that entry. <b>Download PDF</b> saves the report.', 'Read-only: this never writes to, rotates, or clears an Apache log.')),
 			array('heading' => 'The log',
 				'list' => array('One line per event: logins, page saves, uploads, blocked requests and errors. Newest entries appear at the top.', '<code>SECURITY:</code> lines flag legacy plaintext passwords and throttled logins &mdash; investigate and fix them. <code>denied</code> / <code>rejected</code> lines are blocked attempts (bad CSRF token, unauthorised endpoint, private page).', 'The log rotates automatically at 5MB and keeps three generations. <b>Clear log</b> empties it now.'))
 		));
@@ -156,6 +220,7 @@ class analyticsui{
 
 		$out .= $this->logErrorsCard($topErrors,$days);
 		$out .= $this->rawLogCard();
+		$out .= $this->apacheLogCard();
 
 		//Raw data table
 		$out .= "<div class=\"card analytics-card wide\">\n";
@@ -229,6 +294,79 @@ class analyticsui{
 		$out .= "<h2>Log <span class=\"analytics-muted\">reverse chronological</span></h2>\n";
 		$out .= "<pre class=\"analytics-log-raw\">".$logText."</pre>\n";
 		$out .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"clearGhotiLog();\">Clear log</button>\n";
+		$out .= "</div>\n";
+		return $out;
+	}
+
+	/*
+	 * Apache log analyzer.
+	 *
+	 * Only the shell is rendered here. The report itself is drawn by
+	 * mod/analytics/apachelog.js from the payload the listApacheLogs /
+	 * analyzeApacheLog endpoints return - and redrawn from the live stream,
+	 * which pushes the same shape. One renderer, two sources; server-rendering
+	 * the report would mean writing it twice.
+	 *
+	 * The ids below are read by apachelog.js. The PDF link and the live stream
+	 * carry the session CSRF token because both are plain navigable URLs
+	 * outside the async layer, exactly like the CSV export above; the client
+	 * re-uses the same token from GHOTI_CSRF_TOKEN when it fills in the file.
+	 */
+	private function apacheLogCard(){
+		$token = rawurlencode(ghoti_csrf_token());
+		$out  = "<div class=\"card analytics-card wide\" id=\"ghotiApacheLog\">\n";
+		$out .= "<h2>Apache logs <span class=\"analytics-muted\">web server access and error logs</span></h2>\n";
+		$out .= "<p class=\"analytics-sub\">Parses the server\u{2019}s own logs, groups entries by severity and category, and suggests where to look first. Read-only: nothing here writes to or clears a log file.</p>\n";
+
+		//Controls
+		$out .= "<div class=\"control-panel\">\n<div class=\"control-grid\">\n";
+		$out .= "<label class=\"field\"><span id=\"apacheLogSourceTitle\">Log file</span><select id=\"apacheLogFileSelect\"><option value=\"\">Loading log files\u{2026}</option></select></label>\n";
+		$out .= "<label class=\"toggle\"><input id=\"apacheFollowToggle\" type=\"checkbox\" /> <span>Follow live</span></label>\n";
+		$out .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" id=\"apacheRefreshButton\">Refresh list</button>\n";
+		$out .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" id=\"apacheAnalyzeButton\" disabled=\"disabled\">Analyze</button>\n";
+		$out .= "</div>\n";
+		$out .= "<div class=\"control-meta\"><span id=\"apacheLogDir\" class=\"analytics-muted\"></span><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" id=\"apacheStopButton\" hidden=\"hidden\">Stop stream</button></div>\n";
+		$out .= "<div id=\"apacheStatus\" class=\"status\" role=\"status\" aria-live=\"polite\" hidden=\"hidden\"></div>\n";
+		$out .= "</div>\n";
+
+		//Report
+		$out .= "<section id=\"apacheReport\" hidden=\"hidden\">\n";
+		$out .= "<div class=\"report-head\"><div><h3 id=\"apacheReportTitle\">Analysis report</h3><p class=\"file-meta\" id=\"apacheFileMeta\"></p></div>";
+		$out .= "<div class=\"actions\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" id=\"apacheReloadButton\">Restart analysis</button>";
+		$out .= "<a class=\"ghotiButton ghotiButtonCompact\" id=\"apacheExportButton\" href=\"mod/analytics/apachelog.export.php?token=".$token."\" target=\"_blank\" rel=\"noopener\" hidden=\"hidden\">&#8681; Download PDF</a></div></div>\n";
+
+		$tabs = array(
+			array('overview','Analysis report'),
+			array('charts','Charts'),
+			array('recommendations','Recommended next steps'),
+			array('entries','Recent log entries'),
+		);
+		$out .= "<div class=\"report-tabs\" role=\"tablist\" aria-label=\"Report views\">\n";
+		foreach($tabs as $i => $tab){
+			$active = $i === 0;
+			$out .= "<button type=\"button\" class=\"report-tab".($active ? " is-active" : "")."\" id=\"apacheReportTab-".$tab[0]."\" role=\"tab\" aria-selected=\"".($active ? "true" : "false")."\" aria-controls=\"apacheReportPanel-".$tab[0]."\" data-report-tab=\"".$tab[0]."\"".($active ? "" : " tabindex=\"-1\"").">".$tab[1]."</button>\n";
+		}
+		$out .= "</div>\n<div class=\"report-tab-panels\">\n";
+
+		$out .= "<section class=\"report-tab-panel\" id=\"apacheReportPanel-overview\" role=\"tabpanel\" aria-labelledby=\"apacheReportTab-overview\" data-report-panel=\"overview\">\n";
+		$out .= "<div class=\"metric-grid\" id=\"apacheMetrics\"></div>\n";
+		$out .= "<div class=\"panel wide-section\"><h4>Entries by category</h4><div id=\"apacheCategoryChart\"></div></div>\n</section>\n";
+
+		$out .= "<section class=\"report-tab-panel charts-grid\" id=\"apacheReportPanel-charts\" role=\"tabpanel\" aria-labelledby=\"apacheReportTab-charts\" data-report-panel=\"charts\" hidden=\"hidden\">\n";
+		$out .= "<div class=\"panel\"><h4>Severity mix</h4><div id=\"apacheSeverityRing\"></div></div>\n";
+		$out .= "<div class=\"panel\"><h4>Entries over time</h4><div id=\"apacheTimelineScatter\"></div></div>\n</section>\n";
+
+		$out .= "<section class=\"report-tab-panel\" id=\"apacheReportPanel-recommendations\" role=\"tabpanel\" aria-labelledby=\"apacheReportTab-recommendations\" data-report-panel=\"recommendations\" hidden=\"hidden\">\n";
+		$out .= "<div class=\"panel wide-section\"><h4>Recommended next steps</h4><ol class=\"recommendations\" id=\"apacheRecommendations\"></ol></div>\n</section>\n";
+
+		$out .= "<section class=\"report-tab-panel\" id=\"apacheReportPanel-entries\" role=\"tabpanel\" aria-labelledby=\"apacheReportTab-entries\" data-report-panel=\"entries\" hidden=\"hidden\">\n";
+		$out .= "<div class=\"panel details\"><div class=\"details-head\"><h4>Recent log entries</h4>\n";
+		$out .= "<div class=\"filters\"><label><span class=\"sr-only\">Search entries</span><input id=\"apacheSearchInput\" type=\"search\" placeholder=\"Search messages, clients, codes\" /></label>";
+		$out .= "<label><span class=\"sr-only\">Filter by severity</span><select id=\"apacheSeverityFilter\"><option value=\"all\">All severities</option></select></label></div></div>\n";
+		$out .= "<div class=\"table-wrap\"><table><thead><tr><th>Time</th><th>Level</th><th>Category</th><th>Source</th><th>Message</th></tr></thead><tbody id=\"apacheEntryRows\"></tbody></table></div>\n";
+		$out .= "<p class=\"table-footer\" id=\"apacheTableFooter\"></p></div>\n</section>\n";
+
+		$out .= "</div>\n</section>\n";
 		$out .= "</div>\n";
 		return $out;
 	}

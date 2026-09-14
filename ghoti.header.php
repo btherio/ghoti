@@ -42,20 +42,28 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
      path via the Disconnect tracker list, even though this file just draws
      admin-only SVG charts and contains no tracking code. */?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/analytics/charts.js'); ?>"></script>
+<script type="text/javascript" src="<?php echo $ghotiAsset('mod/analytics/apachelog.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/gallery/gallery.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/filemanager/filemanager.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/mail/mail.js'); ?>"></script>
 <?php if(ghoti::$enableVhosts){ ?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/vhosts/vhosts.js'); ?>"></script>
 <?php } ?>
+<?php if(ghoti::$enableStore){ ?>
+<script type="text/javascript" src="<?php echo $ghotiAsset('mod/store/store.js'); ?>"></script>
+<?php } ?>
 
 <?/*Main ghoti stylesheet*/?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('css/ghoti/ghoti.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/analytics/analytics.css'); ?>" />
+<link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/analytics/apachelog.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/gallery/gallery.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/filemanager/filemanager.css'); ?>" />
 <?php if(ghoti::$enableVhosts){ ?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/vhosts/vhosts.css'); ?>" />
+<?php } ?>
+<?php if(ghoti::$enableStore){ ?>
+<link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/store/store.css'); ?>" />
 <?php } ?>
 
 <link rel="stylesheet" href="<?php echo $ghotiAsset('css/ghoti/privacy.css'); ?>" />

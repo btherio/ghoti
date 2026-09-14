@@ -18,6 +18,9 @@ function toggleAnalyticsAdmin(checked){
 function renderAnalytics_cb(content){
 	printPage(content);
 	drawAllAnalyticsCharts();
+	//The Apache log card is part of this same HTML blob, so it has to be
+	//(re)wired every time the dashboard re-renders - see mod/analytics/apachelog.js.
+	if(typeof initApacheLogPanel === 'function'){ initApacheLogPanel(); }
 }
 
 function drawAllAnalyticsCharts(){
