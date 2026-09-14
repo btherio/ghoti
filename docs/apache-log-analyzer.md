@@ -1,6 +1,6 @@
 # Apache log analyzer
 
-The **Apache logs** card at the bottom of **Analytics** parses the web server's own
+The **Apache logs** card under **Analytics → Server logs** parses the web server's own
 access and error logs: it groups entries by severity and category, suggests where to
 look first, and can follow a file live. It is read-only — nothing in the CMS writes to,
 rotates, or clears an Apache log.

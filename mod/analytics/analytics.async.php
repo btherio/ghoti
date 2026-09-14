@@ -166,15 +166,21 @@ class analyticsui{
 		);
 
 		$out  = "<div id=\"ghotiAnalytics\">\n";
-		$docs = ghoti_docs_panel("How to use analytics", "ranges, tiles, export, logs", array(
+		$docs = ghoti_docs_panel("How to use analytics", "tabs, ranges, tiles, export, logs", array(
+			array('heading' => 'The three tabs',
+				'list' => array(
+					'<b>Usage data</b> &mdash; who visited, which pages, which browsers and referrers.',
+					'<b>Errors</b> &mdash; error-like lines from this site&rsquo;s own log, grouped by message and counted, so a fault that recurs stands out from one that happened once.',
+					'<b>Server logs</b> &mdash; the raw site log, newest first, and the Apache log analyzer for the web server&rsquo;s own access and error logs.',
+					'The tab you are on survives a range change, so you can compare 7d and 90d without losing your place.')),
 			array('heading' => 'Choose a range',
-				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons switch the whole dashboard &mdash; including the CSV export.')),
+				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons scope <b>Usage data</b> and <b>Errors</b> &mdash; and the CSV export.', 'The range does not apply to <b>Server logs</b>: a log file is whatever the server has written, and the Apache analyzer reads the file you pick.')),
 			array('heading' => 'Exclude admin views',
 				'list' => array('Tick the checkbox to ignore pageviews recorded while an admin was viewing, for visitor-only numbers.')),
 			array('heading' => 'The tiles',
 				'list' => array('<b>Pageviews</b> &mdash; total page loads tracked.', '<b>Unique sessions</b> &mdash; distinct browser sessions (a new session starts after 30 minutes of inactivity).', '<b>Visitor identification</b> &mdash; new analytics does not collect IP addresses or account identifiers. Counts include only sessions that opt in. Historical data may contain identifying fields.', '<b>Pages viewed</b> &mdash; distinct pages hit.', '<b>Avg. views/day</b> &mdash; pageviews divided by the range.')),
 			array('heading' => 'CSV export',
-				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range.')),
+				'list' => array('<b>Download CSV</b> opens a token-protected export of the recent-pageviews table for the current range. It exports usage data only &mdash; not the logs.')),
 			array('heading' => 'Apache logs',
 				'list' => array('Pick a file from the web server\u{2019}s log directory and press <b>Analyze</b> to group its entries by severity and category.', 'Tick <b>Follow live</b> before analyzing to watch a file as it is written; press <b>Stop stream</b> when you are done.', 'A row with <b>Diagnostic hints available</b> explains what usually causes that entry. <b>Download PDF</b> saves the report.', 'Read-only: this never writes to, rotates, or clears an Apache log.')),
 			array('heading' => 'The log',
@@ -199,6 +205,18 @@ class analyticsui{
 		$out .= "</div>\n";
 
 		//KPI row
+		//Three tabs, because this screen had grown into three unrelated jobs
+		//stacked in one scroll: what visitors did, what broke, and what the web
+		//server itself recorded. An admin chasing a 500 should not have to
+		//scroll past seven charts to reach the log.
+		//
+		//data-analytics-tab, NOT data-report-tab: the Apache card inside the
+		//Server logs panel has tabs of its own and queries that attribute.
+		$out .= $this->tabStrip();
+		$out .= "<div class=\"analytics-tab-panels\">\n";
+
+		/* ---- Usage data ---- */
+		$out .= $this->panelOpen('usage', 'Usage data', true);
 		$out .= "<div class=\"analytics-kpis\">\n";
 		$out .= $this->kpiTile('Pageviews', number_format($totalViews));
 		$out .= $this->kpiTile('Unique sessions', number_format($uniqueSessions));
@@ -207,7 +225,9 @@ class analyticsui{
 		$out .= $this->kpiTile('Avg. views/day', number_format($avgPerDay,1));
 		$out .= "</div>\n";
 
-		//Chart cards - drawn into these by charts.js after this HTML is injected
+		//Chart cards - drawn into these by charts.js after this HTML is injected.
+		//Safe to draw while a panel is hidden: every chart uses a fixed viewBox
+		//and never measures its container, so nothing depends on layout.
 		$out .= "<div class=\"analytics-grid\">\n";
 		$out .= $this->chartCard('wide','Pageviews over time','chart-byday');
 		$out .= $this->chartCard('','Traffic by hour of day','chart-byhour');
@@ -217,10 +237,6 @@ class analyticsui{
 		$out .= $this->chartCard('','Device type','chart-devices');
 		$out .= $this->chartCard('','Top referrers','chart-referrers');
 		$out .= "</div>\n";
-
-		$out .= $this->logErrorsCard($topErrors,$days);
-		$out .= $this->rawLogCard();
-		$out .= $this->apacheLogCard();
 
 		//Raw data table
 		$out .= "<div class=\"card analytics-card wide\">\n";
@@ -240,12 +256,68 @@ class analyticsui{
 		}
 		$out .= "</tbody></table></div>\n";
 		$out .= "</div>\n"; //card
+		$out .= $this->panelClose();
+
+		/* ---- Errors ---- */
+		//The distilled view: what is going wrong, grouped and counted. The raw
+		//log it is distilled from lives under Server logs, because reading a log
+		//line by line is a different task from seeing what recurs.
+		$out .= $this->panelOpen('errors', 'Errors', false);
+		$out .= $this->logErrorsCard($topErrors,$days);
+		$out .= $this->panelClose();
+
+		/* ---- Server logs ---- */
+		$out .= $this->panelOpen('logs', 'Server logs', false);
+		$out .= $this->rawLogCard();
+		$out .= $this->apacheLogCard();
+		$out .= $this->panelClose();
+
+		$out .= "</div>\n"; //analytics-tab-panels
 
 		$out .= $docs;
 		$out .= "<script type=\"application/json\" id=\"analyticsData\">".json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)."</script>\n";
 		$out .= "</div>\n"; //ghotiAnalytics
 
 		return $out;
+	}
+
+	/* The three dashboard views. Kept in one place so the strip and the panels
+	 * cannot drift apart - a tab pointing at a panel id that does not exist is
+	 * a tab that does nothing, and nothing about the page would say why. */
+	public static function tabs(){
+		return array(
+			array('usage',  'Usage data',  'Visitors, pages, referrers'),
+			array('errors', 'Errors',      'What is going wrong, grouped'),
+			array('logs',   'Server logs', 'The raw log and the Apache analyzer'),
+		);
+	}
+
+	private function tabStrip(){
+		$out = "<div class=\"analytics-tabs\" role=\"tablist\" aria-label=\"Analytics views\">\n";
+		foreach(self::tabs() as $i => $tab){
+			$active = $i === 0;
+			//The first tab is always the one marked active in the markup; the
+			//client switches to whichever the admin was on, in the same frame,
+			//so a range change does not throw them back to Usage data.
+			$out .= "<button type=\"button\" class=\"analytics-tab".($active ? " is-active" : "")."\""
+				." id=\"analyticsTab-".$tab[0]."\" role=\"tab\" aria-selected=\"".($active ? "true" : "false")."\""
+				." aria-controls=\"analyticsPanel-".$tab[0]."\" data-analytics-tab=\"".$tab[0]."\""
+				.($active ? "" : " tabindex=\"-1\"").">"
+				."<span class=\"analytics-tab-name\">".htmlspecialchars($tab[1], ENT_QUOTES)."</span>"
+				."<span class=\"analytics-tab-hint\">".htmlspecialchars($tab[2], ENT_QUOTES)."</span></button>\n";
+		}
+		$out .= "</div>\n";
+		return $out;
+	}
+
+	private function panelOpen($id, $label, $active){
+		return "<section class=\"analytics-tab-panel\" id=\"analyticsPanel-".$id."\" role=\"tabpanel\""
+			." aria-labelledby=\"analyticsTab-".$id."\" data-analytics-panel=\"".$id."\""
+			.($active ? "" : " hidden=\"hidden\"").">\n";
+	}
+
+	private function panelClose(){
+		return "</section>\n";
 	}
 
 	private function chartCard($extraClass,$title,$chartId){

@@ -2,7 +2,7 @@
 //engine (no charting library is vendored in this app, and adding one just for
 //these compact charts would be overkill, so this stays plain DOM/SVG).
 
-var ANALYTICS_STATE = { days: 30, excludeAdmin: true };
+var ANALYTICS_STATE = { days: 30, excludeAdmin: true, tab: 'usage' };
 
 function showAnalytics(){
 	x_showAnalytics(ANALYTICS_STATE.days, ANALYTICS_STATE.excludeAdmin, renderAnalytics_cb);
@@ -17,10 +17,74 @@ function toggleAnalyticsAdmin(checked){
 }
 function renderAnalytics_cb(content){
 	printPage(content);
+	//Before the charts, and in the same frame as the injection: the server
+	//always marks Usage data active, so an admin who was reading Errors and
+	//changed the range would otherwise see the wrong panel flash past.
+	initAnalyticsTabs();
 	drawAllAnalyticsCharts();
 	//The Apache log card is part of this same HTML blob, so it has to be
 	//(re)wired every time the dashboard re-renders - see mod/analytics/apachelog.js.
+	//Once per render, whichever tab is showing: it binds listeners to freshly
+	//injected nodes, so calling it twice on the same DOM would double-bind.
 	if(typeof initApacheLogPanel === 'function'){ initApacheLogPanel(); }
+}
+
+/* ---- dashboard tabs ----
+ *
+ * Usage data / Errors / Server logs. Note the attribute names: the Apache
+ * report inside the Server logs panel has tabs of its own and queries
+ * [data-report-tab], so these are [data-analytics-tab] and cannot collide.
+ */
+function initAnalyticsTabs(){
+	var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-analytics-tab]'));
+	if(!tabs.length){ return; }
+
+	tabs.forEach(function(tab){
+		tab.addEventListener('click', function(){
+			showAnalyticsTab(tab.getAttribute('data-analytics-tab'));
+		});
+		tab.addEventListener('keydown', function(event){
+			//Arrow keys move between tabs, Home/End jump to the ends: the
+			//pattern a screen reader user expects from role="tablist".
+			var index = tabs.indexOf(tab);
+			var next = null;
+			if(event.key === 'ArrowRight' || event.key === 'ArrowDown'){ next = tabs[(index + 1) % tabs.length]; }
+			else if(event.key === 'ArrowLeft' || event.key === 'ArrowUp'){ next = tabs[(index - 1 + tabs.length) % tabs.length]; }
+			else if(event.key === 'Home'){ next = tabs[0]; }
+			else if(event.key === 'End'){ next = tabs[tabs.length - 1]; }
+			if(!next){ return; }
+			event.preventDefault();
+			showAnalyticsTab(next.getAttribute('data-analytics-tab'));
+			next.focus();
+		});
+	});
+
+	//Restore whatever the admin was reading. An unknown name (a tab removed
+	//since the state was set) falls back to the first rather than leaving every
+	//panel hidden.
+	var wanted = ANALYTICS_STATE.tab;
+	if(!document.getElementById('analyticsPanel-' + wanted)){ wanted = tabs[0].getAttribute('data-analytics-tab'); }
+	showAnalyticsTab(wanted);
+}
+
+function showAnalyticsTab(name){
+	var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-analytics-tab]'));
+	var panels = Array.prototype.slice.call(document.querySelectorAll('[data-analytics-panel]'));
+	if(!tabs.length){ return; }
+	ANALYTICS_STATE.tab = name;
+
+	tabs.forEach(function(tab){
+		var active = tab.getAttribute('data-analytics-tab') === name;
+		tab.classList.toggle('is-active', active);
+		tab.setAttribute('aria-selected', active ? 'true' : 'false');
+		//Roving tabindex: one stop in the strip, then arrow keys within it.
+		tab.setAttribute('tabindex', active ? '0' : '-1');
+	});
+	panels.forEach(function(panel){
+		//The hidden attribute, matching how the Apache card hides its own
+		//panels - not an inline display style that a stylesheet could lose.
+		panel.hidden = panel.getAttribute('data-analytics-panel') !== name;
+	});
 }
 
 function drawAllAnalyticsCharts(){
