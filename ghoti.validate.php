@@ -37,7 +37,6 @@ class validate{
 	const MAX_PAGE_TITLE = 24;     // matches pages.title varchar(24)
 	const MAX_PAGE_BODY  = 200000; // authored page HTML
 	const MAX_COMMENT    = 4000;
-	const MAX_LINK_NAME  = 120;
 	const MAX_GROUP      = 40;
 	const MAX_URL        = 2048;
 	const MAX_TEXT       = 255;
