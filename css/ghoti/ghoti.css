@@ -663,6 +663,25 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
   overflow-wrap: anywhere;
 }
 .ghotiCrudMeta b{ color: var(--text-2); }
+.ghotiLinkRow[hidden]{ display: none; }
+.ghotiLinkGroup{
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+.ghotiLinkGroupHeader{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem .75rem;
+}
+.ghotiLinkGroupHeader h2{ margin: 0; font-size: 1.05rem; }
+.ghotiLinkGroupHeader code{ font-family: var(--mono); }
+.ghotiLinkStatus{ color: var(--good); font-size: .86rem; }
+.ghotiLinkStatus.is-error,
+.ghotiFormError{ color: var(--bad); }
+.ghotiFormError{ margin: 0; font-size: .9rem; overflow-wrap: anywhere; }
+.ghotiFormError[hidden]{ display: none; }
 .ghotiPreviewImage{
   display: block;
   max-height: 140px;
