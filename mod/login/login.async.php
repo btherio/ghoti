@@ -548,6 +548,7 @@ class loginui{
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showMailSettings');\">Mail Settings</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"showComposeMail();\">Send Email</a></li>\n";
 		if(ghoti::$enableVhosts){
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showVhosts');\">Apache Vhosts</a></li>\n";
 		}

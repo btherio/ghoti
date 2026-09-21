@@ -99,22 +99,58 @@ function saveMailSettings($settings){
 	return "Could not save mail settings. Check the log.";
 }
 
-//Sends a short test message to the given address using the settings that are
-//CURRENTLY SAVED (not the possibly-unsaved form contents), so admins should
-//press Save first. Kept intentionally simple - one recipient, fixed subject.
-function sendTestMail($toAddress){
+//Sends a short test message to every administrator account, using the
+//settings that are CURRENTLY SAVED (not the possibly-unsaved form contents),
+//so admins should press Save first.
+//
+//The recipient is not typed in: the addresses that matter are the ones the
+//app actually mails - critical alerts, emailed backups and password resets all
+//go to administrator accounts - so a test that proves delivery to some other
+//inbox proves the wrong thing. It also removes a form field that let an admin
+//send mail from this server to an arbitrary address.
+//
+//One message per admin, as everywhere else, so nobody sees anyone else's
+//address. The test counts as successful when at least one admin received it;
+//a partial failure is reported with the addresses that did not.
+function sendTestMail(){
 	if(!mailRequireAdmin()){ return "Admin access required."; }
-	try{
-		$toAddress = ghoti_validate()->email($toAddress);
-	}catch(Exception $e){
-		return $e->getMessage();
+	//Refresh rather than reuse the request memo: an admin who just corrected an
+	//address in Manage Users expects the retry to use it.
+	return mailDeliverTestMessage($_SESSION["mailObj"], ghoti_admin_emails(true));
+}
+
+//The delivery half of sendTestMail(), with the mailer and recipient list
+//passed in so it can be exercised without SMTP or a database.
+function mailDeliverTestMessage($mailer, array $recipients){
+	if(!$recipients){
+		return "No administrator account has a valid e-mail address. Add one in Manage Users, then test again.";
 	}
 	$siteTitle = ghoti::$siteTitle;
 	$subject = "Test message from ".$siteTitle;
 	$body = "This is a test message sent from the Mail Settings panel of ".$siteTitle.".\n\n"
 		."If you received this, outbound mail is configured correctly.\n\n"
+		."It was sent to every administrator account on this site.\n\n"
 		."Sent: ".date('r')."\n";
-	return $_SESSION["mailObj"]->send($toAddress, '', $subject, $body);
+
+	$failures = array();
+	$lastError = '';
+	$sent = 0;
+	foreach($recipients as $address){
+		$result = $mailer->send($address, '', $subject, $body);
+		if($result === true){ $sent++; continue; }
+		$failures[] = $address;
+		if(is_string($result)){ $lastError = $result; }
+	}
+	if($sent === 0){
+		return $lastError !== '' ? $lastError : "The test message could not be sent to any administrator. Check the mail server settings and log.";
+	}
+	if($mailer->maildb->recordSuccessfulTest() !== true){
+		return 'The test was sent, but its success could not be recorded. Check the log and send another test before using emailed backups.';
+	}
+	if($failures){
+		return "Sent to ".$sent." of ".count($recipients)." administrators. Delivery failed for: ".implode(', ', $failures).". Check the log.";
+	}
+	return true;
 }
 
 ghoti_async_register(
@@ -149,7 +185,7 @@ class mailui{
 			array('heading' => 'From address',
 				'list' => array('Must be an address your mail server is allowed to send as, or delivery will be rejected/spam-filtered by the receiving side (SPF/DMARC).')),
 			array('heading' => 'Enable + test',
-				'list' => array('Mail sending stays off until <b>Enabled</b> is checked and settings are saved.', 'Use <b>Send test message</b> after saving to confirm delivery end-to-end.'))
+				'list' => array('Mail sending stays off until <b>Enabled</b> is checked and settings are saved.', 'Use <b>Send test message</b> after saving: it mails every administrator account, which is exactly who alerts, emailed backups and password resets go to.'))
 		));
 		$o .= "<form id=\"mailSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveMailSettings(); return false;\">\n";
 		$o .= "<div class=\"ghotiFormGrid\">\n";
@@ -171,8 +207,22 @@ class mailui{
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"mail-enabled\"".$chk($settings['enabled'])." /> Enabled &mdash; allow this site to send mail</label>\n";
 		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveMailSettings();\">Save Settings</button></div>\n";
 		$o .= "</form>\n";
-		$o .= "<div class=\"ghotiFormActions ghotiMailTest\"><label class=\"ghotiField\"><span>Send a test message to</span><input type=\"email\" id=\"mail-testAddress\" size=\"30\" maxlength=\"190\" placeholder=\"you@example.com\" /></label>";
-		$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"sendTestMail();\">Send test message</button></div>\n";
+		//No address field: the test goes to the administrator accounts, which
+		//are the addresses this site actually mails. Show who that is, so the
+		//admin knows which inboxes to check before pressing the button.
+		$admins = ghoti_admin_emails();
+		$o .= "<div class=\"ghotiFormActions ghotiMailTest\">";
+		$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"sendTestMail();\"".($admins ? "" : " disabled=\"disabled\"").">Send test message to all administrators</button></div>\n";
+		if($admins){
+			$parts = array();
+			foreach($admins as $address){ $parts[] = "<code>".$esc($address)."</code>"; }
+			$o .= "<p class=\"ghotiHelpText\">The test is sent to every administrator account, one message each: ".implode(", ", $parts)."</p>\n";
+		}else{
+			$o .= "<p class=\"ghotiHelpText\">No administrator account has a valid e-mail address yet, so there is nobody to test with. Add one in <b>Manage Users</b>.</p>\n";
+		}
+		$o .= '<p class="ghotiHelpText">'.(!empty($settings['successfulTestAt'])
+			? 'Last successful test: '.$esc(date('Y-m-d H:i', (int)$settings['successfulTestAt'])).'. While mail is enabled, backups are emailed to all administrators instead of downloaded.'
+			: 'No successful test has been recorded. Backups remain downloadable until a test message succeeds.').'</p>';
 		$o .= "<span id=\"mailSettingsFeedback\" role=\"status\" aria-live=\"polite\"></span>\n";
 		$o .= $docs;
 		$o .= "</div>\n";

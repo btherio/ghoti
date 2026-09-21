@@ -576,6 +576,29 @@ input[type=checkbox]{ width: 16px; height: 16px; accent-color: var(--accent); ve
 .securityBlockList small{ color: var(--muted); font-size: .7rem; }
 .securityBlockList .ghotiEmptyState,
 .securityBlockList .ghotiHelpText{ margin: 0 !important; padding: 0 !important; }
+/* Send Email: the pick-your-recipients list, and the live preview of the
+   themed message. The preview intentionally carries its own inline colours
+   (from the mail palette) so it shows what the recipient will see rather than
+   what this workspace looks like. */
+.composeMailUserList{
+  display: grid;
+  gap: .4rem;
+  margin-top: .5rem;
+  padding: .85rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.composeMailUserList[hidden]{ display: none; }
+.composeMailUserList ul{ display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.composeMailUserList li{ min-width: 0; }
+.composeMailUserList small{ color: var(--muted); font-size: .7rem; margin-left: .35rem; overflow-wrap: anywhere; }
+.composeMailUserList input:disabled + *,
+.composeMailUserList label:has(input:disabled){ opacity: .55; }
+.composeMailPreview{ margin: .4rem 0 1rem; }
+.composeMailPreview *{ max-width: 100%; }
 /* A field that only matters when the checkbox above it is ticked. Indented and
    rule-marked so the dependency is visible rather than implied by proximity;
    dimmed (never hidden) while inactive, so the saved value stays readable. */

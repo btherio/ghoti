@@ -1,0 +1,180 @@
+/* Veil — a folio desk, not a banner-led page. */
+:root {
+  color-scheme: light;
+  --bg: #202923; --bg-tint: none;
+  --surface: #eee8d8; --surface-2: #e3dbc6; --surface-3: #d7ccb4;
+  --text: #30372d; --text-2: #58604e; --muted: #6b715e;
+  --border: #c4bea6; --border-strong: #98987b;
+  --accent: #3d6558; --accent-2: #244a3d; --accent-soft: #3d655815; --on-accent: #fcf6e7;
+  --good: #347046; --bad: #a34536;
+  --radius: 2px; --radius-sm: 2px; --radius-pill: 2px;
+  --shadow-sm: 0 1px 2px #101b1620; --shadow: 0 12px 35px #0e1a1630; --shadow-lg: 0 20px 65px #0e1a1690;
+  --ring: 0 0 0 3px #62897755;
+  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Courier New", Courier, monospace;
+  --header-offset: 0px;
+}
+.veil-theme { margin: 0; min-width: 280px; padding-bottom: 110px; background: radial-gradient(ellipse at 50% 0, #4c59444d, transparent 65%), repeating-linear-gradient(0deg, #ffffff02 0 1px, transparent 1px 4px), #202923; }
+.veil-theme [hidden] { display: none !important; }
+.veil-theme :focus-visible { outline: 2px solid #a97639; outline-offset: 4px; }
+.veil-masthead { display: flex; align-items: center; justify-content: space-between; gap: 2rem; max-width: 1460px; padding: 1.5rem 2.5rem; margin: auto; color: #ded8bb; border-bottom: 1px solid #9b9c7459; }
+.veil-theme .veil-mark { display: flex; align-items: center; gap: 1rem; color: #e6dcb9; text-decoration: none; font: 2rem/1 Georgia, serif; letter-spacing: .23em; }
+.veil-mark svg { width: 56px; height: 56px; fill: none; stroke: #d7c898; stroke-width: 1; }
+.veil-mark small { display: block; font: .48rem/1.5 var(--mono); margin-top: .5rem; letter-spacing: .1em; }
+.veil-masthead-note { text-align: center; margin: 0; font: .86rem/1.5 Georgia, serif; color: #bbbba6; }
+.veil-catalog-number { font: .6rem/1.8 var(--mono); letter-spacing: .09em; text-align: right; color: #b6bda7; }
+.veil-desk { max-width: 1460px; margin: auto; padding: 0 2.5rem; }
+.veil-title-block { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: 2.7rem 0 2rem; }
+.veil-eyebrow { font: .6rem/1.6 var(--mono); letter-spacing: .13em; color: #b6bf9b; margin: 0 0 .65rem; }
+.veil-title-block h1 { margin: 0; color: #eee8d4; font: 400 clamp(2.3rem, 4.4vw, 4.7rem)/1.05 Georgia, serif; letter-spacing: -.045em; overflow-wrap: anywhere; }
+.veil-theme .veil-open-file { flex-shrink: 0; display: flex; align-items: center; gap: 1.8rem; color: #e4d8b5; border-bottom: 1px solid #a8a180; padding: .7rem 0; font: .73rem var(--mono); text-decoration: none; }
+.veil-file-tabs { display: flex; align-items: end; gap: 1rem; }
+.veil-index-label { font: .55rem var(--mono); color: #bdc5ad; padding-bottom: 1rem; }
+.veil-theme #ghotiPageMenu ul { gap: .25rem; align-items: end; }
+.veil-theme #ghotiPageMenu a { border-radius: 7px 7px 0 0; background: #bdb69b; color: #343c30; padding: .75rem 1.25rem; font: .78rem var(--mono); border: 1px solid #ddd4b5; border-bottom: 0; }
+.veil-theme #ghotiPageMenu li:nth-child(2n) a { background: #d0c5a7; }
+.veil-theme #ghotiPageMenu a:hover, .veil-theme #ghotiPageMenu a:focus-visible { background: #f0e8d1; color: #24382c; }
+.veil-evidence-desk { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr); gap: 0; align-items: start; background: #b9b49b; border: 1px solid #d4ccb0; padding: 1.4rem; box-shadow: 0 25px 55px #0003; }
+.veil-document { min-width: 0; position: relative; background: #f1ecdd; padding: 1.5rem; border: 1px solid #c8bea5; box-shadow: 3px 4px 0 #ded6bf, 4px 5px 0 #a7a68e; scroll-margin-top: 1rem; }
+.veil-document-meta { display: flex; justify-content: space-between; gap: 1rem; font: .55rem/1.5 var(--mono); letter-spacing: .07em; color: #747760; padding-bottom: 1rem; border-bottom: 1px solid #b8b69f; }
+.veil-theme #ghotiContent { padding: 1.8rem 0 3rem; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.veil-theme #ghotiContent h1, .veil-theme #ghotiContent h2 { font-family: Georgia, serif; font-weight: 400; letter-spacing: -.025em; }
+.veil-theme #ghotiContent h1 { font-size: clamp(1.85rem, 3vw, 2.5rem); }
+.veil-theme #ghotiContent h2 { font-size: 1.65rem; }
+.veil-theme #ghotiContent p { font-size: .95rem; }
+.veil-theme #ghotiContent blockquote { font: italic 1.1rem/1.6 Georgia, serif; border-left: 2px solid #82917a; }
+.veil-document-end { padding: 1rem 0 .4rem; border-top: 1px solid #cbc5ad; font: .5rem var(--mono); color: #7c806b; text-align: center; letter-spacing: .1em; }
+.veil-evidence { min-width: 0; padding: 1.4rem 0 0 1.4rem; }
+.veil-plate { margin: 0 -.4rem 1.8rem -.8rem; background: #eee3c8; padding: .5rem; box-shadow: 0 9px 16px #24312740; transform: rotate(3deg); position: relative; }
+.veil-plate::before { content: ''; position: absolute; width: 75px; height: 24px; background: #e8d5a296; border: 1px solid #dac39c50; top: -12px; left: 42%; transform: rotate(-9deg); pointer-events: none; }
+.veil-plate img { display: block; width: 100%; height: auto; }
+.veil-plate figcaption { display: flex; justify-content: space-between; gap: 1rem; padding: .65rem .2rem .2rem; color: #68634f; font: .45rem/1.5 var(--mono); }
+.veil-instrument { background: #273c32; color: #eee7cf; padding: 1.25rem; border: 1px solid #69816d; }
+.veil-instrument-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #6e80615e; padding-bottom: .5rem; }
+.veil-instrument-top .veil-eyebrow { margin: 0; font-size: .5rem; }
+.veil-instrument-body { display: grid; grid-template-columns: .9fr 1fr; align-items: center; gap: 1rem; padding: 1rem 0; }
+#veil-astrolabe { width: 100%; height: auto; fill: none; stroke: #c5bc7e; stroke-width: .7; }
+.veil-orbits { transform-origin: 100px 100px; transition: transform 1.2s ease; }
+.veil-instrument[data-lens="cosmos"] .veil-orbits { transform: rotate(75deg); }
+.veil-instrument[data-lens="grove"] .veil-orbits { transform: rotate(155deg); }
+.veil-instrument[data-lens="cosmos"] #veil-astrolabe { stroke: #accdd0; }
+.veil-instrument[data-lens="grove"] #veil-astrolabe { stroke: #bed3a1; }
+.veil-instrument h2 { color: #eee7cf; font: 1.8rem/1.05 Georgia, serif; margin: 0 0 .75rem; letter-spacing: -.03em; }
+.veil-instrument p { margin: 0; font: .74rem/1.6 var(--font); color: #c2ccb6; }
+.veil-lenses { display: flex; flex-wrap: wrap; gap: .3rem; padding-top: .4rem; }
+.veil-theme .veil-lenses button { flex: 1; padding: .6rem .35rem; min-height: 44px; border: 1px solid #7e927d; background: transparent; color: #d6ddca; font: .56rem var(--mono); box-shadow: none; }
+.veil-theme .veil-lenses button[aria-pressed="true"] { color: #23382c; background: #d6ddbd; }
+.veil-sealed-note { margin-top: 1.2rem; padding: 1rem; background: #d5caae; border: 1px dashed #8b8d70; color: #404b3b; }
+.veil-sealed-note summary { display: flex; justify-content: space-between; gap: .5rem; cursor: pointer; font: italic 1rem Georgia, serif; list-style: none; }
+.veil-sealed-note summary::-webkit-details-marker { display: none; }
+.veil-sealed-note p { font: italic 1rem/1.6 Georgia, serif; }
+.veil-sealed-note small { font: .64rem/1.6 var(--mono); }
+.veil-crossrefs { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin: 2.5rem 0; padding: 1.5rem 0; border-top: 1px solid #9b9c7459; border-bottom: 1px solid #9b9c7459; }
+.veil-crossrefs h2 { color: #e4dcc3; font: 2rem Georgia, serif; margin: 0; }
+.veil-theme #ghotiLinks { color: #bec7b6; }
+.veil-theme #ghotiLinks ul { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; padding: 0; margin: 0; list-style: none; }
+.veil-theme #ghotiLinks a { color: #d4dfc2; display: block; padding: .5rem 0; font: .8rem var(--mono); border-bottom: 1px dotted #8d9b7c; }
+.veil-banners { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+.veil-theme #footer { background: transparent; border: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.5rem 0; color: #b9c2ae; font: .62rem/1.6 var(--mono); }
+.veil-theme #footer a { color: #d5dcbf; }
+.veil-dock { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); max-width: calc(100% - 2rem); display: flex; align-items: center; gap: .5rem; padding: .65rem; z-index: 100; background: #182a22f5; border: 1px solid #88997b; box-shadow: 0 10px 40px #0007; color: #e4dec9; }
+.veil-dock-label { font: .5rem var(--mono); letter-spacing: .07em; padding: 0 .5rem; white-space: nowrap; }
+.veil-theme .veil-dock > button, .veil-theme .workspace-trigger { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem .8rem; border: 1px solid #829177; background: transparent; color: #e4dec9; font: .7rem var(--mono); cursor: pointer; white-space: nowrap; }
+.veil-theme #veil-focus[aria-pressed="true"] { background: #e2d7b7; color: #263a2d; }
+.veil-theme.veil-reading .veil-evidence { display: none; }
+.veil-theme.veil-reading .veil-evidence-desk { grid-template-columns: minmax(0,1fr); max-width: 1000px; margin: auto; }
+.veil-theme.veil-reading .veil-document { padding: clamp(1.2rem, 4vw, 3.5rem); }
+.veil-theme .ghotiDocs { background: var(--accent-soft); border-color: var(--border); }
+.veil-theme .ghotiDocs summary::before, .veil-theme .ghotiDocs summary::after { color: var(--accent); }
+.veil-theme .ghotiDocsBody code, .veil-theme .ghotiDocCode { color: var(--accent); background: var(--accent-soft); border-color: var(--border); }
+.veil-theme .ghotiStore, .veil-theme #ghotiStoreManager { --store-surface: var(--surface); --store-raised: var(--surface-2); --store-text: var(--text); --store-muted: var(--text-2); --store-line: var(--border); --store-accent: var(--accent); --store-good: var(--good); --store-bad: var(--bad); --store-warn: #865c18; }
+.veil-theme .ghotiStoreCatalog { padding: 0; background: transparent; border: 0; }
+.veil-theme #ghotiContent .ghotiStoreCard h2 { margin: 0; font-size: 1.35rem; }
+.veil-theme #ghotiContent .ghotiStoreThumb img { height: 100%; }
+.veil-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container (max-width: 680px) {
+  .veil-theme .ghotiStoreHero { flex-direction: column; align-items: flex-start; }
+  .veil-theme .ghotiStoreTools, .veil-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid,
+  .veil-theme #ghotiStoreManager .ghotiStoreProductForm .ghotiFormGrid { grid-template-columns: 1fr; }
+  .veil-theme .ghotiStoreStats { grid-template-columns: 1fr 1fr; }
+}
+
+/* Shared account controls, opening above the desk dock. */
+.workspace-menu { position: relative; }
+.workspace-trigger { list-style: none; }
+.workspace-trigger::-webkit-details-marker { display: none; }
+.account-avatar { color: var(--accent); }
+.workspace-panel { position: absolute; right: 0; bottom: calc(100% + 1rem); width: min(450px, calc(100vw - 2rem)); max-height: calc(100dvh - 95px); overflow: auto; overscroll-behavior: contain; padding: 1.3rem; border: 1px solid #98987b; border-radius: 2px; color: var(--text); background: #eee8d8; box-shadow: var(--shadow-lg); }
+.workspace-heading, .workspace-section-heading, .workspace-footnote { display: flex; align-items: center; justify-content: space-between; gap: .65rem; }
+.workspace-heading h2 { margin: .4rem 0; font: 1.8rem Georgia, serif; }
+.workspace-eyebrow, .workspace-badge, .workspace-section-note { font: .58rem var(--mono); color: var(--accent); }
+.veil-theme .workspace-close { width: 44px; height: 44px; padding: 0; border-radius: 50%; color: var(--text); background: #d7ccb4; font-size: 1.3rem; }
+.workspace-section { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.workspace-section-heading { margin-bottom: .65rem; }
+.workspace-section-heading h3 { font-size: .8rem; margin: 0; }
+.workspace-search { display: block; position: relative; margin-bottom: .7rem; }
+.workspace-search svg { position: absolute; left: .65rem; top: 50%; transform: translateY(-50%); }
+.workspace-search input { width: 100%; padding-left: 2.1rem; }
+.veil-theme .workspace-panel :is(#ghotiAdminMenu, #ghotiPrivateMenu, #ghotiLogin) { display: block; border: 0; padding: 0; margin: 0; background: transparent; box-shadow: none; }
+.veil-theme .workspace-panel ul { display: grid; grid-template-columns: 1fr 1fr; list-style: none; padding: 0; margin: 0; gap: .4rem; }
+.veil-theme .workspace-panel li { margin: 0; }
+.veil-theme .workspace-panel #ghotiLogin ul { grid-template-columns: 1fr; }
+.veil-theme .workspace-panel a { font-size: .8rem; }
+.workspace-footnote { padding-top: 1rem; font: .58rem var(--mono); color: var(--muted); }
+.workspace-empty { font-size: .8rem; }
+.veil-theme .workspace-trigger { list-style: none; }
+.veil-theme .account-avatar { color: #c5cca9; }
+.veil-theme .workspace-panel { color: var(--text); }
+@media (max-width: 1050px) {
+  .veil-masthead, .veil-desk { padding-left: 1.5rem; padding-right: 1.5rem; }
+  .veil-evidence-desk { grid-template-columns: minmax(0, 1fr) 330px; padding: 1rem; }
+  .veil-document { padding: 1rem; }
+  .veil-instrument-body { grid-template-columns: 1fr; }
+  #veil-astrolabe { max-width: 160px; margin: auto; display: block; }
+  .veil-instrument h2 br { display: none; }
+}
+@media (max-width: 800px) {
+  .veil-evidence-desk { grid-template-columns: minmax(0, 1fr); }
+  .veil-evidence { padding: 2rem .5rem .5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+  .veil-plate { margin: .5rem 0; }
+  .veil-sealed-note { grid-column: 1 / -1; margin-top: 0; }
+  .veil-catalog-number { display: none; }
+}
+@media (max-width: 560px) {
+  .veil-masthead { padding: 1rem; gap: 1rem; }
+  .veil-masthead-note { font-size: .7rem; }
+  .veil-mark svg { width: 38px; height: 38px; }
+  .veil-theme .veil-mark { font-size: 1.6rem; gap: .5rem; }
+  .veil-mark small { font-size: .4rem; max-width: 14ch; }
+  .veil-desk { padding: 0 .8rem; }
+  .veil-title-block { align-items: flex-start; flex-direction: column; gap: 1rem; padding: 1.7rem .2rem; }
+  .veil-title-block h1 { font-size: 2.5rem; }
+  .veil-index-label { display: none; }
+  .veil-theme #ghotiPageMenu a { padding: .65rem .7rem; font-size: .7rem; }
+  .veil-evidence-desk { padding: .6rem; }
+  .veil-document { padding: .85rem; }
+  .veil-document-meta { font-size: .46rem; }
+  .veil-evidence { grid-template-columns: 1fr; padding: 1.5rem .25rem .25rem; }
+  .veil-plate { margin: 0 .2rem; transform: rotate(1deg); }
+  .veil-instrument-body { grid-template-columns: .9fr 1fr; }
+  .veil-instrument h2 br { display: initial; }
+  .veil-crossrefs { grid-template-columns: 1fr; gap: 1rem; }
+  .veil-dock { gap: .3rem; padding: .4rem; bottom: .5rem; max-width: calc(100% - 1rem); }
+  .veil-dock-label { display: none; }
+  .veil-theme .veil-dock > button, .veil-theme .workspace-trigger { padding: .5rem .6rem; font-size: .62rem; }
+  .veil-theme .workspace-panel { position: fixed; bottom: calc(100% + .75rem); right: 0; width: min(450px, calc(100vw - 1rem)); max-height: calc(100dvh - 110px); }
+  .veil-theme .workspace-panel ul { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .veil-theme *, .veil-theme *::before, .veil-theme *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media print {
+  .veil-theme { padding: 0; background: #fff; }
+  .veil-masthead, .veil-title-block, .veil-file-tabs, .veil-evidence, .veil-crossrefs, .veil-dock, .veil-banners, .veil-footer { display: none !important; }
+  .veil-desk { padding: 0; }
+  .veil-evidence-desk { display: block; padding: 0; border: 0; background: white; box-shadow: none; }
+  .veil-document { border: 0; background: white; box-shadow: none; }
+}
+/* Center the popover on the dock, including when its buttons wrap differently. */
+.veil-dock .workspace-menu { position: static; }
+.veil-theme .workspace-panel { position: absolute; left: 50%; right: auto; transform: translateX(-50%); }

@@ -82,6 +82,7 @@
     <section class="cyber-hero" aria-labelledby="cyber-title">
       <div>
         <span class="cyber-kicker"><i aria-hidden="true"></i> Transmission online</span>
+        <div class="cyber-entry-row"><a class="cyber-entry" href="#cyber-content">Jack in <span aria-hidden="true">↘</span></a></div>
         <h1 id="cyber-title" data-text="<?php echo htmlspecialchars(ghoti::$siteTitle, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ghoti::$siteTitle, ENT_QUOTES, 'UTF-8'); ?></h1>
         <p>A signal from the edge of the network.</p>
       </div>
@@ -93,7 +94,7 @@
     </section>
 
     <div class="cyber-layout">
-      <section class="cyber-content" aria-label="Page content">
+      <section class="cyber-content" id="cyber-content" aria-label="Page content" tabindex="-1">
         <div class="cyber-panel-label"><span>01</span> PRIMARY TRANSMISSION</div>
         <?php include "ghoti.body.php"; ?>
       </section>

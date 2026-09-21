@@ -17,6 +17,7 @@ create table if not exists mail(
 	`fromAddress` varchar(255) not null default '',
 	`fromName` varchar(120) not null default '',
 	`enabled` int(1) not null default 0,
+	`successfulTestAt` int(11) not null default 0, -- set only after a test message is accepted by SMTP
 	`updatedAt` int(11) not null default 0,
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 ;

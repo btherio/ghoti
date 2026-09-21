@@ -676,6 +676,100 @@ function showDocumentation(){
 function showBackupRestore(){
 	x_printBackupRestore(printPage);
 }
+
+/* ---- Send Email (Admin Menu -> Send Email) ----------------------
+ * The panel is rendered server-side; this half collects the form, keeps the
+ * live preview in step with what is typed, and reports the delivery summary.
+ */
+function showComposeMail(){
+	x_printComposeMail(function(content){
+		printPage(content);
+		initComposeMail();
+	});
+}
+function initComposeMail(){
+	composeMailModeChanged();
+	$("#composeMail-subject, #composeMail-message").off("input.composeMail").on("input.composeMail", composeMailPreview);
+	composeMailPreview();
+}
+function composeMailModeChanged(){
+	var selected = $("input[name='composeMailMode']:checked").val() === "selected";
+	var list = document.getElementById("composeMailUserList");
+	if(!list){ return; }
+	//Both the attribute and the inline style: a theme stylesheet that sets a
+	//display on this container would otherwise defeat [hidden] on its own.
+	list.hidden = !selected;
+	list.style.display = selected ? "" : "none";
+}
+/* Mirrors ghoti_mail_body_html(): blank line starts a paragraph, single
+ * newlines break. Text is inserted as text, never as markup. */
+function composeMailPreview(){
+	var subject = $("#composeMail-subject").val() || "Your subject appears here";
+	$("#composeMailPreviewSubject").text(subject);
+	var message = $("#composeMail-message").val() || "";
+	var body = document.getElementById("composeMailPreviewBody");
+	if(!body){ return; }
+	body.innerHTML = "";
+	var paragraphs = message.split(/\n\s*\n/);
+	var wrote = false;
+	for(var i = 0; i < paragraphs.length; i++){
+		if(!paragraphs[i].trim()){ continue; }
+		var p = document.createElement("p");
+		p.style.margin = "0 0 16px 0";
+		var lines = paragraphs[i].split("\n");
+		for(var j = 0; j < lines.length; j++){
+			if(j > 0){ p.appendChild(document.createElement("br")); }
+			p.appendChild(document.createTextNode(lines[j]));
+		}
+		body.appendChild(p);
+		wrote = true;
+	}
+	if(!wrote){ body.appendChild(document.createTextNode("Your message appears here.")); }
+}
+function sendComposedMail(){
+	var mode = $("input[name='composeMailMode']:checked").val();
+	if(!mode){
+		$("#composeMailFeedback").text("Choose who the message goes to.");
+		return;
+	}
+	var userIds = [];
+	if(mode === "selected"){
+		$(".composeMailUser:checked").each(function(){ userIds.push(parseInt(this.value, 10)); });
+		if(!userIds.length){
+			$("#composeMailFeedback").text("Select at least one user.");
+			return;
+		}
+	}
+	var subject = $("#composeMail-subject").val();
+	var message = $("#composeMail-message").val();
+	if(!subject || !message){
+		$("#composeMailFeedback").text("A subject and a message are both required.");
+		return;
+	}
+	var audience = mode === "all" ? "every user" : (mode === "admins" ? "every administrator" : userIds.length + " selected user(s)");
+	if(!confirm("Send this message to " + audience + "?")){ return; }
+	$("#composeMailFeedback").text("Sending\u2026 keep this page open until it finishes.");
+	x_sendComposedMail({mode: mode, userIds: userIds, subject: subject, message: message}, function(result){
+		$("#composeMailFeedback").text(result);
+	});
+}
+function emailGhotiBackup(form, kind){
+	var button = form.querySelector('button[type="submit"]');
+	var feedback = form.querySelector('.backupEmailFeedback');
+	button.disabled = true;
+	feedback.textContent = 'Generating backup and emailing all administrators…';
+	fetch('backup.php?action=email-' + encodeURIComponent(kind), {
+		method: 'POST', credentials: 'same-origin', body: new FormData(form),
+		headers: { 'Accept': 'application/json' }
+	}).then(function(response){
+		return response.json().catch(function(){ return {success:false, message:'The server returned an unreadable response. Check delivery before retrying.'}; });
+	}).then(function(result){
+		feedback.textContent = result.message || 'Backup delivery failed.';
+	}).catch(function(){
+		feedback.textContent = 'The request was interrupted. Delivery may have started; check administrator inboxes before retrying.';
+	}).finally(function(){ button.disabled = false; });
+}
+
 function restoreGhotiBackup(kind){
 	var form = document.getElementById('restore-' + kind + '-form');
 	if(!form || !form.reportValidity()){ return; }

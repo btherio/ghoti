@@ -27,13 +27,17 @@ class mail{
 	//through the async/JS layer. Returns true on success, or an error
 	//message string (never throws) - callers should log the string and show
 	//the user a generic failure, since it can contain SMTP diagnostics.
-	public function send($toAddress, $toName, $subject, $body){
+	//$htmlBody is optional: when given, the message goes out as
+	//multipart/alternative with $body as the plain-text part (see
+	//MailSmtpClient::buildMessage). Callers that want a themed message build
+	//the HTML themselves - see ghoti.mail.php.
+	public function send($toAddress, $toName, $subject, $body, array $attachments = array(), $htmlBody = null){
 		$settings = $this->maildb->getSettings();
 		if(!$settings['enabled']){
 			return "Mail sending is disabled. Configure it under Admin Menu -> Mail Settings.";
 		}
 		$client = new MailSmtpClient($settings);
-		if($client->send($toAddress, $toName, $subject, $body)){
+		if($client->send($toAddress, $toName, $subject, $body, $attachments, $htmlBody)){
 			return true;
 		}
 		ghoti::logError("mail.php:send", "delivery to ".$toAddress." failed: ".$client->lastError);

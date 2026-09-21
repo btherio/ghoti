@@ -147,11 +147,12 @@ try {
 	foreach($db->statements as $sql){
 		if(preg_match('/ADD COLUMN `([A-Za-z0-9_]+)` (.+)$/', $sql, $m)){ $added[$m[1]] = $m[2]; }
 	}
-	schemaCheck(count($db->statements) === 3, 'Wrong number of ALTERs: '.count($db->statements));
-	foreach(array('tlsVerify','tlsCaFile','tlsPeerName') as $column){
+	schemaCheck(count($db->statements) === 4, 'Wrong number of ALTERs: '.count($db->statements));
+	foreach(array('tlsVerify','tlsCaFile','tlsPeerName','successfulTestAt') as $column){
 		schemaCheck(isset($added[$column]), "Missing column $column was not added");
 	}
 	schemaCheck($added['tlsVerify'] === 'int(1) not null default 1', 'tlsVerify added with the wrong definition: '.$added['tlsVerify']);
+	schemaCheck($added['successfulTestAt'] === 'int(11) not null default 0', 'New mail test history must default to untested');
 	schemaCheck(!isset($added['smtpHost']), 'An existing column was re-added');
 
 	//A table that already matches is left completely alone.

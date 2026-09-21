@@ -30,9 +30,9 @@ class maildb extends ghotidb{
 
 	//Returns the settings row as an associative array, or safe defaults if the
 	//row is somehow missing (fresh install race, manual table edit, etc.).
-	public function getSettings(){
+	public function getSettings($throwOnError = false){
 		try{
-			$rows = $this->queryArray("select smtpHost,smtpPort,encryption,smtpUsername,smtpPassword,tlsVerify,tlsCaFile,tlsPeerName,fromAddress,fromName,enabled,updatedAt from mail where id = 1 limit 1");
+			$rows = $this->queryArray("select smtpHost,smtpPort,encryption,smtpUsername,smtpPassword,tlsVerify,tlsCaFile,tlsPeerName,fromAddress,fromName,enabled,updatedAt,successfulTestAt from mail where id = 1 limit 1");
 			if(isset($rows[0])){
 				$row = $rows[0];
 				return array(
@@ -48,10 +48,12 @@ class maildb extends ghotidb{
 					'fromName'     => (string)$row[9],
 					'enabled'      => (int)$row[10] === 1,
 					'updatedAt'    => (int)$row[11],
+					'successfulTestAt' => (int)$row[12],
 				);
 			}
 		}catch (Throwable $e){
 			ghoti::logException("mail.db.php:getSettings", $e);
+			if($throwOnError){ throw $e; }
 		}
 		return self::defaultSettings();
 	}
@@ -61,8 +63,19 @@ class maildb extends ghotidb{
 			'smtpHost' => '127.0.0.1', 'smtpPort' => 25, 'encryption' => 'none',
 			'smtpUsername' => '', 'smtpPassword' => '',
 			'tlsVerify' => true, 'tlsCaFile' => '', 'tlsPeerName' => '',
-			'fromAddress' => '', 'fromName' => '', 'enabled' => false, 'updatedAt' => 0,
+			'fromAddress' => '', 'fromName' => '', 'enabled' => false, 'updatedAt' => 0, 'successfulTestAt' => 0,
 		);
+	}
+
+	// This marker cannot be set by the settings form or ordinary outbound mail.
+	public function recordSuccessfulTest(){
+		try{
+			$this->query("update mail set successfulTestAt = ? where id = 1", array(time()));
+			return (int)$this->getSettings()['successfulTestAt'] > 0;
+		}catch(Throwable $e){
+			ghoti::logException('mail.db.php:recordSuccessfulTest', $e);
+			return false;
+		}
 	}
 
 	//Upserts the single settings row. $settings keys mirror getSettings()'s
