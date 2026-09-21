@@ -762,6 +762,33 @@ class GhotiAdminDirectory extends ghotidb{
 }
 
 /*
+ * Full user directory, for features that address users rather than admins
+ * (Admin Menu -> Send Email). Separate from GhotiAdminDirectory on purpose:
+ * that one answers "who do we alert", this one answers "who has an account",
+ * and only the latter may include non-admins.
+ *
+ * Addresses are returned as stored, valid or not: the Send Email screen shows
+ * accounts with a missing/invalid address as unselectable and reports how many
+ * were skipped, which is more useful to an admin than a silently shorter list.
+ * Every consumer still format-checks before handing an address to the mailer.
+ */
+class GhotiUserDirectory extends ghotidb{
+    public function recipients(){
+        $rows = $this->queryArray("select userId,userName,email,admin from users order by userName asc, userId asc");
+        $users = array();
+        foreach($rows as $row){
+            $users[] = array(
+                'userId'   => (int)$row[0],
+                'userName' => (string)$row[1],
+                'email'    => trim((string)$row[2]),
+                'admin'    => (int)$row[3] === 1,
+            );
+        }
+        return $users;
+    }
+}
+
+/*
  * Every admin e-mail address, memoized for the request. Returns an empty array
  * when the directory cannot be read (no users table yet, DB outage): callers
  * treat "no recipients" as "do not send" / "no contact published".

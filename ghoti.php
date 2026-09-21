@@ -366,4 +366,5 @@ class ghoti {
 }
 include_once('ghoti.documentation.php');
 include_once('ghoti.backup.php');
+include_once('ghoti.mail.php');
 ?>

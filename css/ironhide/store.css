@@ -1,0 +1,124 @@
+/* Store presentation for Ironhide, including content inserted by AJAX.
+   Keep these tokens on the module roots to override the store's OS dark mode. */
+.ironhide-theme .ghotiStore,
+.ironhide-theme #ghotiStoreManager {
+  color-scheme: light;
+  --store-surface: var(--surface);
+  --store-raised: var(--surface-2);
+  --store-text: var(--text);
+  --store-muted: var(--text-2);
+  --store-line: var(--border);
+  --store-accent: var(--accent);
+  --store-good: #3c684d;
+  --store-warn: #805719;
+  --store-bad: var(--bad);
+  min-width: 0;
+}
+.ironhide-theme .ghotiStoreCatalog {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.ironhide-theme .ghotiStoreHero { gap: 1.25rem; padding: .25rem 0 1.75rem; }
+.ironhide-theme #ghotiContent .ghotiStoreTitle {
+  margin: 0;
+  font-family: var(--ironhide-display);
+  font-size: clamp(1.9rem, 4vw, 2.75rem);
+  font-weight: 400;
+  letter-spacing: -.035em;
+  line-height: 1.15;
+}
+.ironhide-theme #ghotiContent .ghotiStoreEyebrow {
+  margin: 0 0 .8rem;
+  color: var(--store-accent);
+  font-size: .63rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.ironhide-theme #ghotiContent .ghotiStoreLead { margin: 1rem 0 0; color: var(--store-muted); font-size: .93rem; }
+.ironhide-theme .ghotiStoreCartButton { flex-shrink: 0; }
+.ironhide-theme .ghotiStoreTools { gap: .85rem; padding-top: 1.4rem; }
+.ironhide-theme :is(.ghotiStore, #ghotiStoreManager) :is(input, select, textarea) {
+  border-color: var(--border-strong);
+  border-radius: 3px;
+  color: var(--store-text);
+  background: #f7f2e8;
+  box-shadow: inset 0 1px 2px #292b2606;
+  accent-color: var(--store-accent);
+}
+.ironhide-theme :is(.ghotiStore, #ghotiStoreManager) :is(input, textarea)::placeholder { color: var(--muted); opacity: 1; }
+.ironhide-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiButton {
+  min-height: 44px;
+  border-radius: 3px;
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .015em;
+}
+.ironhide-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiButtonSecondary {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--store-accent);
+  box-shadow: none;
+}
+.ironhide-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiButtonDanger { color: var(--store-bad); border-color: color-mix(in srgb, var(--store-bad) 45%, var(--store-line)); }
+.ironhide-theme .ghotiStoreChips button { border-radius: 3px; box-shadow: none; }
+.ironhide-theme .ghotiStoreChips button[aria-pressed="true"] { background: #35332e; border-color: #35332e; color: var(--ironhide-ivory); }
+.ironhide-theme .ghotiStoreCatalog .ghotiStoreGrid { gap: 1.1rem; }
+.ironhide-theme .ghotiStoreCatalog .ghotiStoreCard { border-radius: 4px; background: #f7f2e8; box-shadow: 0 2px 6px #292b2606; }
+.ironhide-theme .ghotiStoreCatalog .ghotiStoreCard:hover { transform: none; border-color: var(--border-strong); box-shadow: 0 5px 18px #292b2610; }
+.ironhide-theme .ghotiStoreCatalog .ghotiStoreThumb { background: linear-gradient(145deg, #e7dece, #e2d5c1); aspect-ratio: 4 / 3; }
+.ironhide-theme #ghotiContent .ghotiStoreThumb img { height: 100%; border-radius: 0; }
+.ironhide-theme .ghotiStorePlaceholder { color: #96764e; font-family: var(--ironhide-display); }
+.ironhide-theme .ghotiStoreRibbon { border-radius: 2px; background: #35332e; border-color: #6e5038; color: #f3eddf; font-size: .6rem; letter-spacing: .09em; }
+.ironhide-theme .ghotiStoreCardBody { padding: 1.1rem; gap: .7rem; }
+.ironhide-theme #ghotiContent .ghotiStoreCard h2 { margin: 0; font: 400 1.5rem/1.25 var(--ironhide-display); letter-spacing: -.02em; }
+.ironhide-theme #ghotiContent :is(.ghotiStoreBlurb, .ghotiStoreDelivery, .ghotiStorePurchaseNote, .ghotiStoreResultCount) { margin: 0; color: var(--store-muted); }
+.ironhide-theme #ghotiContent .ghotiStoreDescription p { margin: .5rem 0 0; }
+.ironhide-theme .ghotiStorePrice { color: var(--store-accent); font-variant-numeric: tabular-nums; }
+.ironhide-theme .ghotiStoreTag, .ironhide-theme .ghotiStoreBadge { border-radius: 3px; padding: .2rem .5rem; font-size: .64rem; letter-spacing: .05em; }
+.ironhide-theme .ghotiStoreBuy { gap: .6rem; }
+.ironhide-theme .ghotiStoreQty { flex: 0 0 4rem; }
+.ironhide-theme .ghotiStoreQty input { width: 100%; }
+.ironhide-theme :is(.ghotiStoreSummary, .ghotiStoreTotals, .ghotiStoreDownloads, .ghotiStoreFieldset),
+.ironhide-theme #ghotiStoreManager :is(.ghotiStoreProductForm, .ghotiStoreOrderDetail, .ghotiStoreSpringPanel, .ghotiStoreStats > div) {
+  border: 1px solid var(--store-line);
+  border-radius: 4px;
+  box-shadow: none;
+}
+.ironhide-theme #ghotiContent :is(.ghotiStoreSummary, .ghotiStoreDownloads) h2 { margin: 0 0 1rem; font-size: 1.5rem; }
+.ironhide-theme #ghotiContent .ghotiStoreSummary ul { margin: 0; padding: 0; list-style: none; }
+.ironhide-theme #ghotiContent .ghotiStoreSummary li { margin: 0; padding: .45rem 0; }
+.ironhide-theme .ghotiStoreGrand { color: var(--store-accent); }
+.ironhide-theme .ghotiStoreTotals { margin-top: 1.25rem; }
+.ironhide-theme #ghotiContent .ghotiStoreTable { margin: .75rem 0; }
+.ironhide-theme #ghotiContent .ghotiStoreTable :is(th, td) { border: 0; border-bottom: 1px solid var(--store-line); padding: .8rem .7rem; }
+.ironhide-theme #ghotiContent .ghotiStoreTable th { background: var(--store-raised); color: var(--store-muted); font-size: .64rem; letter-spacing: .08em; }
+.ironhide-theme .ghotiStoreTableScroll, .ironhide-theme .ghotiStoreAdminTableWrap { max-width: 100%; }
+.ironhide-theme .ghotiStoreTableScroll .ghotiStoreTable { min-width: 480px; }
+.ironhide-theme #ghotiStoreManager .ghotiStoreTab { border-radius: 0; box-shadow: none; }
+.ironhide-theme #ghotiStoreManager .ghotiStoreTab:hover { background: var(--accent-soft); transform: none; }
+.ironhide-theme #ghotiStoreManager .ghotiStoreTab.is-active { color: var(--store-accent); border-bottom-color: #b56b3a; }
+.ironhide-theme .ghotiStoreStats strong { color: var(--store-accent); font: 400 2rem var(--ironhide-display); }
+.ironhide-theme #ghotiStoreManager .ghotiStoreSpringPanel { background: var(--store-raised); border-left: 3px solid #b56b3a; }
+.ironhide-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.ironhide-theme .ghotiStoreFieldset { min-width: 0; }
+.ironhide-theme #ghotiContent .ghotiStoreStatus.is-error, .ironhide-theme .ghotiStoreMissing { color: var(--store-bad); }
+/* Respond to the content column, including inline shops and admin forms. */
+@container (max-width: 680px) {
+  .ironhide-theme .ghotiStoreHero { flex-direction: column; align-items: flex-start; }
+  .ironhide-theme .ghotiStoreTools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ironhide-theme .ghotiStoreSearch { grid-column: 1 / -1; }
+  .ironhide-theme .ghotiStoreCollectionBar { flex-direction: column; align-items: flex-start; }
+  .ironhide-theme .ghotiStoreStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 420px) {
+  .ironhide-theme .ghotiStoreTools,
+  .ironhide-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid,
+  .ironhide-theme #ghotiStoreManager .ghotiStoreProductForm .ghotiFormGrid,
+  .ironhide-theme #ghotiStoreManager .ghotiStoreDetailGrid { grid-template-columns: minmax(0, 1fr); }
+  .ironhide-theme .ghotiStoreAdminSearch { flex-direction: column; align-items: stretch; }
+  .ironhide-theme .ghotiStoreStats > div { padding: .8rem; }
+  .ironhide-theme .ghotiStoreRowActions { flex-wrap: wrap; }
+}

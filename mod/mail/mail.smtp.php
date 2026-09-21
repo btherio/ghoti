@@ -54,10 +54,11 @@ class MailSmtpClient{
 		$this->timeout      = max(3, (int)$timeoutSeconds);
 	}
 
-	//Sends one plain-text email to a single recipient. Returns true on success,
-	//or false with $this->lastError set to a diagnostic message (never shown
+	//Sends one email to a single recipient. By default sends plain text; if $htmlBody
+	//is provided, sends HTML with plain text fallback for compatibility. Returns true
+	//on success, or false with $this->lastError set to a diagnostic message (never shown
 	//to end users - callers should log it and show a generic message instead).
-	public function send($toAddress, $toName, $subject, $body){
+	public function send($toAddress, $toName, $subject, $body, array $attachments = array(), $htmlBody = null){
 		if($this->fromAddress === ''){
 			$this->lastError = 'No "from" address configured.';
 			return false;
@@ -70,6 +71,8 @@ class MailSmtpClient{
 			$localHost = isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] !== '' ? $_SERVER['SERVER_NAME'] : 'localhost';
 			$this->command($socket, "EHLO ".$localHost);
 			$ehloReply = $this->expect($socket, 250, 'EHLO');
+
+			$useHtml = $htmlBody !== null && is_string($htmlBody) && $htmlBody !== '';
 
 			if($this->encryption === 'tls'){
 				$this->command($socket, "STARTTLS");
@@ -111,7 +114,8 @@ class MailSmtpClient{
 			//DATA is line-structured), so it must NOT go through command()'s
 			//single-line CRLF-stripping guard - that guard is for one-line
 			//commands built from possibly-untrusted values (see command()).
-			$this->rawWrite($socket, $this->buildMessage($toAddress, $toName, $subject, $body)."\r\n.\r\n");
+			$this->writeMessage($socket, $toAddress, $toName, $subject, $body, $attachments, $useHtml ? $htmlBody : null);
+			$this->rawWrite($socket, "\r\n.\r\n");
 			$this->expect($socket, 250, 'message body');
 			$this->command($socket, "QUIT");
 			@fclose($socket);
@@ -234,7 +238,9 @@ class MailSmtpClient{
 
 	//Builds a minimal RFC 5322 message: headers + body, with the lone leading
 	//dot on any body line escaped per RFC 5321 DATA transparency rules.
-	private function buildMessage($toAddress, $toName, $subject, $body){
+	//If $htmlBody is provided, creates a multipart/alternative message with
+	//both plain text and HTML versions.
+	private function buildMessage($toAddress, $toName, $subject, $body, $htmlBody = null){
 		$encodeHeader = function($value){
 			//Fold non-ASCII header values (subject, display names) per RFC 2047
 			//rather than sending raw UTF-8 bytes in a header.
@@ -257,20 +263,99 @@ class MailSmtpClient{
 		$headers[] = 'Date: '.date('r');
 		$headers[] = 'Message-ID: <'.bin2hex(random_bytes(16)).'@'.($this->messageIdHost()).'>';
 		$headers[] = 'MIME-Version: 1.0';
-		$headers[] = 'Content-Type: text/plain; charset=UTF-8';
-		$headers[] = 'Content-Transfer-Encoding: 8bit';
 
-		$normalizedBody = str_replace("\r\n", "\n", (string)$body);
-		$normalizedBody = str_replace("\n", "\r\n", $normalizedBody);
-		//RFC 5321 4.5.2: a line consisting of a single "." must become "..".
-		$lines = explode("\r\n", $normalizedBody);
-		foreach($lines as &$line){
-			if($line === '.'){ $line = '..'; }
+		$useHtml = $htmlBody !== null && is_string($htmlBody) && $htmlBody !== '';
+		if($useHtml){
+			$boundary = 'ghoti-'.bin2hex(random_bytes(24));
+			$headers[] = 'Content-Type: multipart/alternative; boundary="'.$boundary.'"';
+		}else{
+			$headers[] = 'Content-Type: text/plain; charset=UTF-8';
+			$headers[] = 'Content-Transfer-Encoding: 8bit';
 		}
-		unset($line);
-		$escapedBody = implode("\r\n", $lines);
+
+		$escapedBody = $this->wireEncode($body);
+
+		if($useHtml){
+			//Multipart/alternative: plain text first, then HTML. BOTH parts are
+			//wire-encoded: the HTML part carries admin-written text too (see
+			//ghoti.mail.php), so an authored line beginning with "." would
+			//otherwise lose that character to the receiving MTA's un-stuffing,
+			//and its bare newlines would be rejected by strict relays.
+			$result = implode("\r\n", $headers)."\r\n\r\n";
+			$result .= "--".$boundary."\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n".$escapedBody."\r\n";
+			$result .= "--".$boundary."\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n".$this->wireEncode($htmlBody)."\r\n";
+			$result .= "--".$boundary."--";
+			return $result;
+		}
 
 		return implode("\r\n", $headers)."\r\n\r\n".$escapedBody;
+	}
+
+	/* Make a body safe to send inside DATA: CRLF line endings, and RFC 5321
+	 * 4.5.2 dot-stuffing so a line starting with "." survives the receiving
+	 * MTA. Applies to every part of the message, not just the text one. */
+	private function wireEncode($body){
+		$normalized = str_replace("\r\n", "\n", (string)$body);
+		$normalized = str_replace("\n", "\r\n", $normalized);
+		$lines = explode("\r\n", $normalized);
+		foreach($lines as &$line){
+			if(isset($line[0]) && $line[0] === '.'){ $line = '.'.$line; }
+		}
+		unset($line);
+		return implode("\r\n", $lines);
+	}
+
+	// Stream MIME attachments in bounded chunks: site archives can exceed PHP's memory limit.
+	// When $htmlBody is provided, creates a multipart/mixed wrapper around multipart/alternative.
+	private function writeMessage($socket, $toAddress, $toName, $subject, $body, array $attachments, $htmlBody = null){
+		if(!$attachments){
+			$this->rawWrite($socket, $this->buildMessage($toAddress, $toName, $subject, $body, $htmlBody));
+			return;
+		}
+		$useHtml = $htmlBody !== null && is_string($htmlBody) && $htmlBody !== '';
+		$boundary = 'ghoti-'.bin2hex(random_bytes(24));
+		$message = $this->buildMessage($toAddress, $toName, $subject, $body, $useHtml ? $htmlBody : null);
+		list($headers, $content) = explode("\r\n\r\n", $message, 2);
+
+		if($useHtml){
+			//For HTML emails with attachments, replace the multipart/alternative boundary
+			//with a top-level multipart/mixed boundary
+			$altBoundaryMatch = array();
+			if(preg_match('/boundary="([^"]+)"/', $headers, $altBoundaryMatch)){
+				$altBoundary = $altBoundaryMatch[1];
+				$headers = preg_replace('/Content-Type: multipart\/alternative; boundary="[^"]+"/',
+					'Content-Type: multipart/mixed; boundary="'.$boundary.'"', $headers);
+				$this->rawWrite($socket, $headers."\r\n\r\n--".$boundary."\r\nContent-Type: multipart/alternative; boundary=\"".$altBoundary."\"\r\n\r\n".$content."\r\n");
+			}
+		}else{
+			//Plain text with attachments
+			$headers = str_replace("Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit",
+				'Content-Type: multipart/mixed; boundary="'.$boundary.'"', $headers);
+			$this->rawWrite($socket, $headers."\r\n\r\n--".$boundary."\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n".$content."\r\n");
+		}
+
+		foreach($attachments as $attachment){
+			$name = $attachment['name'] ?? '';
+			$type = $attachment['type'] ?? 'application/octet-stream';
+			$path = $attachment['path'] ?? '';
+			if(!is_string($name) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/D', $name)
+				|| !is_string($type) || !preg_match('#^[a-z0-9.+-]+/[a-z0-9.+-]+$#D', $type)
+				|| !is_string($path) || !is_file($path) || !is_readable($path)){
+				throw new RuntimeException('Invalid or unreadable mail attachment.');
+			}
+			$handle = fopen($path, 'rb');
+			if($handle === false){ throw new RuntimeException('Could not open mail attachment.'); }
+			try{
+				$this->rawWrite($socket, '--'.$boundary."\r\nContent-Type: ".$type.'; name="'.$name.'"'
+					."\r\nContent-Disposition: attachment; filename=\"".$name."\"\r\nContent-Transfer-Encoding: base64\r\n\r\n");
+				while(!feof($handle)){
+					$chunk = fread($handle, 57 * 1024);
+					if($chunk === false || ($chunk === '' && !feof($handle))){ throw new RuntimeException('Could not read mail attachment.'); }
+					if($chunk !== ''){ $this->rawWrite($socket, chunk_split(base64_encode($chunk), 76, "\r\n")); }
+				}
+			}finally{ fclose($handle); }
+		}
+		$this->rawWrite($socket, '--'.$boundary."--\r\n");
 	}
 
 	private function messageIdHost(){

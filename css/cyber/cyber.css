@@ -443,7 +443,52 @@ body.cyber-theme {
   .cyber-theme .cyber-footer { grid-template-columns: 1fr; align-items: start; padding-bottom: 1.5rem; }
 }
 
+/* A direct connection to the content, with a neon scanner on interaction. */
+.cyber-theme .cyber-entry-row { margin: 1rem 0 1.5rem; }
+.cyber-theme .cyber-entry {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2.5rem;
+  min-height: 48px;
+  margin-top: 0;
+  padding: .85rem 1.2rem;
+  overflow: hidden;
+  border: 1px solid var(--cyber-cyan);
+  border-radius: 2px;
+  background: var(--cyber-cyan);
+  color: #08051a;
+  font: 700 .8rem/1.4 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--cyber-pink), 0 0 22px #00e5ff26;
+  transition: box-shadow .2s ease, background .2s ease;
+}
+.cyber-theme .cyber-entry::after {
+  content: "";
+  position: absolute;
+  inset: -100% -60%;
+  background: linear-gradient(110deg, transparent 40%, #ffffffa6 50%, transparent 60%);
+  transform: translateX(-75%);
+  pointer-events: none;
+}
+.cyber-theme .cyber-entry:hover,
+.cyber-theme .cyber-entry:focus-visible {
+  background: #a8f7ff;
+  color: #08051a;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--cyber-pink), 0 0 30px #00e5ff55;
+}
+.cyber-theme .cyber-entry:focus-visible { outline: 2px solid #fff; outline-offset: 6px; }
+.cyber-theme .cyber-entry:hover::after,
+.cyber-theme .cyber-entry:focus-visible::after { animation: cyber-connect .75s ease-out both; }
+.cyber-theme #cyber-content { scroll-margin-top: calc(var(--header-offset, 110px) + 1.25rem); }
+@keyframes cyber-connect { to { transform: translateX(75%); } }
+
 @media (prefers-reduced-motion: reduce) {
+  .cyber-theme .cyber-entry::after { display: none; }
   .cyber-theme *,
   .cyber-theme *::before,
   .cyber-theme *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }

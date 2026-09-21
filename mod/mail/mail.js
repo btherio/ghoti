@@ -30,17 +30,15 @@ function saveMailSettings_cb(result){
 		$("#mailSettingsFeedback").text(result);
 	}
 }
+/* The test goes to every administrator account - there is no address to
+ * collect, so this just fires and reports what the server says. */
 function sendTestMail(){
-	var toAddress = $("#mail-testAddress").val();
-	if(!toAddress){
-		$("#mailSettingsFeedback").text("Enter an address to send the test message to.");
-		return;
-	}
-	x_sendTestMail(toAddress, sendTestMail_cb);
+	$("#mailSettingsFeedback").text("Sending test message to all administrators\u2026");
+	x_sendTestMail(sendTestMail_cb);
 }
 function sendTestMail_cb(result){
 	if(result === true){
-		$("#mailSettingsFeedback").text("Test message sent - check the inbox.");
+		$("#mailSettingsFeedback").text("Test message sent to every administrator - check the inboxes.");
 	}else{
 		$("#mailSettingsFeedback").text(result);
 	}

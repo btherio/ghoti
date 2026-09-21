@@ -1,0 +1,173 @@
+/* Spore: a wandering garden, a navigation rail, and a quiet reading island. */
+:root {
+  color-scheme: dark;
+  --bg: #160c24; --bg-tint: none;
+  --surface: #251633; --surface-2: #322041; --surface-3: #422a52;
+  --text: #f6eedc; --text-2: #d8c8e3; --muted: #bba6c9;
+  --border: #674976; --border-strong: #a078ae;
+  --accent: #dbf786; --accent-2: #efffc2; --accent-soft: #d0f38020; --on-accent: #212610;
+  --good: #a0e7b8; --bad: #ffa6b8;
+  --radius: 24px; --radius-sm: 12px; --radius-pill: 999px;
+  --shadow-sm: 0 2px 0 #09030f33; --shadow: 0 18px 40px #09030f40; --shadow-lg: 0 24px 65px #08031099;
+  --ring: 0 0 0 3px #dbf78666;
+  --font: "Trebuchet MS", "Segoe UI", sans-serif;
+  --mono: ui-monospace, "Liberation Mono", monospace;
+  --spore-pink: #ff94d0; --spore-lime: #dbf786; --spore-aqua: #8fe8dd;
+  --header-offset: 0px;
+}
+.spore-theme { margin: 0; min-width: 280px; background: radial-gradient(ellipse at 85% 15%, #55314a77, transparent 45%), var(--bg); }
+.spore-theme [hidden] { display: none !important; }
+.spore-theme :focus-visible { outline: 2px solid var(--spore-aqua); outline-offset: 5px; }
+.spore-cosmos { position: fixed; inset: 0; overflow: hidden; z-index: -1; pointer-events: none; }
+.spore-wheel { border-radius: 50%; mix-blend-mode: screen; animation: spore-turn 95s linear infinite; pointer-events: none; }
+.spore-wheel-one { position: absolute; width: 700px; max-width: none; top: -300px; right: -250px; opacity: .32; }
+.spore-wheel-two { position: absolute; width: 550px; max-width: none; bottom: -230px; left: 50px; opacity: .2; animation-direction: reverse; animation-duration: 130s; }
+@keyframes spore-turn { to { transform: rotate(360deg); } }
+.spore-rail { position: fixed; inset: 0 auto 0 0; width: 190px; z-index: 80; display: flex; flex-direction: column; gap: 1.8rem; padding: 2rem 1.15rem; background: #160c24ed; border-right: 1px solid #75528c70; overflow-y: auto; }
+.spore-theme .spore-brand { display: flex; gap: .55rem; align-items: center; color: var(--spore-lime); text-decoration: none; font: 900 1.8rem/1 Georgia, serif; letter-spacing: -.07em; }
+.spore-brand img { width: 35px; height: 35px; object-fit: contain; }
+.spore-brand small { display: block; margin-top: .55rem; font: .45rem/1.4 var(--mono); letter-spacing: .03em; color: var(--text-2); }
+.spore-rail-label { color: var(--spore-pink); font-size: .67rem; }
+.spore-theme #ghotiPageMenu ul { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; }
+.spore-theme #ghotiPageMenu li { display: block; }
+.spore-theme #ghotiPageMenu a { width: 100%; padding: .7rem .8rem; border: 1px solid transparent; border-radius: 40% 60% 55% 45% / 20% 30% 70% 80%; color: var(--text); font-size: .92rem; }
+.spore-theme #ghotiPageMenu a:hover, .spore-theme #ghotiPageMenu a:focus-visible { color: var(--spore-lime); border-color: #789044; background: #dbf7860c; }
+.spore-theme #ghotiPageMenu a::before { content: '↗'; color: var(--spore-pink); margin-right: .6rem; }
+.spore-rail-bottom { margin-top: auto; padding-top: 2rem; }
+.spore-rail-bottom > span { display: block; color: var(--spore-pink); font-size: 4rem; line-height: 1; }
+.spore-rail-bottom p { font: italic 1.1rem/1.5 Georgia, serif; color: #d0c4df; }
+.spore-rail-bottom a { font-size: .65rem; }
+.spore-controls { position: fixed; top: 1rem; right: 1.25rem; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem; z-index: 100; }
+.spore-theme .spore-controls > button, .spore-theme .workspace-trigger { min-height: 44px; display: inline-flex; align-items: center; gap: .5rem; padding: .55rem .9rem; background: #241432f2; color: var(--text); border: 1px solid #93619e; border-radius: 999px; font: .73rem var(--font); cursor: pointer; box-shadow: 0 3px 15px #0003; }
+.spore-theme #spore-motion { color: var(--spore-lime); }
+.workspace-menu { position: relative; }
+.workspace-trigger { list-style: none; }
+.workspace-trigger::-webkit-details-marker { display: none; }
+.account-avatar { color: var(--spore-pink); }
+.workspace-panel { position: absolute; right: 0; top: calc(100% + .7rem); width: min(450px, calc(100vw - 2rem)); max-height: calc(100dvh - 95px); overflow: auto; overscroll-behavior: contain; padding: 1.3rem; border: 1px solid #ad77bc; border-radius: 22px 5px 22px 22px; color: var(--text); background: #251633; box-shadow: var(--shadow-lg); }
+.workspace-heading, .workspace-section-heading, .workspace-footnote { display: flex; align-items: center; justify-content: space-between; gap: .65rem; }
+.workspace-heading h2 { margin: .4rem 0; font: 1.8rem Georgia, serif; }
+.workspace-eyebrow, .workspace-badge, .workspace-section-note { font: .58rem var(--mono); color: var(--spore-pink); }
+.spore-theme .workspace-close { width: 44px; height: 44px; padding: 0; border-radius: 50%; color: var(--text); background: #422a52; font-size: 1.3rem; }
+.workspace-section { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.workspace-section-heading { margin-bottom: .65rem; }
+.workspace-section-heading h3 { font-size: .8rem; margin: 0; }
+.workspace-search { display: block; position: relative; margin-bottom: .7rem; }
+.workspace-search svg { position: absolute; left: .65rem; top: 50%; transform: translateY(-50%); }
+.workspace-search input { width: 100%; padding-left: 2.1rem; }
+.spore-theme .workspace-panel :is(#ghotiAdminMenu, #ghotiPrivateMenu, #ghotiLogin) { display: block; border: 0; padding: 0; margin: 0; background: transparent; box-shadow: none; }
+.spore-theme .workspace-panel ul { display: grid; grid-template-columns: 1fr 1fr; list-style: none; padding: 0; margin: 0; gap: .4rem; }
+.spore-theme .workspace-panel li { margin: 0; }
+.spore-theme .workspace-panel #ghotiLogin ul { grid-template-columns: 1fr; }
+.spore-theme .workspace-panel a { font-size: .8rem; }
+.workspace-footnote { padding-top: 1rem; font: .58rem var(--mono); color: var(--muted); }
+.workspace-empty { font-size: .8rem; }
+.spore-world { margin-left: 190px; padding: 6.5rem clamp(1.3rem, 4vw, 5rem) 2rem; max-width: 1700px; }
+.spore-arrival { position: relative; display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: 1rem; min-height: 610px; padding-bottom: 3rem; }
+.spore-intro { position: relative; z-index: 2; padding-bottom: 2rem; }
+.spore-kicker { font: .62rem/1.7 var(--mono); letter-spacing: .1em; color: var(--spore-aqua); }
+.spore-intro h1 { margin: 1.3rem -7rem 1.3rem 0; position: relative; color: var(--spore-lime); font: 900 clamp(3rem, 6.8vw, 7.5rem)/.92 Georgia, "Times New Roman", serif; letter-spacing: -.065em; text-shadow: 3px 4px 0 #25102b; overflow-wrap: anywhere; transform: rotate(-4deg); }
+.spore-manifesto { font: italic clamp(1.2rem, 2.3vw, 1.7rem)/1.35 Georgia, serif; color: var(--spore-pink); margin: 2rem 0; }
+.spore-theme .spore-enter { display: inline-flex; align-items: center; gap: 1.5rem; max-width: 100%; padding: 1rem 1.4rem; background: var(--spore-lime); color: #28311a; border-radius: 50%; font-size: .85rem; font-weight: 800; border: 1px solid #e9ffc0; box-shadow: 5px 5px 0 #8d40ad; transform: rotate(-5deg); text-decoration: none; }
+.spore-enter:hover { filter: brightness(1.1); }
+.spore-sticker { display: block; width: 112px; margin: 2rem 0 0 3rem; padding: 1.15rem .5rem; border: 1px dashed var(--spore-pink); border-radius: 48% 52% 35% 65%; color: var(--spore-pink); text-align: center; font: .63rem/1.5 var(--mono); transform: rotate(12deg); }
+.spore-portal { position: relative; margin-right: -1rem; min-width: 0; }
+.spore-garden { display: block; width: 100%; height: 570px; object-fit: cover; border-radius: 46% 54% 37% 63% / 34% 42% 58% 66%; border: 2px solid #d68bb1; box-shadow: 0 0 0 9px #d68bb10c, 0 0 65px #fc80d928; transform: rotate(4deg); }
+.spore-orbit-label { position: absolute; bottom: 3%; left: 24%; padding: .6rem .85rem; color: #281132; background: var(--spore-pink); transform: rotate(-8deg); font: .55rem var(--mono); letter-spacing: .07em; }
+.spore-theme .spore-secret { position: absolute; display: grid; place-items: center; min-width: 48px; min-height: 48px; padding: .4rem; border: 1px dashed #b3fada; border-radius: 50%; background: #26103eae; color: #f9ffd4; box-shadow: 0 0 24px #98fff03d; font-size: 1.7rem; cursor: pointer; }
+.spore-secret-label { display: block; font: .56rem var(--mono); }
+.spore-fairy { top: 25%; left: 6%; transform: rotate(-10deg); }
+.spore-gnome { bottom: 11%; right: 3%; transform: rotate(12deg); }
+.spore-discovery { grid-column: 1 / -1; justify-self: end; max-width: 42ch; margin-top: .75rem; color: var(--text-2); font: italic .8rem/1.5 Georgia, serif; min-height: 2.5rem; }
+.spore-ticker { display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: .7rem 1rem; padding: 1.1rem; border-top: 1px solid #ac7396; border-bottom: 1px solid #ac7396; color: var(--spore-pink); font: .62rem var(--mono); letter-spacing: .08em; transform: rotate(-2deg); margin: 1rem 0 4rem; }
+.spore-ticker b { color: var(--spore-lime); font-size: 1.5rem; line-height: 1; }
+/* The content island owns light tokens, so forms and inserted modules stay readable. */
+.spore-reading {
+  --surface: #f2ecdb; --surface-2: #e7dfcc; --surface-3: #dcd1bd;
+  --text: #33203b; --text-2: #5e4c62; --muted: #716175;
+  --border: #cbbdd0; --border-strong: #a28aab;
+  --accent: #75428b; --accent-2: #502764; --accent-soft: #75428b16; --on-accent: #fff7e9;
+  --good: #34704a; --bad: #ac3455;
+  color-scheme: light; color: var(--text); background: var(--surface);
+  position: relative; max-width: 960px; margin: 0 0 0 auto; padding: 1.8rem;
+  border-radius: 60px 12px 60px 12px; border: 1px solid #f9f3de;
+  box-shadow: -14px 14px 0 #693b75, -15px 15px 0 #d29bbd;
+  scroll-margin-top: 6rem;
+}
+.spore-reading-heading { display: flex; justify-content: space-between; gap: 1rem; padding: .3rem 1rem 1rem; color: #78507f; font: .6rem var(--mono); letter-spacing: .08em; border-bottom: 1px dashed #ba9ec0; }
+.spore-theme #ghotiContent { padding: 2rem 1rem 4rem; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.spore-theme #ghotiContent h1, .spore-theme #ghotiContent h2 { font-family: Georgia, serif; font-weight: 500; letter-spacing: -.035em; }
+.spore-theme #ghotiContent h1 { font-size: clamp(1.9rem, 3vw, 3rem); }
+.spore-theme #ghotiContent h2 { font-size: 1.7rem; }
+.spore-theme .spore-reader-fairy { right: -18px; bottom: 25px; background: #623975; transform: rotate(8deg); }
+.spore-connections { position: relative; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 2rem; min-height: 330px; margin: 4rem 0 2rem; padding: 2rem; border: 1px solid #684576; border-radius: 40% 10% 40% 10% / 10% 40% 10% 40%; background: #261433b0; isolation: isolate; }
+.spore-connections h2 { color: var(--spore-pink); font: italic 2.8rem/1 Georgia, serif; margin: .8rem 0; letter-spacing: -.04em; }
+.spore-connections p { color: var(--text-2); font-size: .85rem; }
+.spore-wheel-three { position: absolute; width: 270px; height: auto; right: 0; bottom: -20px; z-index: -1; opacity: .22; animation-direction: reverse; }
+.spore-theme #ghotiLinks ul { padding: 0; margin: 0; list-style: none; }
+.spore-theme #ghotiLinks a { display: block; padding: .75rem .2rem; border-bottom: 1px solid #80608d; font-size: .95rem; }
+.spore-banners { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; }
+.spore-theme #footer { background: transparent; border: 0; padding: 2rem 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem; text-align: left; color: var(--text-2); font-size: .75rem; }
+.spore-theme #footer a { color: var(--spore-lime); }
+.spore-theme .ghotiDocs { background: var(--accent-soft); border-color: var(--border); }
+.spore-theme .ghotiDocs summary::before, .spore-theme .ghotiDocs summary::after { color: var(--accent); }
+.spore-theme .ghotiDocsBody code, .spore-theme .ghotiDocCode { background: var(--accent-soft); color: var(--accent); border-color: var(--border); }
+.spore-theme .ghotiStore, .spore-theme #ghotiStoreManager { --store-surface: var(--surface); --store-raised: var(--surface-2); --store-text: var(--text); --store-muted: var(--text-2); --store-line: var(--border); --store-accent: var(--accent); --store-good: var(--good); --store-bad: var(--bad); --store-warn: #835813; }
+.spore-theme .ghotiStoreCatalog { padding: 0; background: transparent; border: 0; }
+.spore-theme #ghotiContent .ghotiStoreCard h2 { margin: 0; font-size: 1.4rem; }
+.spore-theme #ghotiContent .ghotiStoreThumb img { height: 100%; }
+.spore-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container (max-width: 640px) {
+  .spore-theme .ghotiStoreHero { flex-direction: column; align-items: flex-start; }
+  .spore-theme .ghotiStoreTools { grid-template-columns: 1fr; }
+  .spore-theme .ghotiStoreStats { grid-template-columns: 1fr 1fr; }
+  .spore-theme :is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid,
+  .spore-theme #ghotiStoreManager .ghotiStoreProductForm .ghotiFormGrid { grid-template-columns: 1fr; }
+}
+.spore-theme.spore-paused *, .spore-theme.spore-paused *::before, .spore-theme.spore-paused *::after { animation-play-state: paused !important; }
+@media (max-width: 1100px) {
+  .spore-rail { width: 160px; padding: 1.5rem .8rem; }
+  .spore-world { margin-left: 160px; padding-right: 1.5rem; padding-left: 1.5rem; }
+  .spore-brand img { width: 28px; height: 28px; }
+  .spore-theme .spore-brand { font-size: 1.5rem; }
+  .spore-garden { height: 480px; }
+  .spore-arrival { min-height: 540px; }
+}
+@media (max-width: 760px) {
+  .spore-rail { position: relative; width: auto; inset: auto; padding: 1rem; border-right: 0; border-bottom: 1px solid #75528c70; gap: 1rem; overflow: visible; }
+  .spore-theme .spore-brand { width: fit-content; }
+  .spore-rail-label, .spore-rail-bottom { display: none; }
+  .spore-theme #ghotiPageMenu ul { flex-direction: row; flex-wrap: wrap; gap: .25rem; }
+  .spore-theme #ghotiPageMenu a { padding: .5rem .65rem; font-size: .8rem; }
+  .spore-controls { position: relative; top: auto; right: auto; padding: .75rem 1rem; justify-content: flex-start; z-index: 100; }
+  .workspace-panel { position: fixed; top: 1rem; bottom: auto; right: 1rem; max-height: calc(100dvh - 2rem); }
+  .spore-world { margin-left: 0; padding: 1.5rem 1.2rem 1rem; }
+  .spore-arrival { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 1.5rem; }
+  .spore-intro { padding-bottom: 0; }
+  .spore-intro h1 { margin: 1.3rem 0; font-size: clamp(3rem, 13vw, 6rem); }
+  .spore-manifesto { margin: 1.4rem 0; }
+  .spore-sticker { position: absolute; bottom: 0; right: 0; margin: 0; width: 85px; font-size: .5rem; }
+  .spore-theme .spore-enter { font-size: .75rem; padding: .85rem 1rem; gap: .6rem; margin-right: 90px; }
+  .spore-portal { margin: 2rem 0 0; }
+  .spore-garden { height: 400px; }
+  .spore-discovery { align-self: flex-end; margin-top: 1.5rem; }
+  .spore-ticker { margin-bottom: 2.5rem; font-size: .5rem; }
+  .spore-reading { padding: 1.2rem .65rem; border-radius: 34px 8px; box-shadow: -7px 7px 0 #693b75; scroll-margin-top: 1rem; }
+  .spore-theme #ghotiContent { padding: 1.5rem .5rem 3rem; }
+  .spore-reading-heading { padding-right: .4rem; padding-left: .4rem; font-size: .5rem; }
+  .spore-theme .spore-reader-fairy { right: -8px; }
+  .spore-connections { grid-template-columns: 1fr; padding: 1.5rem; gap: 1rem; margin-top: 3rem; }
+  .spore-connections h2 { font-size: 2.4rem; }
+  .spore-wheel-one { width: 450px; right: -210px; }
+  .spore-wheel-two { width: 350px; left: -150px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spore-theme *, .spore-theme *::before, .spore-theme *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media print {
+  .spore-rail, .spore-controls, .spore-cosmos, .spore-arrival, .spore-ticker, .spore-connections, .spore-banners, .spore-footer, .spore-secret { display: none !important; }
+  .spore-world { padding: 0; margin: 0; }
+  .spore-reading { max-width: none; margin: 0; background: white; border: 0; box-shadow: none; }
+}
+.spore-reader-reply { margin: 0 3.5rem .5rem .5rem; color: var(--text-2); font: italic .85rem/1.5 Georgia, serif; }
+.spore-theme .spore-secret[data-found="true"] { border-style: solid; border-color: var(--spore-lime); }

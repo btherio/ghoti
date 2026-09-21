@@ -2,18 +2,35 @@
 /* Admin Backup / Restore workspace. Binary transfers use backup.php because
  * the JSON RPC transport is intentionally limited to small request bodies. */
 
+require_once __DIR__.'/ghoti.backup.delivery.php';
+
 function printBackupRestore(){
 	if(!ghoti_require_admin()){ return '<h1>Backup / Restore</h1><p>Admin access required.</p>'; }
+	return ghoti_backup_render_workspace(ghoti_backup_email_mailer() !== null);
+}
+
+function ghoti_backup_render_workspace($emailMode){
 	$token = htmlspecialchars(ghoti_csrf_token(), ENT_QUOTES, 'UTF-8');
+	$deliveryNote = $emailMode
+		? 'Mail is enabled and a successful test is recorded. Generate each backup to send it as an attachment to every administrator. Downloads are disabled.'
+		: 'Backups are downloadable because mail is disabled or no successful test has been recorded. Enable mail and send a successful test in Mail Settings to use email delivery.';
 	$zipReady = class_exists('ZipArchive');
 	$zipDisabled = $zipReady ? '' : ' disabled="disabled" aria-disabled="true"';
 	$zipNote = $zipReady ? 'Application code, themes, uploads, and site settings.' : 'Install the PHP Zip extension to enable site archives.';
+	$exportControl = function($kind, $label, $disabled = '') use ($emailMode, $token){
+		if($emailMode){
+			return '<form onsubmit="emailGhotiBackup(this, \''.$kind.'\'); return false;"><input type="hidden" name="token" value="'.$token.'" /><button type="submit" class="ghotiButton backupDownload"'.$disabled.'>Email '.$label.' to all admins</button><p class="backupEmailFeedback" role="status" aria-live="polite"></p></form>';
+		}
+		if($disabled !== ''){ return '<button type="button" class="ghotiButton backupDownload" disabled>Download '.$label.'</button>'; }
+		return '<a class="ghotiButton backupDownload" href="backup.php?action=download-'.$kind.'&amp;token='.$token.'" target="_blank" rel="noopener">Download '.$label.'</a>';
+	};
 	$o  = '<section id="ghotiBackupRestore" class="ghotiAdminPanel">';
 	$o .= '<div class="ghotiCrudHeader"><div><span class="backupEyebrow">Recovery center</span><h1>Backup / Restore</h1><p class="ghotiHelpText">Export recoverable copies before upgrades or major content changes.</p></div></div>';
-	$o .= '<div class="backupOverview"><article><strong>Two layers. One recovery plan.</strong><p>The site ZIP contains files; the SQL export contains database content and accounts. Download both for a complete backup.</p></article><span class="backupStatus"><i></i>Ready</span></div>';
+	$o .= '<div class="backupOverview"><article><strong>Two layers. One recovery plan.</strong><p>The site ZIP contains files; the SQL export contains database content and accounts. Keep both for a complete backup.</p></article><span class="backupStatus"><i></i>Ready</span></div>';
+	$o .= '<p class="ghotiHelpText">'.$deliveryNote.'</p>';
 	$o .= '<div class="backupGrid">';
-	$o .= '<section class="backupCard"><span class="backupCardNumber">01</span><h2>Site files</h2><p>'.$zipNote.'</p><ul><li>Streams directly to your browser</li><li>Excludes Git metadata, logs, throttle state, and database credentials</li><li>Restores as a validated overlay without deleting newer files</li></ul><a class="ghotiButton backupDownload" href="backup.php?action=download-files&amp;token='.$token.'" target="_blank" rel="noopener"'.$zipDisabled.'>Download site ZIP</a></section>';
-	$o .= '<section class="backupCard"><span class="backupCardNumber">02</span><h2>SQL database</h2><p>A portable logical dump of every Ghoti table, including schema and rows.</p><ul><li>Uses complete table definitions</li><li>Includes page content, users, analytics, and module settings</li><li>Contains password hashes and may contain SMTP credentials</li></ul><a class="ghotiButton backupDownload" href="backup.php?action=download-database&amp;token='.$token.'" target="_blank" rel="noopener">Download SQL dump</a></section>';
+	$o .= '<section class="backupCard"><span class="backupCardNumber">01</span><h2>Site files</h2><p>'.$zipNote.'</p><ul><li>'.($emailMode ? 'Sent as an attachment to every administrator' : 'Streams directly to your browser').'</li><li>Excludes Git metadata, logs, throttle state, and database credentials</li><li>Restores as a validated overlay without deleting newer files</li></ul>'.$exportControl('files', 'site ZIP', $zipDisabled).'</section>';
+	$o .= '<section class="backupCard"><span class="backupCardNumber">02</span><h2>SQL database</h2><p>A portable logical dump of every Ghoti table, including schema and rows.</p><ul><li>Uses complete table definitions</li><li>Includes page content, users, analytics, and module settings</li><li>Contains password hashes and may contain SMTP credentials</li></ul>'.$exportControl('database', 'SQL dump').'</section>';
 	$o .= '</div>';
 	$o .= '<div class="backupRestoreZone"><header><div><span class="backupEyebrow">Restricted operation</span><h2>Restore a backup</h2></div><span class="backupDangerBadge">Destructive</span></header><p>Restore only a backup generated by Ghoti. Reconfirm with your current admin password and type <code>RESTORE</code>. Keep this browser open until the operation finishes.</p>';
 	$o .= '<div class="backupRestoreGrid">';
@@ -21,7 +38,7 @@ function printBackupRestore(){
 	$o .= '<form id="restore-database-form" class="backupRestoreForm" onsubmit="restoreGhotiBackup(\'database\'); return false;"><h3>Restore SQL database</h3><label class="ghotiField"><span>Ghoti SQL dump</span><input type="file" name="backup" accept=".sql,text/plain,application/sql" required="required" /></label><label class="ghotiField"><span>Current admin password</span><input type="password" name="password" autocomplete="current-password" required="required" /></label><label class="ghotiField"><span>Type RESTORE</span><input type="text" name="confirmation" autocomplete="off" pattern="RESTORE" required="required" /></label><input type="hidden" name="token" value="'.$token.'" /><button type="submit" class="ghotiButton ghotiButtonDanger">Restore database</button><span class="backupRestoreFeedback" role="status" aria-live="polite"></span></form>';
 	$o .= '</div></div>';
 	$o .= ghoti_docs_panel('How backup and restore works', 'scope, secrets, recovery', array(
-		array('heading'=>'Build a complete recovery set', 'list'=>array('Download both the site ZIP and SQL dump at the same point in time.', 'Store them together in encrypted storage away from the web server.', 'The site ZIP deliberately omits <code>db.config.local.php</code>; preserve database credentials through your secrets manager or server backup.')),
+		array('heading'=>'Build a complete recovery set', 'list'=>array('Generate both the site ZIP and SQL dump at the same point in time. With enabled, tested mail, each is emailed to every administrator; otherwise download both.', 'Store them together in encrypted storage away from the web server.', 'The site ZIP deliberately omits <code>db.config.local.php</code>; preserve database credentials through your secrets manager or server backup.')),
 		array('heading'=>'Restore safely', 'list'=>array('Take a fresh backup first, then restore site files before the matching database when rebuilding a server.', 'File restore overlays archive files and does not delete files added later.', 'Database restore replaces the current Ghoti tables and can sign out every session. Test the site immediately afterward.'))
 	));
 	$o .= '</section>';

@@ -27,6 +27,10 @@ CLAUDE.md
 .reasonix/
 reasonix.toml
 
+# Local release-audit agent: its playbook, runner, checks and accepted-finding
+# baselines. Local tooling, not part of the application - see .agents/README.md.
+.agents/
+
 # Throttled operational alert counters; never commit runtime state.
 critical-alerts.json
 

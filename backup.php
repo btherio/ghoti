@@ -3,7 +3,7 @@
  * JSON transport so large binary files can be streamed with bounded memory. */
 require_once __DIR__.'/ghoti.php';
 require_once __DIR__.'/mod/login/login.db.php';
-require_once __DIR__.'/ghoti.backup.lib.php';
+require_once __DIR__.'/ghoti.backup.delivery.php';
 
 ghoti::loadSettings();
 ghoti_security_enforce_ip_access();
@@ -46,13 +46,32 @@ $loginDb = new logindb();
 if(!ghoti_validate_session($loginDb) || !$loginDb->isAdmin((int)$_SESSION['userId'])){ ghoti_backup_deny('non-admin or expired session'); }
 
 $action = isset($_GET['action']) && is_string($_GET['action']) ? $_GET['action'] : '';
-$allowed = array('download-files','download-database','restore-files','restore-database');
+$allowed = array('download-files','download-database','email-files','email-database','restore-files','restore-database');
 if(!in_array($action, $allowed, true)){ ghoti_backup_response(400, 'Unknown backup action.'); }
 
 if(strpos($action, 'download-') === 0 && ghoti_request_method() !== 'GET'){ ghoti_backup_response(405, 'Downloads require GET.'); }
+if(strpos($action, 'email-') === 0 && ghoti_request_method() !== 'POST'){ ghoti_backup_response(405, 'Email exports require POST.'); }
 if(strpos($action, 'restore-') === 0 && ghoti_request_method() !== 'POST'){ ghoti_backup_response(405, 'Restore requires POST.'); }
 
 try{
+    if(strpos($action, 'download-') === 0 || strpos($action, 'email-') === 0){
+        $mailer = ghoti_backup_email_mailer();
+        if(!ghoti_backup_export_allowed($action, $mailer !== null)){
+            ghoti_backup_response(403, $mailer !== null
+                ? 'Backups are delivered by email to all administrators. Downloads are disabled.'
+                : 'Email backup delivery requires enabled mail and a successful test. Reload Backup / Restore to download instead.');
+        }
+        if($mailer !== null){
+            $recipients = ghoti_admin_emails(true);
+            if(!$recipients){ ghoti_backup_response(409, 'No administrator has a valid email address. Add one in Manage Users.'); }
+            $kind = $action === 'email-files' ? 'files' : 'database';
+            $delivery = ghoti_backup_email_export($kind, $mailer, $recipients);
+            ghoti::logInfo('backup.php:email', $kind.' backup by uid '.(int)$_SESSION['userId'].'; sent='.$delivery['sent'].'; failed='.$delivery['failed']);
+            $message = 'Backup sent to '.$delivery['sent'].' administrator'.($delivery['sent'] === 1 ? '' : 's').'.';
+            if($delivery['failed']){ $message .= ' Delivery failed for '.$delivery['failed'].'. Check Mail Settings and administrator addresses, then retry. Downloads remain disabled.'; }
+            ghoti_backup_response($delivery['failed'] ? 502 : 200, $message);
+        }
+    }
     if($action === 'download-files' || $action === 'download-database'){
         $result = $action === 'download-files'
             ? ghoti_backup_create_site_archive(__DIR__)
