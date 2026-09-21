@@ -122,6 +122,8 @@ unset ghoti_admin_password</code></pre>
           <p>Page HTML is filtered during preview, save, and public rendering. Safe structural and text elements, links, images, tables, classes, and accessibility labels are preserved. Scripts, event handlers, forms, embedded frames, executable URLs, and inline styles are removed.</p>
           <h3>Embed galleries</h3>
           <p>Place <code>[gallery:NAME]</code> in a page body, using the gallery’s exact slug. The gallery renders in that position and updates everywhere when its photos change.</p>
+          <h3>Embed links</h3>
+          <p>Place <code>[links:GROUP]</code> in a page body to list every link in that group at that position. Spaces in a group name become hyphens, so <em>Field Guides</em> is <code>[links:field-guides]</code>. <strong>Links</strong> in the admin menu shows each group&rsquo;s shortcode with a Copy button.</p>
           <h3>Comments</h3>
           <p>Signed-in users can comment on the current page. Authors can remove their own comments; administrators can moderate all comments. Comments are stored as plain text.</p>
         </div>
@@ -133,7 +135,7 @@ unset ghoti_admin_password</code></pre>
           <h2>Site tools</h2>
           <div class="ghotiGuideFeatureList">
             <article><h3>Banners</h3><p>Add an image URL, destination URL, accessible description, and size. Banners are selected randomly by themes that display them. Use HTTPS image sources you control. The same screen chooses what fills those positions: your own banners, Google AdSense, or both drawn from one pool. AdSense needs a publisher ID, an ad slot for each size, and an <code>ads.txt</code> file at your domain root &mdash; see <code>docs/banners.md</code>.</p></article>
-            <article><h3>Links</h3><p>Create sidebar links and organize them by group. Web and email links accept safe HTTP, HTTPS, mailto, or site-relative addresses.</p></article>
+            <article><h3>Links</h3><p>Create links and organize them by group. The <em>default</em> group appears in the sidebar; place <code>[links:GROUP]</code> in a page body to show any group there (spaces in a group name become hyphens, so <em>Field Guides</em> is <code>[links:field-guides]</code>). Web addresses get https:// added for you, and email addresses become mailto: links. Only HTTP, HTTPS, mailto, or site-relative addresses are accepted.</p></article>
             <article><h3>Galleries</h3><p>Create a gallery, upload or link images, edit captions, reorder photos, and use View for its standalone page. Browser-safe images are stored directly; supported camera formats require ImageMagick conversion.</p></article>
             <article><h3>Files</h3><p>Browse and manage files available to the site. File management is a powerful administrator tool: limit admin access and keep secrets, backups, hidden files, and runtime state outside its editable scope.</p></article>
             <article><h3>Mail Settings</h3><p>Configure a local relay or authenticated SMTP. Use STARTTLS on port 587 or implicit TLS on 465 where required, keep certificate verification enabled, save, then send a test message. The test goes to every administrator account &mdash; the same addresses alerts, emailed backups and password resets use &mdash; so there is no address to type in.</p></article>

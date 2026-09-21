@@ -1,207 +1,300 @@
-function addLinkForm(){
-	$("#popup-content").html(
-		"<form id=\"addLinkForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"addLink(); return false;\">"+
-			"<label class=\"ghotiField\"><span>Link name</span><input type=\"text\" id=\"linkName\" size=\"20\" autocomplete=\"off\" /></label>"+
-			"<label class=\"ghotiField\"><span>URL</span><input type=\"text\" id=\"linkURL\" size=\"30\" value=\"http://\" /></label>"+
-			"<p class=\"ghotiHelpText\">Include the protocol, such as <b>http://</b> or <b>https://</b>.</p>"+
-			"<label class=\"ghotiField\"><span>Group</span><select id=\"linkGroup\"></select></label>"+
-			"<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Add Link</button></div>"+
-		"</form>"
-	);
-
-	x_getLinkGroups(getLinkGroups_cb); //this populates the linkGroup ddl
-	
-	$("#popupTitle").html("Add a link");
-	showPopup();
+/*
+ * links.js - sidebar links, the Add Link popup and the Manage Links screen.
+ *
+ * Every links endpoint answers { success, data, error:{code,message} } (see
+ * links.async.php); linksError() turns any reply, including a missing one, into
+ * text an admin can read.
+ */
+function linksOk(result){
+	return !!(result && result.success === true);
 }
-function getLinkGroups_cb(result){
-	if(!result || typeof result !== 'object') return;
-	for(var x in result){
-		if(!result.hasOwnProperty(x)) continue;
-		var group = stripslashes(result[x] && result[x]['grp']);
-		$("#linkGroup").append("<option value=\""+ghotiEscapeHtmlAttr(group)+"\">"+ghotiEscapeHtml(group)+"</option>\n");
-	}
-}
-function editLinkForm(){
-	x_getLinks("all",editLinkForm_cb);
-}
-var LINK_FIELD_INDEX = {
-	name: 0,
-	url: 1,
-	id: 2,
-	grp: 3,
-	userName: 4
-};
-function isNumericLinkRow(row){
-	return row && typeof row === 'object' && typeof row.length === 'number'
-		&& row.length >= 5 && typeof row[0] !== 'object';
-}
-function isAssociativeLinkRow(row){
-	return row && typeof row === 'object'
-		&& (typeof row['name'] !== 'undefined' || typeof row['url'] !== 'undefined' || typeof row['id'] !== 'undefined');
-}
-function normalizeLinksResult(result){
-	if(!result){
-		return [];
-	}
-	var linksArray = result;
-	if(result.length > 1 && typeof result[0] === 'string'){
-		linksArray = result[1];
-	}
-	if(!linksArray || typeof linksArray !== 'object'){
-		return [];
-	}
-	if(isNumericLinkRow(linksArray) || isAssociativeLinkRow(linksArray)){
-		return [linksArray];
-	}
-	return linksArray;
-}
-function linkField(row, fieldName){
-	if(!row || typeof row !== 'object'){
-		return "";
-	}
-	if(typeof row[fieldName] !== 'undefined'){
-		return stripslashes(row[fieldName]);
-	}
-	var index = LINK_FIELD_INDEX[fieldName];
-	return stripslashes(typeof index !== 'undefined' ? row[index] : "");
-}
-function editLinkForm_cb(result){
-	var linksArray = normalizeLinksResult(result);
-	// Assemble the whole edit form as a single string, then write once. The old
-	// version did ~8 jQuery .append() calls per link (a fresh #editLinkForm
-	// lookup and layout reflow each), which got slow with more than a few links.
-	var rows = "";
-	for(var x in linksArray){
-		if(!linksArray.hasOwnProperty(x)) continue;
-		var link = linksArray[x];
-		var id = parseInt(linkField(link,'id'), 10);
-		if(isNaN(id)) continue;
-		rows += "<article class=\"ghotiCrudRow ghotiLinkRow\">";
-		rows += "<input type=\"hidden\" id=\""+id+"-id\" value=\""+id+"\" />";
-		rows += "<div class=\"ghotiFormGrid\">";
-		rows += "<label class=\"ghotiField\"><span>Name</span><input type=\"text\" size=\"12\" id=\""+id+"-name\" value=\""+ghotiEscapeHtmlAttr(linkField(link,'name'))+"\" /></label>";
-		rows += "<label class=\"ghotiField ghotiFieldWide\"><span>URL</span><input type=\"text\" size=\"30\" id=\""+id+"-url\" value=\""+ghotiEscapeHtmlAttr(linkField(link,'url'))+"\" /></label>";
-		rows += "<label class=\"ghotiField\"><span>Group</span><input type=\"text\" size=\"10\" id=\""+id+"-grp\" value=\""+ghotiEscapeHtmlAttr(linkField(link,'grp'))+"\" /></label>";
-		rows += "</div>";
-		rows += "<div class=\"ghotiFormActions ghotiCrudActions\">";
-		rows += "<span class=\"ghotiCrudMeta\">Added by <b>"+ghotiEscapeHtml(linkField(link,'userName'))+"</b></span>";
-		rows += "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"saveLink("+id+");\"><img src=\"gfx/save.png\" alt=\"\" />Save</button>";
-		rows += "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"deleteLink("+id+");\"><img src=\"gfx/delete.png\" alt=\"\" />Delete</button>";
-		rows += "</div>";
-		rows += "</article>";
-	}
-	if(!rows){
-		rows = "<p class=\"ghotiEmptyState\">No links found.</p>";
-	}
-	$("#ghotiContent").html(
-		"<section id=\"ghotiManageLinks\" class=\"ghotiAdminPanel\">"+
-			"<div class=\"ghotiCrudHeader\"><h1>Manage Links</h1><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"addLinkForm();\">Add Link</button></div>"+
-			"<form id=\"editLinkForm\" class=\"ghotiForm ghotiCrudList\" action=\"#\">"+rows+"</form>"+
-			ghotiDocsHtml("How to use links", "sidebar links & groups", [
-				{ heading: "Add a link",
-				  list: ["Press <b>Add Link</b> and enter a name and a full URL.", "Only <b>http://</b>, <b>https://</b> and <b>mailto:</b> URLs are accepted."] },
-				{ heading: "Groups",
-				  list: ["The sidebar shows one list per group (the <b>default</b> group first).", "A new group is created simply by typing its name when adding or saving a link."] },
-				{ heading: "Edit or remove",
-				  list: ["Change any field and press <b>Save</b>, or <b>Delete</b> to remove the link."] }
-			])+
-		"</section>"
-	);
-}
-function addLink(){
-	var linkName = $("#linkName").val();
-	var url = $("#linkURL").val();
-	var linkGroup = $("#linkGroup :selected").text();
-
-	if(!linkGroup){ //if there is no link group, it's probably our first link, add to default group.
-		linkGroup = "default";
-	}
-	if(linkName.length < 1 || url.length < 1 ){
-		popupFeedBack("Required field missing.");
-	}else{
-		x_addLink(linkName,url,linkGroup,addLink_cb);
-	}
+function linksError(result, fallback){
+	return (result && result.error && result.error.message) || fallback || "Something went wrong. Try again.";
 }
 
-function deleteLink(id){
-	var confirmation = confirm ('Delete is permanent! \nAre you sure?');
-	if (confirmation){
-		x_deleteLink(id, doNothing_cb);
-		editLinkForm();
-		refreshLinks(); //keep the sidebar links pane in sync
-	}
-}
-function saveLink(id){
-	var name = $("#"+id+"-name").val();
-	var url = $("#"+id+"-url").val();
-	var grp = $("#"+id+"-grp").val();
-	if(!name || !url || !grp || name.length < 1 || url.length < 1){
-		pageFeedBack("Required field missing");
-	}else{
-		x_saveLink(id,name,url,grp,saveLink_cb);	
-	}
-}
-
-
-//callbacks
-function saveLink_cb(result){
-	if(result == true){
-		pageFeedBack("Link saved!")
-		refreshLinks();
-	}else{
-		pageFeedBack(result);
-	}
-}
-function addLink_cb(result){
-	if(result == true){
-		popupFeedBack("Link Added!");
-		refreshLinks();
-	}else{
-		//popupFeedBack("Error adding link. Probably duplicate.");
-		popupFeedBack(result);
-	}
-}
-
-// Build the <li> markup for a link list in one pass so we can inject it with a
-// single DOM write instead of one reflow per link.
-function buildLinksHtml(linksArray){
-	linksArray = normalizeLinksResult(linksArray);
-	var html = "";
-	for(var x in linksArray){
-		if(!linksArray.hasOwnProperty(x)) continue;
-		var link = linksArray[x];
-		var url = linkField(link,'url');
-		if(!url || !ghotiSafeLinkUrl(url)) continue;
-		var name = linkField(link,'name') || url;
-		html += "<li><a href=\""+ghotiEscapeHtmlAttr(url)+"\">"+ghotiEscapeHtml(name)+"</a></li>";
-	}
-	return html;
-}
-
-// Render the links pane. This used to re-poll the server every 3 seconds
-// forever (each poll triggered a full app bootstrap + DB connect server-side
-// and a full DOM rebuild) - the single biggest drag on the whole UI. Links now
-// load once and are refreshed explicitly whenever they actually change (see the
-// add/save/delete callbacks below).
-function getLinks_cb(links){
-	var group = links && links.length > 1 && typeof links[0] === 'string' ? links[0] : 'default';
-	var linksArray = normalizeLinksResult(links);
-	if(group == 'default'){
-		$("#ghotiLinks").html("<ul id=\"ghotiLinksList\">"+buildLinksHtml(linksArray)+"</ul>");
-	}else{
-		$("#ghotiLinks"+group).html("<ul id=\"ghotiLinks"+group+"List\">"+buildLinksHtml(linksArray)+"</ul>");
-	}
-}
-
-// Pull a fresh copy of the default links pane after a mutation.
-function refreshLinks(){
-	x_getLinks(getLinks_cb);
-}
+/* ---------------------------------------------------------------- *
+ *  Sidebar
+ * ---------------------------------------------------------------- */
 
 // Validate legacy/imported stored URLs at rendering as well as on save.
 function ghotiSafeLinkUrl(url){
 	var probe = String(url).replace(/[\x00-\x20]/g, '');
 	var scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(probe);
 	return !scheme || /^(https?|mailto)$/i.test(scheme[1]);
+}
+
+// Build the <li> markup in one pass so it goes in with a single DOM write.
+function buildLinksHtml(links){
+	var html = "";
+	links.forEach(function(link){
+		if(!link.url || !ghotiSafeLinkUrl(link.url)){ return; }
+		html += "<li><a href=\""+ghotiEscapeHtmlAttr(link.url)+"\">"+ghotiEscapeHtml(link.name || link.url)+"</a></li>";
+	});
+	return html;
+}
+
+// The sidebar shows the default group. It loads once and is refreshed by
+// refreshLinks() after every change - it used to poll the server every 3s.
+// Other groups appear inside pages with the [links:group] shortcode.
+function getLinks_cb(result){
+	if(!linksOk(result)){ return; }
+	$("#ghotiLinks").html("<ul id=\"ghotiLinksList\">"+buildLinksHtml(result.data.links)+"</ul>");
+}
+function refreshLinks(){
+	x_getLinks("default", getLinks_cb);
+}
+
+/* ---------------------------------------------------------------- *
+ *  Add a link
+ * ---------------------------------------------------------------- */
+
+function addLinkForm(){
+	$("#popup-content").html(
+		"<form id=\"addLinkForm\" class=\"ghotiForm\" action=\"#\" novalidate>"+
+			"<label class=\"ghotiField\"><span>Link name</span><input type=\"text\" id=\"linkName\" maxlength=\"32\" autocomplete=\"off\" required /></label>"+
+			"<label class=\"ghotiField\"><span>URL</span><input type=\"text\" id=\"linkURL\" inputmode=\"url\" autocapitalize=\"off\" autocomplete=\"off\" placeholder=\"example.com or https://example.com\" required /></label>"+
+			"<p class=\"ghotiHelpText\">https:// is added for you. Email addresses become mailto: links.</p>"+
+			"<label class=\"ghotiField\"><span>Group</span><input type=\"text\" id=\"linkGroup\" list=\"linkGroupOptions\" maxlength=\"32\" value=\"default\" autocomplete=\"off\" /><datalist id=\"linkGroupOptions\"></datalist></label>"+
+			"<p class=\"ghotiHelpText\">Choose a group or type a new one. Show a group in any page with <b>[links:group]</b>.</p>"+
+			"<p id=\"linkFormError\" class=\"ghotiFormError\" role=\"alert\" hidden></p>"+
+			"<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Add Link</button></div>"+
+		"</form>"
+	);
+	var form = document.getElementById("addLinkForm");
+	form.addEventListener("submit", function(event){
+		event.preventDefault();
+		addLink();
+	});
+	form.addEventListener("input", function(){ setLinkFormError(""); });
+
+	x_getLinkGroups(getLinkGroups_cb); // fills the group suggestions
+	$("#popupTitle").html("Add a link");
+	showPopup();
+}
+function getLinkGroups_cb(result){
+	var list = document.getElementById("linkGroupOptions");
+	if(!list || !linksOk(result)){ return; }
+	list.innerHTML = result.data.groups.map(function(group){
+		return "<option value=\""+ghotiEscapeHtmlAttr(group)+"\"></option>";
+	}).join("");
+}
+function setLinkFormError(message, field){
+	var box = document.getElementById("linkFormError");
+	if(!box){ return; }
+	box.textContent = message;
+	box.hidden = !message;
+	if(message && field){ field.focus(); }
+}
+function addLink(){
+	var nameField = document.getElementById("linkName");
+	var urlField = document.getElementById("linkURL");
+	var name = nameField.value.trim();
+	var url = urlField.value.trim();
+	if(!name){ return setLinkFormError("Enter a name for the link.", nameField); }
+	if(!url){ return setLinkFormError("Enter the link's URL.", urlField); }
+	var group = document.getElementById("linkGroup").value.trim();
+	x_addLink(name, url, group, addLink_cb);
+}
+function addLink_cb(result){
+	if(!document.getElementById("addLinkForm")){ return; } // popup was closed meanwhile
+	if(!linksOk(result)){
+		var field = result && result.error && result.error.code === "duplicate" ? document.getElementById("linkURL") : null;
+		setLinkFormError(linksError(result, "The link could not be added."), field);
+		return;
+	}
+	var link = result.data.link;
+	popupFeedBack("Added \""+link.name+"\" to "+link.grp+".");
+	// Stay open for the next link; the group is usually the same.
+	document.getElementById("linkName").value = "";
+	document.getElementById("linkURL").value = "";
+	document.getElementById("linkName").focus();
+	x_getLinkGroups(getLinkGroups_cb);
+	refreshLinks();
+	if(document.getElementById("ghotiManageLinks")){ editLinkForm(); }
+}
+
+/* ---------------------------------------------------------------- *
+ *  Manage links
+ * ---------------------------------------------------------------- */
+
+function editLinkForm(){
+	x_getLinks("all", editLinkForm_cb);
+}
+
+function linksDocsHtml(){
+	return ghotiDocsHtml("How to use links", "sidebar links & groups", [
+		{ heading: "Add a link",
+		  list: ["Press <b>Add Link</b>, then enter a name and a URL. Web addresses get <b>https://</b> added automatically.",
+		         "Only <b>http://</b>, <b>https://</b>, <b>mailto:</b> and site-relative URLs are accepted."] },
+		{ heading: "Groups",
+		  list: ["Every link belongs to a group. The sidebar shows the <b>default</b> group.",
+		         "Type a new group name when adding or saving a link to create it.",
+		         "Show any group inside a page by typing its shortcode, such as <b>[links:resources]</b>. Use <b>Copy</b> beside a group to grab it."] },
+		{ heading: "Edit or remove",
+		  list: ["Change any field and press <b>Save</b> (or <b>Enter</b>), or <b>Delete</b> to remove the link."] }
+	]);
+}
+
+function linkRowHtml(link){
+	var id = parseInt(link.id, 10);
+	return "<article class=\"ghotiCrudRow ghotiLinkRow\" data-link-id=\""+id+"\" data-link-group=\""+ghotiEscapeHtmlAttr(link.grp)+"\" data-link-search=\""+ghotiEscapeHtmlAttr((link.name+" "+link.url+" "+link.grp).toLowerCase())+"\">"+
+		"<div class=\"ghotiFormGrid\">"+
+			"<label class=\"ghotiField\"><span>Name</span><input type=\"text\" name=\"name\" maxlength=\"32\" value=\""+ghotiEscapeHtmlAttr(link.name)+"\" /></label>"+
+			"<label class=\"ghotiField ghotiFieldWide\"><span>URL</span><input type=\"text\" name=\"url\" inputmode=\"url\" autocapitalize=\"off\" value=\""+ghotiEscapeHtmlAttr(link.url)+"\" /></label>"+
+			"<label class=\"ghotiField\"><span>Group</span><input type=\"text\" name=\"grp\" maxlength=\"32\" list=\"manageLinkGroups\" value=\""+ghotiEscapeHtmlAttr(link.grp)+"\" /></label>"+
+		"</div>"+
+		"<div class=\"ghotiFormActions ghotiCrudActions\">"+
+			"<span class=\"ghotiCrudMeta\">"+(link.userName ? "Added by <b>"+ghotiEscapeHtml(link.userName)+"</b> · " : "")+"<span class=\"ghotiLinkStatus\" role=\"status\"></span></span>"+
+			"<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" data-links-action=\"save\"><img src=\"gfx/save.png\" alt=\"\" />Save</button>"+
+			"<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" data-links-action=\"delete\"><img src=\"gfx/delete.png\" alt=\"\" />Delete</button>"+
+		"</div>"+
+	"</article>";
+}
+
+// Links arrive ordered by group; "default" goes first, the rest keep that order.
+function groupLinks(links){
+	var groups = [], byName = {};
+	links.forEach(function(link){
+		if(!byName.hasOwnProperty(link.grp)){
+			byName[link.grp] = { name: link.grp, slug: link.slug, links: [] };
+			groups.push(byName[link.grp]);
+		}
+		byName[link.grp].links.push(link);
+	});
+	groups.sort(function(a, b){
+		return (b.name === "default") - (a.name === "default");
+	});
+	return groups;
+}
+
+function editLinkForm_cb(result){
+	var body;
+	if(!linksOk(result)){
+		body = "<p class=\"ghotiEmptyState\" role=\"alert\">"+ghotiEscapeHtml(linksError(result, "Could not load links."))+"</p>";
+	}else if(!result.data.links.length){
+		body = "<p class=\"ghotiEmptyState\">No links yet. Press <b>Add Link</b> to create one.</p>";
+	}else{
+		var groups = groupLinks(result.data.links);
+		var search = result.data.links.length > 8
+			? "<label class=\"ghotiField\"><span>Filter links</span><input type=\"search\" id=\"linkFilter\" placeholder=\"Name, URL or group\" autocomplete=\"off\" /></label>"
+			: "";
+		var options = groups.map(function(group){ return "<option value=\""+ghotiEscapeHtmlAttr(group.name)+"\"></option>"; }).join("");
+		body = search+"<datalist id=\"manageLinkGroups\">"+options+"</datalist>"+
+			"<form id=\"editLinkForm\" class=\"ghotiForm ghotiCrudList\" action=\"#\">"+
+			groups.map(function(group){
+				var shortcode = "[links:"+group.slug+"]";
+				return "<section class=\"ghotiLinkGroup\" data-group=\""+ghotiEscapeHtmlAttr(group.name)+"\">"+
+					"<header class=\"ghotiLinkGroupHeader\"><h2>"+ghotiEscapeHtml(group.name)+"</h2>"+
+					"<span class=\"ghotiCrudMeta\">"+group.links.length+(group.links.length === 1 ? " link" : " links")+" · <code>"+ghotiEscapeHtml(shortcode)+"</code></span>"+
+					"<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary ghotiButtonCompact\" data-links-action=\"copy\" data-shortcode=\""+ghotiEscapeHtmlAttr(shortcode)+"\">Copy</button>"+
+					"<span class=\"ghotiLinkStatus\" role=\"status\"></span></header>"+
+					group.links.map(linkRowHtml).join("")+
+				"</section>";
+			}).join("")+
+			"</form>";
+	}
+	$("#ghotiContent").html(
+		"<section id=\"ghotiManageLinks\" class=\"ghotiAdminPanel\">"+
+			"<div class=\"ghotiCrudHeader\"><h1>Manage Links</h1><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"addLinkForm();\">Add Link</button></div>"+
+			body+linksDocsHtml()+
+		"</section>"
+	);
+	bindLinksManager();
+}
+
+function bindLinksManager(){
+	var form = document.getElementById("editLinkForm");
+	if(form){
+		form.addEventListener("submit", function(event){
+			event.preventDefault(); // saving is per row, never a whole-form submit
+		});
+		form.addEventListener("keydown", function(event){
+			if(event.key !== "Enter" || event.target.tagName !== "INPUT"){ return; }
+			event.preventDefault(); // Enter in a field saves that row
+			saveLink(event.target.closest(".ghotiLinkRow"));
+		});
+		form.addEventListener("click", function(event){
+			var button = event.target.closest("[data-links-action]");
+			if(!button){ return; }
+			var action = button.getAttribute("data-links-action");
+			if(action === "save"){ saveLink(button.closest(".ghotiLinkRow")); }
+			if(action === "delete"){ deleteLink(button.closest(".ghotiLinkRow")); }
+			if(action === "copy"){ copyLinkShortcode(button); }
+		});
+	}
+	var filter = document.getElementById("linkFilter");
+	if(filter){
+		filter.addEventListener("input", function(){
+			var needle = filter.value.trim().toLowerCase();
+			document.querySelectorAll("#ghotiManageLinks .ghotiLinkRow").forEach(function(row){
+				row.hidden = needle !== "" && row.getAttribute("data-link-search").indexOf(needle) === -1;
+			});
+		});
+	}
+}
+
+// Status text sits beside the buttons instead of in a popup that covers the row.
+function setLinkStatus(container, message, isError){
+	var status = container.querySelector(".ghotiLinkStatus");
+	if(!status){ return; }
+	status.textContent = message;
+	status.classList.toggle("is-error", !!isError);
+}
+
+function saveLink(row){
+	var id = row.getAttribute("data-link-id");
+	var name = row.querySelector("[name=name]").value.trim();
+	var url = row.querySelector("[name=url]").value.trim();
+	var grp = row.querySelector("[name=grp]").value.trim();
+	if(!name || !url){
+		setLinkStatus(row, "Name and URL are required.", true);
+		return;
+	}
+	setLinkStatus(row, "Saving…", false);
+	x_saveLink(id, name, url, grp, function(result){
+		saveLink_cb(row, result);
+	});
+}
+function saveLink_cb(row, result){
+	if(!linksOk(result)){
+		setLinkStatus(row, linksError(result, "The link could not be saved."), true);
+		return;
+	}
+	var link = result.data.link;
+	refreshLinks();
+	if(link.grp !== row.getAttribute("data-link-group")){
+		editLinkForm(); // it moved to another group, so redraw the sections
+		return;
+	}
+	// Show what was actually stored (e.g. https:// added to a bare domain).
+	row.querySelector("[name=name]").value = link.name;
+	row.querySelector("[name=url]").value = link.url;
+	setLinkStatus(row, "Saved", false);
+}
+
+function deleteLink(row){
+	var name = row.querySelector("[name=name]").value;
+	if(!confirm("Delete \""+name+"\"?\nThis is permanent.")){ return; }
+	x_deleteLink(row.getAttribute("data-link-id"), function(result){
+		deleteLink_cb(row, result);
+	});
+}
+function deleteLink_cb(row, result){
+	// "not_found" means someone already removed it; the list just needs a refresh.
+	if(!linksOk(result) && !(result && result.error && result.error.code === "not_found")){
+		setLinkStatus(row, linksError(result, "The link could not be deleted."), true);
+		return;
+	}
+	refreshLinks();
+	editLinkForm();
+}
+
+function copyLinkShortcode(button){
+	var header = button.closest(".ghotiLinkGroupHeader");
+	var text = button.getAttribute("data-shortcode");
+	var done = function(ok){
+		setLinkStatus(header, ok ? "Copied" : "Copy failed - select the shortcode and copy it manually.", !ok);
+	};
+	if(!navigator.clipboard || !navigator.clipboard.writeText){ return done(false); }
+	navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); });
 }
