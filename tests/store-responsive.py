@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-THEMES = ('prosimii', 'smurfius', 'ghoticms', 'cyber', 'mahogany', 'ironhide', 'spore', 'veil')
+THEMES = ('prosimii', 'smurfius', 'ghoticms', 'cyber', 'mahogany', 'ironhide', 'spore', 'veil', 'hianxiety')
 
 
 def main():

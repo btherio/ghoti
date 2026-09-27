@@ -4,7 +4,7 @@
  *
  * Lets an administrator write one message and deliver it to a single user,
  * a chosen set of users, or everyone with a usable address. Transport is the
- * mail module's SMTP client (Admin Menu -> Mail Settings); this file owns the
+ * mail module's SMTP client (Admin Menu -> Site Settings -> Mail); this file owns the
  * recipient policy, the message body, and the look of the message.
  *
  * Theming: the HTML part is painted with the design tokens of the site's own
@@ -431,6 +431,8 @@ function ghoti_mail_footer_note($audience, $siteTitle){
 			return 'You received this message about your order from '.$siteTitle.'.';
 		case 'operator':
 			return 'You received this message because you administer '.$siteTitle.'.';
+		case 'boards':
+			return 'You received this because you turned on reply notifications at '.$siteTitle.'. To stop them, sign in and open Your account > Notifications.';
 		case 'none':
 			return '';
 		case 'member':
@@ -560,7 +562,7 @@ function ghoti_mail_mailer(){
 	return new mail();
 }
 
-/* True when Mail Settings is configured well enough to send anything. */
+/* True when the Mail tab is configured well enough to send anything. */
 function ghoti_mail_is_enabled($mailer){
 	if(!is_object($mailer) || !isset($mailer->maildb)){ return false; }
 	try{
@@ -602,7 +604,7 @@ function sendComposedMail($payload){
 
 	$mailer = ghoti_mail_mailer();
 	if(!ghoti_mail_is_enabled($mailer)){
-		return 'Mail sending is off. Configure and enable it under Admin Menu -> Mail Settings first.';
+		return 'Mail sending is off. Configure and enable it under Admin Menu -> Site Settings -> Mail first.';
 	}
 
 	$mode = strtolower(trim((string)($payload['mode'] ?? '')));
@@ -671,7 +673,7 @@ function sendComposedMail($payload){
 	}
 	if($result['failed'] > 0){
 		$summary .= ' Delivery failed for: '.implode(', ', $result['failedAddresses'])
-			.($result['failed'] > count($result['failedAddresses']) ? ' and others' : '').'. Check Mail Settings and the log.';
+			.($result['failed'] > count($result['failedAddresses']) ? ' and others' : '').'. Check Site Settings → Mail and the log.';
 	}
 	return $summary;
 }
@@ -696,7 +698,7 @@ function ghoti_mail_render_compose(array $directory, $mailEnabled, $directoryErr
 	$o .= '<p class="ghotiHelpText">Write one message and send it to a single user, a selection, or everyone with an address. Each person receives their own copy, so recipients never see each other.</p></div></div>';
 
 	if(!$mailEnabled){
-		$o .= '<p class="ghotiHelpText"><b>Mail sending is off.</b> Configure the SMTP server under <b>Admin Menu &rarr; Mail Settings</b>, tick <b>Enabled</b>, and send a test message. Composing is disabled until then.</p>';
+		$o .= '<p class="ghotiHelpText"><b>Mail sending is off.</b> Configure the SMTP server under <b>Admin Menu &rarr; Site Settings &rarr; Mail</b>, tick <b>Enabled</b>, and send a test message. Composing is disabled until then.</p>';
 	}
 	if($directoryError !== ''){
 		$o .= '<p class="ghotiHelpText">'.$esc($directoryError).'</p>';
@@ -749,10 +751,10 @@ function ghoti_mail_render_compose(array $directory, $mailEnabled, $directoryErr
 
 	$o .= ghoti_docs_panel('How sending email works', 'recipients, delivery, limits', array(
 		array('heading'=>'Who gets it', 'list'=>array(
-			'<b>All users</b> is every account with a valid address; <b>Administrators only</b> is the same list Mail Settings and critical alerts use; <b>Selected users</b> is one or more accounts you tick - that is how you mail a single person.',
+			'<b>All users</b> is every account with a valid address; <b>Administrators only</b> is the same list the mail test and critical alerts use; <b>Selected users</b> is one or more accounts you tick - that is how you mail a single person.',
 			'Accounts without a valid address are skipped, and the count is reported back to you. Fix addresses in <b>Manage Users</b>.')),
 		array('heading'=>'Delivery', 'list'=>array(
-			'One message per recipient, sent through <b>Mail Settings</b>. No one sees anyone else&rsquo;s address, and a rejection for one person does not stop the rest.',
+			'One message per recipient, sent through <b>Site Settings &rarr; Mail</b>. No one sees anyone else&rsquo;s address, and a rejection for one person does not stop the rest.',
 			'At most '.GHOTI_MAIL_MAX_RECIPIENTS.' recipients per message, so the request finishes before PHP&rsquo;s execution limit. Send to selected groups for a larger audience.',
 			'The result line reports how many were sent, skipped and failed. Failures are also written to the log.')),
 		array('heading'=>'Appearance', 'list'=>array(

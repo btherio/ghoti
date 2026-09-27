@@ -232,16 +232,18 @@ function ghotiAsync(fn, argList){
 	}else if(args.length && args[args.length - 1] && typeof args[args.length - 1] === 'object' && typeof args[args.length - 1].callback === 'function'){
 		callback = args.pop().callback;
 	}
-	//Button feedback: if this call was triggered by a recent button press
-	//(see ghoti.js), show the spinner on it for the duration of the request.
+	//Button feedback: the control that was pressed to start this request (see
+	//ghoti.js) spins until it finishes, however it finishes.
+	var settle = function(){};
 	var trigger = null;
-	if(typeof GHOTI_LAST_TRIGGER !== 'undefined' && GHOTI_LAST_TRIGGER && (Date.now() - GHOTI_LAST_TRIGGER_AT) < 700){
-		trigger = GHOTI_LAST_TRIGGER;
-		GHOTI_LAST_TRIGGER = null;
-		if(typeof ghotiButtonBusy === 'function'){ ghotiButtonBusy(trigger, true); }
+	if(typeof ghotiTakeTrigger === 'function' && typeof ghotiBusyBegin === 'function'){
+		trigger = ghotiTakeTrigger();
+		if(trigger){ settle = ghotiBusyBegin(trigger); }
 	}
-	function settle(){
-		if(trigger && typeof ghotiButtonBusy === 'function'){ ghotiButtonBusy(trigger, false); }
+	function respond(result){
+		if(!callback){ return; }
+		if(trigger && typeof ghotiRunAsPress === 'function'){ ghotiRunAsPress(trigger, function(){ callback(result); }); }
+		else { callback(result); }
 	}
 	fetch(GHOTI_ASYNC_URL, {
 		method: 'POST',
@@ -251,12 +253,18 @@ function ghotiAsync(fn, argList){
 	}).then(function(resp){
 		return resp.json();
 	}).then(function(data){
-		if(data && data.ok){
-			if(callback){ callback(data.result); }
-		}else if(window.console){
-			console.error('ghotiAsync ' + fn + ': ' + (data && data.error));
+		//The callback runs first so it can re-enable what it likes, and any
+		//request it sends joins the same press; the spinner ends even if the
+		//callback throws.
+		try{
+			if(data && data.ok){
+				respond(data.result);
+			}else if(window.console){
+				console.error('ghotiAsync ' + fn + ': ' + (data && data.error));
+			}
+		}finally{
+			settle();
 		}
-		settle();
 	}).catch(function(err){
 		if(window.console){ console.error('ghotiAsync ' + fn + ' failed', err); }
 		settle();
@@ -765,7 +773,9 @@ class ghotiui{
 		foreach($pageList as $records => $row){
 			$id = (int)$row[0];
 			$title = htmlspecialchars(stripslashes((string)$row[1]), ENT_QUOTES, 'UTF-8');
-			$this->output .= "<li class=\"nav-item\"><a class=\"nav-link ghotiMenu\" href=\"#\" onclick=\"getPage(".$id.")\"><i class=\"fas fa-tachometer-alt\"></i><span>".$title."</span></a></li>\n";
+			//A real href so crawlers (and middle-click) can follow it; the
+			//.ghotiMenu click handler cancels it and loads the page in place.
+			$this->output .= "<li class=\"nav-item\"><a class=\"nav-link ghotiMenu\" href=\"?page=".$id."\" onclick=\"getPage(".$id.")\"><i class=\"fas fa-tachometer-alt\"></i><span>".$title."</span></a></li>\n";
 		}
 		$this->output .= "</ul>\n";
 		return $this->output;
@@ -930,8 +940,8 @@ class ghotiui{
 		$o .= "</div>\n";
 
 		$o .= "<form id=\"siteSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveSiteSettings(); return false;\">\n";
-		$tabs = array('identity'=>'Identity', 'visitors'=>'Visitor access', 'admin'=>'Admin experience',
-			'security'=>'Security', 'logging'=>'Logging & alerts', 'modules'=>'Optional modules');
+		$tabs = array('identity'=>'Identity', 'seo'=>'SEO', 'visitors'=>'Visitor access', 'admin'=>'Admin experience',
+			'security'=>'Security', 'logging'=>'Logging & alerts', 'mail'=>'Mail', 'modules'=>'Optional modules');
 		$o .= '<div class="siteSettingsTabs" role="tablist" aria-label="Site settings">';
 		foreach($tabs as $key => $label){
 			$o .= '<button type="button" class="ghotiButton ghotiButtonSecondary" id="settings-tab-'.$key.'" role="tab" aria-controls="settings-panel-'.$key.'" aria-selected="'.($key === 'identity' ? 'true' : 'false').'" tabindex="'.($key === 'identity' ? '0' : '-1').'">'.$esc($label).'</button>';
@@ -957,6 +967,43 @@ class ghotiui{
 		$o .= "</div>\n";
 		$contact = ghoti_admin_contact_email();
 		$o .= "<p class=\"ghotiHelpText\">Theme and images apply on the next page load. Upload a background image through <b>Admin Menu &rarr; Files</b>, then enter its site-relative path above (for example, <code>files/background.jpg</code>). One image is shared by every theme that uses an image backdrop. Leave the background path blank to use each theme&rsquo;s bundled image. Public identity details appear in the footer policy and accessibility notice; leave them blank to omit that notice. The published contact address is the administrator account&rsquo;s own e-mail (currently <code>".$esc($contact === '' ? 'none on file' : $contact)."</code>) &mdash; change it in <b>Manage Users</b>. The home page is chosen in <b>Manage Pages</b>.</p>\n";
+		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
+
+		/* ---- SEO: search and sharing metadata. Rendered from settings alone -
+		 * no database read - so the form renders anywhere. See ghoti.seo.php. ---- */
+		$o .= '<div id="settings-panel-seo" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-seo" tabindex="0" hidden="hidden">';
+		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide\"><legend>Search &amp; sharing</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">How the site appears in search results and when a link to it is shared.</p>\n";
+		$o .= "<div class=\"ghotiFormGrid\">\n";
+		$envUrl = getenv('GHOTI_PUBLIC_URL');
+		$o .= $text("seoSiteUrl", "Site URL", ghoti::$seoSiteUrl, "url", "(https)", "maxlength=\"200\" placeholder=\"".$esc(is_string($envUrl) && $envUrl !== '' ? $envUrl : 'https://example.com')."\" ");
+		$o .= $text("seoHomeTitle", "Home page title", ghoti::$seoHomeTitle, "text", "(blank = site title)", "maxlength=\"120\" placeholder=\"".$esc(ghoti::$siteTitle)."\" ");
+		$o .= $text("seoTitleFormat", "Other page titles", ghoti::$seoTitleFormat, "text", "({page}, {site})", "maxlength=\"120\" placeholder=\"{page} | {site}\" ");
+		$o .= $text("seoShareImage", "Share image", ghoti::$seoShareImage, "text", "(path, ~1200&times;630)", "maxlength=\"200\" placeholder=\"files/share.png\" ");
+		$o .= $text("seoTwitterHandle", "Twitter/X handle", ghoti::$seoTwitterHandle, "text", "(optional)", "maxlength=\"16\" placeholder=\"@example\" ");
+		$o .= $text("seoGoogleVerification", "Google verification code", ghoti::$seoGoogleVerification, "text", "(optional)", "maxlength=\"100\" spellcheck=\"false\" ");
+		$o .= $text("seoBingVerification", "Bing verification code", ghoti::$seoBingVerification, "text", "(optional)", "maxlength=\"100\" spellcheck=\"false\" ");
+		$o .= "</div>\n";
+		$o .= "<div class=\"ghotiFormGrid\">\n";
+		$o .= $textarea("seoDescription", "Site description", ghoti::$seoDescription, "(about 150&ndash;160 characters; shown under your link in results)", "rows=\"3\" maxlength=\"300\" ");
+		$o .= $textarea("seoKeywords", "Keywords", ghoti::$seoKeywords, "(optional, comma-separated; most search engines ignore these)", "rows=\"2\" maxlength=\"300\" ");
+		$o .= "</div>\n";
+		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= $choice("seoAllowIndexing", "Let search engines index this site", ghoti::$seoAllowIndexing, "set-seoAllowIndexing-help");
+		$o .= $choice("seoStructuredData", "Publish structured data (schema.org WebSite and Organization)", ghoti::$seoStructuredData);
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-seoAllowIndexing-help\">Off marks every page <code>noindex</code> &mdash; use it while a site is being built. Crawling stays allowed on purpose, so search engines can see that instruction.</p>\n";
+		$o .= "<div class=\"ghotiFormGrid\">\n";
+		$o .= $textarea("seoRobotsExtra", "Extra robots.txt rules", ghoti::$seoRobotsExtra, "(User-agent / Allow / Disallow / Crawl-delay / Sitemap lines)", "rows=\"4\" spellcheck=\"false\" placeholder=\"User-agent: GPTBot&#10;Disallow: /\" ");
+		$o .= "</div>\n";
+		$base = function_exists('ghoti_seo_base_url') ? ghoti_seo_base_url() : '';
+		$o .= "<p class=\"ghotiHelpText\">"
+			.($base !== ''
+				? "Search engines find your pages through <a href=\"".$esc($base)."/sitemap.xml\" target=\"_blank\" rel=\"noopener noreferrer\">".$esc($base)."/sitemap.xml</a> and <a href=\"".$esc($base)."/robots.txt\" target=\"_blank\" rel=\"noopener noreferrer\">robots.txt</a>, both generated from the public pages. Submit the sitemap in Google Search Console and Bing Webmaster Tools."
+				: "<b>No Site URL yet.</b> Canonical links, share-card URLs, structured data and the sitemap all need the site&rsquo;s full https address, so they are left out until one is set here or in <code>GHOTI_PUBLIC_URL</code>.")
+			."</p>\n";
+		$o .= "<p class=\"ghotiHelpText\">Each page&rsquo;s title comes from its name in <b>Manage Pages</b>. Verification codes are the <code>content</code> value from the meta tag Google or Bing gives you, not the whole tag. Upload a share image through <b>Files</b> and enter its path. <code>robots.txt</code> and <code>sitemap.xml</code> are served from the web root by rewrite rules in <code>.htaccess</code>; if your server ignores <code>.htaccess</code>, they are also at <code>seo.php?file=robots</code> and <code>seo.php?file=sitemap</code>.</p>\n";
 		$o .= "</fieldset>\n";
 		$o .= "</div>\n"; //tab panel
 
@@ -996,7 +1043,9 @@ class ghotiui{
 		 * is visible instead of the setting simply not existing. saveSettings()
 		 * refuses it regardless of what the browser sends. */
 		$mailVerified = function_exists('ghoti_mail_verified') ? ghoti_mail_verified() : false;
-		$twoFactorAttrs = $mailVerified ? '' : ' disabled="disabled"';
+		$adminsOnApp = function_exists('login_2fa_all_admins_enrolled') && login_2fa_all_admins_enrolled();
+		$twoFactorAttrs = $mailVerified || $adminsOnApp || ghoti::$enableTwoFactor ? '' : ' disabled="disabled"';
+		$widenAttrs = $mailVerified || ghoti::$twoFactorAllUsers ? '' : ' disabled="disabled"';
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableTwoFactor\""
 			.(ghoti::$enableTwoFactor ? " checked=\"checked\"" : "").$twoFactorAttrs
 			." aria-describedby=\"set-enableTwoFactor-help\" /> Require an emailed sign-in code for administrators</label>\n";
@@ -1007,17 +1056,17 @@ class ghotiui{
 		$o .= "<div id=\"two-factor-scope\" class=\"settingsDependent\"".(ghoti::$enableTwoFactor ? "" : " data-inactive=\"true\"").">\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-twoFactorAllUsers\""
-			.(ghoti::$twoFactorAllUsers ? " checked=\"checked\"" : "").$twoFactorAttrs
+			.(ghoti::$twoFactorAllUsers ? " checked=\"checked\"" : "").$widenAttrs
 			." aria-describedby=\"set-twoFactorAllUsers-help\" /> Require it for ordinary members too</label>\n";
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-twoFactorAllUsers-help\">Off, only administrators are asked for a code and members sign in with a password as usual. On, <b>every</b> account is asked &mdash; which puts the mail server in front of every sign-in on the site, and refuses any member who has no valid e-mail address on file. Check <b>Users</b> for blank addresses before turning this on.</p>\n";
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-enableTwoFactor-help\">"
-			.($mailVerified
-				? "Administrators sign in with their password and then a six-digit code sent to the address on their account. The code lasts ten minutes, can be used once, and wrong codes count towards the same throttle as wrong passwords. Accounts without a valid e-mail address cannot sign in while this is on."
-				: "<b>Unavailable until outbound mail is tested.</b> The code is delivered by e-mail and there is no fallback, so enabling this against an untested mail server would lock every administrator out. Open <b>Mail Settings</b>, send a test message, then come back.")
+			.($mailVerified || $adminsOnApp
+				? "Administrators sign in with their password and then a six-digit code: from the authenticator app they set up under <b>Your account &rarr; Sign-in security</b>, or otherwise e-mailed to the address on their account (it lasts ten minutes and can be used once). Wrong codes count towards the same throttle as wrong passwords. An account with neither an app nor a valid e-mail address cannot sign in while this is on."
+				: "<b>Unavailable until outbound mail is tested, or every administrator has set up an authenticator app under Your account &rarr; Sign-in security.</b> The code is delivered by e-mail and there is no fallback, so enabling this against an untested mail server would lock every administrator out. Open the <b>Mail</b> tab, send a test message, then come back.")
 			."</p>\n";
-		$o .= "<p class=\"ghotiHelpText\">If mail stops working while this is on, nobody can sign in. Recover by setting <code>\"enableTwoFactor\": false</code> in <code>ghoti.settings.json</code> on the server.</p>\n";
+		$o .= "<p class=\"ghotiHelpText\">If mail stops working while this is on, accounts on e-mailed codes cannot sign in; accounts using an authenticator app are unaffected. Recover by setting <code>\"enableTwoFactor\": false</code> in <code>ghoti.settings.json</code> on the server.</p>\n";
 		$o .= "<div id=\"security-auto-controls\" class=\"settingsDependent securityAutoControls\"".(ghoti::$securityAutoBlacklist ? "" : " data-inactive=\"true\"").">\n";
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= $text("securityFailedLoginThreshold", "Failed attempts", ghoti::$securityFailedLoginThreshold, "number", "(3–100)", "min=\"3\" max=\"100\" step=\"1\" ");
@@ -1073,8 +1122,18 @@ class ghotiui{
 		}else{
 			$o .= "<p class=\"ghotiHelpText\">No administrator account has a valid e-mail address yet, so alerts cannot be enabled. Add one in <b>Manage Users</b>.</p>\n";
 		}
-		$o .= "<p class=\"ghotiHelpText\">Sent through <b>Mail Settings</b>, addressed to each administrator individually. Covers application errors, and 5 failed-login or suspicious-access events within 15 minutes &mdash; one delivery per category per 15 minutes.</p>\n";
+		$o .= "<p class=\"ghotiHelpText\">Sent through the <b>Mail</b> tab&rsquo;s SMTP server, addressed to each administrator individually. Covers application errors, and 5 failed-login or suspicious-access events within 15 minutes &mdash; one delivery per category per 15 minutes.</p>\n";
 		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
+
+		/* ---- Mail. Rendered by the mail module, which owns the SMTP settings and
+		 * saves them itself (mailSaveIfChanged() in mail.js runs before the rest
+		 * of this form is saved). The module is always loaded in a request; the
+		 * guard is for callers that render this form without it. ---- */
+		$o .= '<div id="settings-panel-mail" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-mail" tabindex="0" hidden="hidden">';
+		$o .= function_exists('mailSettingsPanel')
+			? mailSettingsPanel()
+			: "<fieldset class=\"siteSettingsSection\"><legend>Mail</legend><p class=\"ghotiHelpText\">The mail module is not loaded.</p></fieldset>\n";
 		$o .= "</div>\n"; //tab panel
 
 		/* ---- Optional modules ---- */

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const keys = ['identity', 'visitors', 'admin', 'security', 'logging', 'modules'];
+const keys = ['identity', 'seo', 'visitors', 'admin', 'security', 'logging', 'mail', 'modules'];
 const nodes = {};
 const tabs = keys.map(key => {
     nodes['settings-panel-' + key] = {hidden: key !== 'identity', draft: ''};
@@ -32,15 +32,15 @@ function active(key){
 }
 active('identity');
 nodes['settings-panel-identity'].draft = 'Unsaved title';
-tabs[3].handlers.click(); active('security');
+tabs[4].handlers.click(); active('security');
 context.initSiteSettings(); active('security');
 function key(tab, key){ tab.handlers.keydown({key, preventDefault(){}}); }
-key(tabs[3], 'ArrowRight'); active('logging');
-assert.equal(tabs[4].focused, true);
-key(tabs[4], 'End'); active('modules');
-key(tabs[5], 'ArrowRight'); active('identity');
+key(tabs[4], 'ArrowRight'); active('logging');
+assert.equal(tabs[5].focused, true);
+key(tabs[5], 'End'); active('modules');
+key(tabs[7], 'ArrowRight'); active('identity');
 key(tabs[0], 'ArrowLeft'); active('modules');
-key(tabs[5], 'Home'); active('identity');
+key(tabs[7], 'Home'); active('identity');
 assert.equal(nodes['settings-panel-identity'].draft, 'Unsaved title');
 root.invalid({target: {closest(){ return {getAttribute(){ return 'settings-tab-security'; }}; }}});
 active('security');

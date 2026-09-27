@@ -1,6 +1,6 @@
 # Critical log email alerts
 
-In **Site Settings → Logging & alerts**, enable **E-mail critical log alerts**. There is no recipient field: alerts go to every administrator account, one message each, addressed individually so administrators do not see each other’s addresses. Delivery uses the existing SMTP configuration under **Mail Settings**. Alerts default to off and cannot be enabled while no administrator account has a valid e-mail address; an address that fails validation is skipped at send time. No external intrusion-detection service is configured by this feature.
+In **Site Settings → Logging & alerts**, enable **E-mail critical log alerts**. There is no recipient field: alerts go to every administrator account, one message each, addressed individually so administrators do not see each other’s addresses. Delivery uses the existing SMTP configuration under **Site Settings → Mail**. Alerts default to off and cannot be enabled while no administrator account has a valid e-mail address; an address that fails validation is skipped at send time. No external intrusion-detection service is configured by this feature.
 
 | Signal | Alert threshold |
 |---|---|

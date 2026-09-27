@@ -73,3 +73,14 @@ create table if not exists board_moderators(
   PRIMARY KEY  (`boardId`,`userId`),
   KEY `idx_board_moderators_user` (`userId`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 ;
+
+-- Per-account notification choices. Opt-in: an account with no row here gets
+-- no e-mail. Kept in this module (not a users column) so it goes away with the
+-- module's data and the login module does not have to know boards exist.
+create table if not exists board_notify(
+	`userId` int(11) not null default 0,
+	-- e-mail me when someone posts in a thread I have posted in
+	`replies` int(1) not null default 0,
+	`updatedAt` int(11) not null default 0,
+  PRIMARY KEY  (`userId`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 ;

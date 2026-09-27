@@ -24,12 +24,12 @@ foreach($argv as $argument){
 	if(strpos($argument, '--theme=') === 0){ $theme = substr($argument, 8); }
 	if(strpos($argument, '--view=') === 0){ $view = substr($argument, 7); }
 }
-$themeFiles = array('default'=>array(), 'prosimii'=>array('css/prosimii/prosimii-modern.css'), 'smurfius'=>array('css/smurfius/style.css'), 'ghoticms'=>array('css/ghoticms/style.css'), 'cyber'=>array('css/cyber/cyber.css'), 'ironhide'=>array('css/ironhide/ironhide.css', 'css/ironhide/store.css'), 'mahogany'=>array('css/mahogany/mahogany.css', 'css/mahogany/store.css'), 'spore'=>array('css/spore/spore.css'), 'veil'=>array('css/veil/veil.css'));
+$themeFiles = array('default'=>array(), 'prosimii'=>array('css/prosimii/prosimii-modern.css'), 'smurfius'=>array('css/smurfius/style.css'), 'ghoticms'=>array('css/ghoticms/style.css'), 'cyber'=>array('css/cyber/cyber.css'), 'ironhide'=>array('css/ironhide/ironhide.css', 'css/ironhide/store.css'), 'mahogany'=>array('css/mahogany/mahogany.css', 'css/mahogany/store.css'), 'spore'=>array('css/spore/spore.css'), 'veil'=>array('css/veil/veil.css'), 'hianxiety'=>array('css/hianxiety/hianxiety.css', 'css/hianxiety/store.css'));
 if(!isset($themeFiles[$theme]) || !in_array($view, array('catalog', 'cart', 'checkout', 'promotions'), true)){ throw new RuntimeException('Unknown preview theme or view'); }
 $db->settings['commerceConfig'] = storeValidateCommerce(array('freeShipping'=>'60', 'pointsPerUnit'=>2, 'loyaltyThreshold'=>500, 'loyaltyPercent'=>5, 'coupons'=>array(array('code'=>'WELCOME', 'type'=>'percent', 'value'=>10, 'minimum'=>'0', 'start'=>'', 'end'=>'', 'active'=>1))));
 storeTestSignOut();
 $bodyClass = $theme === 'prosimii' ? 'prosimii-modern' : ($theme === 'default' ? '' : $theme.'-theme');
-$contentClass = array('mahogany'=>'mahogany-content', 'ironhide'=>'ironhide-content', 'spore'=>'spore-reading', 'veil'=>'veil-document', 'prosimii'=>'prosimii-content')[$theme] ?? '';
+$contentClass = array('mahogany'=>'mahogany-content', 'ironhide'=>'ironhide-content', 'spore'=>'spore-reading', 'veil'=>'veil-document', 'prosimii'=>'prosimii-content', 'hianxiety'=>'hianxiety-content')[$theme] ?? '';
 $ui = storeUi();
 $method = new ReflectionMethod(storeui::class, 'renderProductAdmin');
 ?><!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Store preview — fixture data</title>

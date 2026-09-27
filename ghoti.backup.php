@@ -13,7 +13,7 @@ function ghoti_backup_render_workspace($emailMode){
 	$token = htmlspecialchars(ghoti_csrf_token(), ENT_QUOTES, 'UTF-8');
 	$deliveryNote = $emailMode
 		? 'Mail is enabled and a successful test is recorded. Generate each backup to send it as an attachment to every administrator. Downloads are disabled.'
-		: 'Backups are downloadable because mail is disabled or no successful test has been recorded. Enable mail and send a successful test in Mail Settings to use email delivery.';
+		: 'Backups are downloadable because mail is disabled or no successful test has been recorded. Enable mail and send a successful test under Site Settings → Mail to use email delivery.';
 	$zipReady = class_exists('ZipArchive');
 	$zipDisabled = $zipReady ? '' : ' disabled="disabled" aria-disabled="true"';
 	$zipNote = $zipReady ? 'Application code, themes, uploads, and site settings.' : 'Install the PHP Zip extension to enable site archives.';

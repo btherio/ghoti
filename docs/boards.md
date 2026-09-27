@@ -81,6 +81,29 @@ Post counts are derived, not stored — they are counted from the posts
 themselves whenever they are shown. Deleting a post, a topic, a board or an
 account keeps them correct with no bookkeeping.
 
+## Reply notifications
+
+Any signed-in member can ask to be e-mailed when someone replies, under
+**Your account → Notifications** (the item appears only while boards are
+enabled). A *reply* is any new post in a thread they have posted in; in a
+comment section, where the whole board is one thread, that means any later
+comment.
+
+- **Opt-in.** Nobody receives anything until they tick the box. The choice is
+  stored per account in `board_notify` and removed with the account.
+- **Who is mailed.** Other participants of that thread who opted in and have a
+  valid address — never the author of the new post, and each address once.
+- **What they get.** A themed message naming the author and the thread, with an
+  excerpt of the post (first 600 characters). Its footer says how to turn
+  notices off.
+- **Limits.** Notices are sent during the request that saved the post, capped
+  at 25 per post so a busy thread cannot stall the poster. Nothing is sent
+  while site mail (**Site Settings → Mail**) is off, and a mail failure is
+  logged but never turns a saved post into an error.
+
+`tests/board-notify.php` covers recipient selection, the author exclusion, the
+mail-off case and the menu gating.
+
 ## What is enforced where
 
 Every check is made on the server, in `mod/boards/boards.async.php`, and fails

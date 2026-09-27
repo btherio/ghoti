@@ -10,7 +10,7 @@ Keep both for a complete recovery set.
 - If mail is unavailable/disabled or no successful test is recorded, the page
   offers the existing downloadable ZIP and SQL exports.
 
-Send a test from **Mail Settings** after this upgrade to establish the first
+Send a test from **Site Settings → Mail** after this upgrade to establish the first
 recorded success. Earlier tests were not persisted and cannot be inferred.
 The new `mail.successfulTestAt` column is added by the normal module schema
 upgrade and starts at zero. Ordinary messages and failed tests do not set it;

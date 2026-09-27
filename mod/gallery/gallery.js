@@ -180,9 +180,13 @@ function galleryUploadQueue(galleryId, files){
 	var list = Array.prototype.slice.call(files);
 	var total = list.length;
 	var done = 0;
+	//Started by a drop or the file picker, so there is no button to spin -
+	//the status line carries the spinner instead.
+	ghotiProgressBusy(progress, true);
 	if(progress){ progress.textContent = "Uploading 0 of " + total + "..."; }
 	function next(){
 		if(!list.length){
+			ghotiProgressBusy(progress, false);
 			if(progress){ progress.textContent = "Uploaded " + total + " image" + (total === 1 ? "" : "s") + "."; }
 			galleryEditor(galleryId);
 			return;

@@ -94,7 +94,9 @@ ghoti_async_handle_request();
 //still blocks plugin injection, base-tag hijack, clickjacking and form CSRF.
 if(!headers_sent()){
 	header('Cache-Control: private, no-store');
-	if(($_GET['view'] ?? null) === 'sitemap'){ header('X-Robots-Tag: noindex, nofollow'); }
+	//Site Settings -> SEO "Let search engines index this site", off: say so in
+	//a header as well as the page's meta tag, so non-HTML responses carry it too.
+	if(($_GET['view'] ?? null) === 'sitemap' || !ghoti::$seoAllowIndexing){ header('X-Robots-Tag: noindex, nofollow'); }
 	header('X-Content-Type-Options: nosniff');
 	header('X-Frame-Options: DENY');
 	header('Referrer-Policy: strict-origin-when-cross-origin');

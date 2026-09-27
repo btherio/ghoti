@@ -134,38 +134,82 @@ function ghotiDocsHtml(title, hint, sections){
 /* ================================================================== *
  *  Button feedback
  *
- *  Every press of a button that fires an async RPC shows a spinner on that
- *  button (ghotiAsync applies/removes the .is-busy state - see the wrapper
- *  in ghoti.async.php). We capture the most recent button click / form
- *  submit here, and ghotiAsync consumes it if it is fresh enough. Buttons
- *  with an immediate visual result (popups, navigation) need no spinner -
- *  the :active press + the new UI state are the feedback.
+ *  Every press that starts a request shows a spinner on the control that was
+ *  pressed, until the request finishes. It is automatic: ghotiAsync() (the
+ *  wrapper in ghoti.async.php) asks ghotiTakeTrigger() what was just pressed
+ *  and holds it busy for the life of the request, so no call site opts in.
+ *  The few requests that bypass ghotiAsync - file uploads and the backup
+ *  forms - hold their own control with ghotiBusyBegin().
+ *
+ *  "Pressed" means anything that acts as a button: <button>, button-type
+ *  inputs, .ghotiButton / .ghotiIconButton / .btn, links that run script
+ *  (href="#" or an onclick, such as the admin menu), and role=button, tab or
+ *  menuitem. A press that runs no request - opening a popup, switching a tab
+ *  drawn in the page - shows nothing, because nothing is being waited on.
  * ================================================================== */
 
-var GHOTI_LAST_TRIGGER = null;
+var GHOTI_ACTIVE_TRIGGER = null;   //the press whose handlers are running now
+var GHOTI_LAST_TRIGGER = null;     //the most recent press, for a short while after
 var GHOTI_LAST_TRIGGER_AT = 0;
+var GHOTI_BUSY_REQUESTS = 0;       //requests holding a control busy, page-wide
 
 function ghotiCaptureTrigger(el){
+	GHOTI_ACTIVE_TRIGGER = el;
 	GHOTI_LAST_TRIGGER = el;
 	GHOTI_LAST_TRIGGER_AT = Date.now();
+	//Released once every handler for this event has run. A confirm() inside a
+	//handler holds the timer back too, so "Delete this? OK" still spins no
+	//matter how long the person took to answer - a fixed 700ms window alone
+	//dropped the spinner from nearly every delete button.
+	setTimeout(function(){
+		if(GHOTI_ACTIVE_TRIGGER === el){ GHOTI_ACTIVE_TRIGGER = null; }
+	}, 0);
+}
+
+//The control a request starting now belongs to, or null. Every request a
+//press's handler sends belongs to that press; after the handler returns, one
+//request sent within 700ms (a handler that waited on a timer or a file read)
+//still does. Anything later is background work and spins nothing.
+function ghotiTakeTrigger(){
+	if(GHOTI_ACTIVE_TRIGGER){
+		GHOTI_LAST_TRIGGER = null;
+		return GHOTI_ACTIVE_TRIGGER;
+	}
+	if(GHOTI_LAST_TRIGGER && (Date.now() - GHOTI_LAST_TRIGGER_AT) < 700){
+		var el = GHOTI_LAST_TRIGGER;
+		GHOTI_LAST_TRIGGER = null;
+		return el;
+	}
+	return null;
+}
+
+//The button-like element a click landed in, or null. Walks up so a click on
+//an icon inside a button records the button. Text inputs, checkboxes and
+//selects are not presses.
+function ghotiTriggerFor(target){
+	var el = target;
+	while(el && el.nodeType === 1){
+		var tag = el.tagName;
+		if(tag === 'BUTTON'){ return el; }
+		if(tag === 'INPUT'){
+			return /^(submit|button|image|reset)$/.test(el.type) ? el : null;
+		}
+		if(el.classList && (el.classList.contains('ghotiButton') || el.classList.contains('ghotiIconButton') || el.classList.contains('btn'))){
+			return el;
+		}
+		var role = el.getAttribute('role');
+		if(role === 'button' || role === 'tab' || role === 'menuitem'){ return el; }
+		if(tag === 'A' && (el.getAttribute('href') === '#' || el.hasAttribute('onclick'))){ return el; }
+		el = el.parentNode;
+	}
+	return null;
 }
 
 //Capture phase, so this runs before any inline onclick handler that fires
-//the async call - and we record the button, not whatever was inside it.
-//Only real buttons are captured: <button>, submit/button/image/reset inputs,
-//and links styled as buttons - never plain text inputs or checkboxes.
+//the request.
 document.addEventListener('click', function(e){
-	var el = e.target;
-	while(el && el.nodeType === 1){
-		var tag = el.tagName;
-		var isInputButton = tag === 'INPUT' && (el.type === 'submit' || el.type === 'button' || el.type === 'image' || el.type === 'reset');
-		if(tag === 'BUTTON' || isInputButton
-			|| (el.classList && (el.classList.contains('ghotiButton') || el.classList.contains('ghotiIconButton') || el.classList.contains('btn')))){
-			ghotiCaptureTrigger(el);
-			return;
-		}
-		el = el.parentNode;
-	}
+	var el = ghotiTriggerFor(e.target);
+	if(el){ ghotiCaptureTrigger(el); }
 }, true);
 
 //Enter-key submissions: attribute the spinner to the form's submit button.
@@ -174,36 +218,80 @@ document.addEventListener('submit', function(e){
 	if(!form || !form.elements){ return; }
 	for(var i = 0; i < form.elements.length; i++){
 		var el = form.elements[i];
-		if(el.tagName === 'BUTTON' && (el.type === 'submit' || el.type === '')){
+		if((el.tagName === 'BUTTON' && (el.type === 'submit' || el.type === ''))
+			|| (el.tagName === 'INPUT' && (el.type === 'submit' || el.type === 'image'))){
 			ghotiCaptureTrigger(el);
 			return;
 		}
 	}
 }, true);
 
-//Add/remove the spinner state on a captured button (see .is-busy in ghoti.css).
-//Buttons are disabled while busy to prevent double submits; anchors get the
-//pointer-events:none from .is-busy instead. A button that was already disabled
-//before the click stays disabled afterwards.
+//Add/remove the spinner state on a control (see .is-busy in ghoti.css). It
+//counts, so a press that sends several requests spins until the LAST one
+//finishes rather than the first. Buttons are disabled while busy to prevent
+//double submits; links get pointer-events:none from .is-busy instead. A
+//control that was already disabled before the press stays disabled.
 function ghotiButtonBusy(el, busy){
 	if(!el || !el.classList){ return; }
+	var count = parseInt(el.getAttribute('data-ghoti-busy') || '0', 10) || 0;
+	var disableable = typeof el.disabled === 'boolean';
 	if(busy){
-		if(el.getAttribute('data-ghoti-busy') !== '1'){
-			el.setAttribute('data-ghoti-busy', '1');
+		if(count === 0){
 			el.setAttribute('data-ghoti-was-disabled', el.disabled ? '1' : '0');
+			el.classList.add('is-busy');
+			el.setAttribute('aria-busy', 'true');
+			if(disableable){ el.disabled = true; }
 		}
-		el.classList.add('is-busy');
-		el.setAttribute('aria-busy', 'true');
-		if(el.tagName !== 'A'){ el.disabled = true; }
-	}else{
-		el.classList.remove('is-busy');
-		el.removeAttribute('aria-busy');
-		if(el.tagName !== 'A' && el.getAttribute('data-ghoti-was-disabled') !== '1'){
-			el.disabled = false;
-		}
-		el.removeAttribute('data-ghoti-busy');
-		el.removeAttribute('data-ghoti-was-disabled');
+		el.setAttribute('data-ghoti-busy', String(count + 1));
+		return;
 	}
+	if(count > 1){
+		el.setAttribute('data-ghoti-busy', String(count - 1));
+		return;
+	}
+	el.classList.remove('is-busy');
+	el.removeAttribute('aria-busy');
+	if(disableable && el.getAttribute('data-ghoti-was-disabled') !== '1'){
+		el.disabled = false;
+	}
+	el.removeAttribute('data-ghoti-busy');
+	el.removeAttribute('data-ghoti-was-disabled');
+}
+
+//Run a request's callback as part of the press that started the request, so
+//a follow-up it sends - save, then reload the list - keeps the same control
+//spinning until the whole chain is done instead of stopping in between.
+function ghotiRunAsPress(el, fn){
+	if(!el){ return fn(); }
+	var previous = GHOTI_ACTIVE_TRIGGER;
+	GHOTI_ACTIVE_TRIGGER = el;
+	try{ return fn(); }finally{ GHOTI_ACTIVE_TRIGGER = previous; }
+}
+
+//Hold el busy for one request. Returns the function that ends it; calling
+//that more than once is harmless, so it can sit in every exit path. While any
+//request is held, the page also shows a progress cursor - the feedback that
+//survives a control that vanished on press, like a dropdown menu closing.
+function ghotiBusyBegin(el){
+	ghotiButtonBusy(el, true);
+	GHOTI_BUSY_REQUESTS++;
+	document.documentElement.classList.add('ghotiBusy');
+	var ended = false;
+	return function(){
+		if(ended){ return; }
+		ended = true;
+		ghotiButtonBusy(el, false);
+		GHOTI_BUSY_REQUESTS = Math.max(0, GHOTI_BUSY_REQUESTS - 1);
+		if(GHOTI_BUSY_REQUESTS === 0){ document.documentElement.classList.remove('ghotiBusy'); }
+	};
+}
+
+//A status line for work that has no button - uploads started by a drop or a
+//file picker. Shows a spinner beside its text while busy.
+function ghotiProgressBusy(el, busy){
+	if(!el || !el.classList){ return; }
+	el.classList.toggle('ghotiProgressBusy', !!busy);
+	if(busy){ el.setAttribute('aria-busy', 'true'); }else{ el.removeAttribute('aria-busy'); }
 }
 
 var ghotiPopupReturnFocus = null;
@@ -494,9 +582,23 @@ document.addEventListener('click', function(event){
 }, true);
 
 //ajax functions
+/* Menu links carry a real ?page=N href for crawlers; the click is cancelled
+ * and the page loaded in place, so the address bar is kept in step here to
+ * leave a URL that can be shared, bookmarked and reached with Back. */
 function getPage(id) {
 	x_getPageById(id,printPage);
+	if(window.history && history.pushState && /^[1-9][0-9]*$/.test(String(id))){
+		var url = '?page=' + id;
+		if(window.location.search !== url){ history.pushState({ghotiPage: String(id)}, '', url); }
+	}
 }
+window.addEventListener('popstate', function(event){
+	var id = event.state && event.state.ghotiPage;
+	if(!id){ id = new URLSearchParams(window.location.search).get('page'); }
+	if(id && /^[1-9][0-9]*$/.test(id)){ x_getPageById(id, printPage); }
+	else if(!window.location.search){ x_getDefaultPage(printPage); }
+	else { window.location.reload(); } //back to a server-rendered view (?view=privacy)
+});
 function getPageByTitle(title){
 //	x_getPageByTitle(title,printPage);
 }
@@ -769,7 +871,7 @@ function sendComposedMail(){
 function emailGhotiBackup(form, kind){
 	var button = form.querySelector('button[type="submit"]');
 	var feedback = form.querySelector('.backupEmailFeedback');
-	button.disabled = true;
+	var done = ghotiBusyBegin(button);
 	feedback.textContent = 'Generating backup and emailing all administrators…';
 	fetch('backup.php?action=email-' + encodeURIComponent(kind), {
 		method: 'POST', credentials: 'same-origin', body: new FormData(form),
@@ -780,7 +882,7 @@ function emailGhotiBackup(form, kind){
 		feedback.textContent = result.message || 'Backup delivery failed.';
 	}).catch(function(){
 		feedback.textContent = 'The request was interrupted. Delivery may have started; check administrator inboxes before retrying.';
-	}).finally(function(){ button.disabled = false; });
+	}).finally(done);
 }
 
 function restoreGhotiBackup(kind){
@@ -789,7 +891,7 @@ function restoreGhotiBackup(kind){
 	var button = form.querySelector('button[type="submit"]');
 	var feedback = form.querySelector('.backupRestoreFeedback');
 	var data = new FormData(form);
-	button.disabled = true;
+	var done = ghotiBusyBegin(button);
 	feedback.textContent = 'Validating and restoring…';
 	fetch('backup.php?action=restore-' + encodeURIComponent(kind), {
 		method: 'POST',
@@ -803,7 +905,7 @@ function restoreGhotiBackup(kind){
 		if(result.success){ form.reset(); pageFeedBack(result.message); }
 	}).catch(function(){
 		feedback.textContent = 'The restore request could not reach the server.';
-	}).finally(function(){ button.disabled = false; });
+	}).finally(done);
 }
 /* Dim a dependent group of fields while its checkbox is off, so the dependency
  * is visible as you toggle and not only on the next render. The fields stay
@@ -855,6 +957,7 @@ function initSiteSettings(){
 		});
 	}
 	bindDependent('set-securityAutoBlacklist', 'security-auto-controls');
+	if(typeof initMailSettings === 'function'){ initMailSettings(); }
 }
 
 function clearAutoBlockedIp(ip){
@@ -889,9 +992,30 @@ function saveSiteSettings(){
 		securityIpBlacklist: $("#set-securityIpBlacklist").val(),
 		securityIpAllowlist: $("#set-securityIpAllowlist").val(),
 		sessionTimeoutMinutes: $("#set-sessionTimeoutMinutes").val(),
-		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0
+		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0,
+		seoSiteUrl: $("#set-seoSiteUrl").val(),
+		seoHomeTitle: $("#set-seoHomeTitle").val(),
+		seoTitleFormat: $("#set-seoTitleFormat").val(),
+		seoDescription: $("#set-seoDescription").val(),
+		seoKeywords: $("#set-seoKeywords").val(),
+		seoShareImage: $("#set-seoShareImage").val(),
+		seoTwitterHandle: $("#set-seoTwitterHandle").val(),
+		seoAllowIndexing: $("#set-seoAllowIndexing").is(":checked") ? 1 : 0,
+		seoStructuredData: $("#set-seoStructuredData").is(":checked") ? 1 : 0,
+		seoGoogleVerification: $("#set-seoGoogleVerification").val(),
+		seoBingVerification: $("#set-seoBingVerification").val(),
+		seoRobotsExtra: $("#set-seoRobotsExtra").val()
 	};
-	x_saveSiteSettings(settings, saveSiteSettings_cb);
+	saveSiteSettingsAfterMail(settings);
+}
+/* The Mail tab is saved by the mail module, first, and only when it changed;
+ * a refusal there stops here with the Mail tab showing why. Kept out of
+ * saveSiteSettings() because tests/site-settings-contract.php reads that
+ * function's object literal as the list of site-setting keys. */
+function saveSiteSettingsAfterMail(settings){
+	var save = function(){ x_saveSiteSettings(settings, saveSiteSettings_cb); };
+	if(typeof mailSaveIfChanged === 'function'){ mailSaveIfChanged(save); }
+	else { save(); }
 }
 function saveSiteSettings_cb(result){
 	if(result === true){

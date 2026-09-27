@@ -26,3 +26,16 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
   KEY `idx_password_resets_user` (`userId`),
   KEY `idx_password_resets_expires` (`expiresAt`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1 ;
+
+-- user_totp: an account's authenticator-app enrollment. A row means the account
+-- signs in with app codes instead of emailed ones. The secret must be readable
+-- to check a code (same tradeoff as the SMTP password in `mail`), so treat
+-- database access and backups accordingly. lastStep is the time step of the
+-- last code accepted; a later sign-in must use a newer one (no replay).
+CREATE TABLE IF NOT EXISTS `user_totp` (
+  `userId` int(11) NOT NULL,
+  `secret` varchar(64) NOT NULL,
+  `confirmedAt` int(11) NOT NULL default 0,
+  `lastStep` bigint NOT NULL default 0,
+  PRIMARY KEY  (`userId`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 ;

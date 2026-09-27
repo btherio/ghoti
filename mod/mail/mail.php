@@ -9,7 +9,7 @@
  *
  *   mail.db.php    - `mail` settings table (single row, admin-edited)
  *   mail.smtp.php  - dependency-free SMTP client (class MailSmtpClient)
- *   mail.async.php - admin "Mail Settings" endpoints/UI + class mailui
+ *   mail.async.php - Site Settings "Mail" tab endpoints/UI + class mailui
  *                    + sendMail() convenience wrapper for other modules/PHP
  */
 include_once('mail.db.php');
@@ -34,7 +34,7 @@ class mail{
 	public function send($toAddress, $toName, $subject, $body, array $attachments = array(), $htmlBody = null){
 		$settings = $this->maildb->getSettings();
 		if(!$settings['enabled']){
-			return "Mail sending is disabled. Configure it under Admin Menu -> Mail Settings.";
+			return "Mail sending is disabled. Configure it under Admin Menu -> Site Settings -> Mail.";
 		}
 		$client = new MailSmtpClient($settings);
 		if($client->send($toAddress, $toName, $subject, $body, $attachments, $htmlBody)){

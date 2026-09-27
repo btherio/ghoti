@@ -27,6 +27,10 @@ const BOARD_DESC_MAX  = 255;
 const BOARD_TITLE_MAX = 160;
 const BOARD_POST_MAX  = 8000;
 const BOARD_PAGE_SIZE = 25;
+//Reply notices are sent inside the request that saved the post, so a thread
+//with a crowd of subscribers is capped rather than left to stall the poster.
+const BOARD_NOTIFY_MAX = 25;
+const BOARD_NOTIFY_EXCERPT = 600;
 
 /* ---------------------------------------------------------------- *
  *  Pure helpers (no session, no database)
@@ -358,7 +362,97 @@ function boardsAddPost($slug, $topicId, $body){
 	$postId = $db->addPost($board['boardId'], $topicId, $userId, $body);
 	if($postId === false){ return boards_fail('db_error', "The post could not be saved. Try again in a moment."); }
 	ghoti::logInfo("boards.async.php:boardsAddPost", "Post $postId on ".$board['slug']." by user $userId from ".ghoti_remote_addr().".");
+	//After the post is safely saved, and never able to change the answer: a
+	//mail server that is down must not turn a successful post into an error.
+	try{
+		boards_notify_reply($_SESSION['mailObj'] ?? null, $db, $board, $topic, $topicId, $userId, $body);
+	}catch(Throwable $e){
+		ghoti::logException("boards.async.php:boardsAddPost", $e, "reply notification");
+	}
 	return boards_ok(array('postId' => $postId, 'topicId' => $topicId));
+}
+
+/* ---------------------------------------------------------------- *
+ *  Reply notifications
+ *
+ *  Opt-in, per account (Your account -> Notifications). A "reply" is any new
+ *  post in a thread you have posted in; in a comment section that is the one
+ *  implicit thread, so earlier commenters hear about later comments.
+ * ---------------------------------------------------------------- */
+
+//The notice for one new post, as array(subject, plain-text message). Pure, so
+//tests can check the wording without a database or a mailer.
+function boards_reply_notice($siteTitle, $board, $topic, $authorName, $body){
+	$where = $board['mode'] === 'comments' || $topic === null || $topic['title'] === ''
+		? 'the comments on "'.$board['name'].'"'
+		: '"'.$topic['title'].'" on '.$board['name'];
+	$author = $authorName !== '' ? $authorName : 'Someone';
+	$excerpt = trim((string)$body);
+	if(mb_strlen($excerpt) > BOARD_NOTIFY_EXCERPT){
+		$excerpt = rtrim(mb_substr($excerpt, 0, BOARD_NOTIFY_EXCERPT))."\u{2026}";
+	}
+	$subject = $author.' replied in '.$where;
+	if(mb_strlen($subject) > 150){ $subject = mb_substr($subject, 0, 149)."\u{2026}"; }
+	$message = $author.' posted in '.$where.' on '.$siteTitle.', a thread you have posted in:'."\n\n"
+		.$excerpt."\n\n"
+		.'Visit the site to read the whole thread and reply.';
+	return array($subject, $message);
+}
+
+/*
+ * Mail every opted-in participant of the thread except the author. The mailer
+ * is passed in so a test can record instead of send. Returns the number of
+ * notices sent; failures are logged per address and do not stop the rest.
+ */
+function boards_notify_reply($mailer, $db, $board, $topic, $topicId, $authorId, $body){
+	if($db === null || !function_exists('ghoti_mail_is_enabled') || !ghoti_mail_is_enabled($mailer)){ return 0; }
+	$subscribers = $db->getReplySubscribers($topicId, $authorId, BOARD_NOTIFY_MAX);
+	if(!$subscribers){ return 0; }
+	//A members-only board's post only goes to people who could read it anyway -
+	//every subscriber has an account and posted there - so no extra check.
+	list($subject, $message) = boards_reply_notice(ghoti::$siteTitle, $board, $topic, $db->getUserContact($authorId)['userName'], $body);
+	$sent = 0;
+	$seen = array();
+	foreach($subscribers as $row){
+		$email = trim((string)$row[2]);
+		if(!filter_var($email, FILTER_VALIDATE_EMAIL) || isset($seen[strtolower($email)])){ continue; }
+		$seen[strtolower($email)] = true;
+		$result = ghoti_mail_send_themed($mailer, $email, (string)$row[1], $subject, $message, 'boards');
+		if($result === true){ $sent++; continue; }
+		ghoti::logWarn("boards.async.php:boards_notify_reply", "Reply notice for topic $topicId to user ".(int)$row[0]." failed: ".(is_string($result) ? $result : 'unknown error'));
+	}
+	if($sent > 0){
+		ghoti::logInfo("boards.async.php:boards_notify_reply", "Sent $sent reply notice(s) for topic $topicId.");
+	}
+	return $sent;
+}
+
+//The signed-in account's notification choices, for the Notifications dialog.
+function boardsGetNotifyPrefs(){
+	if(!ghoti_require_login()){ return boards_fail('forbidden', "You must be signed in."); }
+	$db = boards_db();
+	if($db === null){ return boards_fail('db_error', "Boards are not available."); }
+	$replies = $db->getNotifyReplies(ghoti_current_user_id());
+	if($replies === null){ return boards_fail('db_error', "Could not load your notification settings. Try again in a moment."); }
+	$email = $db->getUserContact(ghoti_current_user_id())['email'];
+	return boards_ok(array(
+		'replies'  => $replies,
+		'hasEmail' => filter_var($email, FILTER_VALIDATE_EMAIL) !== false,
+		'mailOn'   => function_exists('ghoti_mail_is_enabled') && ghoti_mail_is_enabled($_SESSION['mailObj'] ?? null),
+	));
+}
+
+function boardsSaveNotifyPrefs($replies){
+	if(!ghoti_require_login()){ return boards_fail('forbidden', "You must be signed in."); }
+	$db = boards_db();
+	if($db === null){ return boards_fail('db_error', "Boards are not available."); }
+	$on = (bool)ghoti_validate()->boolInt($replies);
+	$userId = ghoti_current_user_id();
+	if(!$db->setNotifyReplies($userId, $on)){
+		return boards_fail('db_error', "Could not save your notification settings. Try again in a moment.");
+	}
+	ghoti::logInfo("boards.async.php:boardsSaveNotifyPrefs", "User $userId turned reply notifications ".($on ? 'on' : 'off').".");
+	return boards_ok(array('replies' => $on));
 }
 
 function boardsEditPost($postId, $body){
@@ -683,7 +777,9 @@ ghoti_async_register(
 	"boardsSaveBoard",
 	"boardsDeleteBoard",
 	"boardsGetUserModeration",
-	"boardsSetModerator"
+	"boardsSetModerator",
+	"boardsGetNotifyPrefs",
+	"boardsSaveNotifyPrefs"
 );
 
 /* ---------------------------------------------------------------- *

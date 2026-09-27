@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php print ghoti::$siteTitle;?></title>
-  <meta name="description" content="Portfolio of a designer operating at the intersection of craft, systems, and code.">
+  <title><?php echo ghoti_seo_title_html(); ?></title>
+  <?php if(ghoti::$seoDescription === ''){ ?><meta name="description" content="Portfolio of a designer operating at the intersection of craft, systems, and code."><?php } ?>
   <link href="lib/fonts/smurfius.css" rel="stylesheet">
   <link rel="stylesheet" href="./css/smurfius/style.css?v=<?php echo filemtime(__DIR__.'/style.css'); ?>">
   <?php include_once "ghoti.header.php"; ?>

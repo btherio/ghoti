@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo htmlspecialchars(ghoti::$siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
-  <meta name="description" content="<?php echo htmlspecialchars(ghoti::$siteTitle, ENT_QUOTES, 'UTF-8'); ?> — powered by GhotiCMS">
+  <title><?php echo ghoti_seo_title_html(); ?></title>
+  <?php if(ghoti::$seoDescription === ''){ ?><meta name="description" content="<?php echo htmlspecialchars(ghoti::$siteTitle, ENT_QUOTES, 'UTF-8'); ?> — powered by GhotiCMS"><?php } ?>
   <link href="lib/fonts/ghoticms.css" rel="stylesheet">
   <?php include_once "ghoti.header.php"; ?>
   <link rel="stylesheet" href="<?php echo $ghotiAsset('css/cyber/cyber.css'); ?>">
