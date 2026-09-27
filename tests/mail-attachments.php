@@ -27,7 +27,7 @@ foreach(array(array_merge($attachment,array('name'=>"bad\r\nInjected: yes")),arr
     catch(RuntimeException $e){ attachmentCheck(true, 'Invalid attachment rejected'); }
     finally{ fclose($stream); }
 }
-// The HTML part carries admin-written text (Admin Menu -> Send Email), so it
+// The HTML part carries admin-written text (Admin Menu -> Manage Users), so it
 // must be wire-encoded exactly like the plain-text part: CRLF endings and
 // dot-stuffing. A leading "." that reaches the MTA unstuffed is deleted.
 // Shaped like ghoti_mail_body_html()'s output: a soft break puts the author's

@@ -122,8 +122,16 @@ class login_throttle{
 	}
 }
 
-function login_throttle_store(){
+/*
+ * The shared throttle. $override exists so a test can point the login and
+ * two-factor flows at a scratch file: the default path is the live
+ * login.throttle.json beside index.php, and a test run must not record
+ * failures - or trip the automatic blacklist - in the running site's state.
+ * Production never passes it.
+ */
+function login_throttle_store($override = null){
 	static $instance = null;
+	if($override !== null){ $instance = $override; }
 	if($instance === null){
 		$instance = new login_throttle(dirname(__DIR__, 2).'/login.throttle.json');
 	}
@@ -194,6 +202,180 @@ function loginCaptchaVerify($purpose,$answer){
 		return "Security check answer incorrect.";
 	}
 	unset($_SESSION['loginCaptcha'][$purpose]);
+	return true;
+}
+
+/* ================================================================== *
+ *  Two-factor authentication (emailed sign-in codes)
+ *
+ *  Applies to ADMINISTRATORS only, and only while ghoti::$enableTwoFactor is
+ *  on - which Site Settings refuses to switch on until a test message has
+ *  actually reached an administrator (ghoti_mail_verified()).
+ *
+ *  The shape of the flow matters. A correct password no longer signs anybody
+ *  in on its own: it parks a challenge on the session and returns a marker.
+ *  Only verifyTwoFactor() sets loggedIn, and only against a challenge that is
+ *  present, unexpired, unspent and matching. There is deliberately no fallback
+ *  when the code cannot be sent - a bypass an attacker can trigger by breaking
+ *  mail is not a second factor. If mail breaks, set enableTwoFactor to false in
+ *  ghoti.settings.json on the server to get back in.
+ * ================================================================== */
+
+const LOGIN_2FA_TTL       = 600; //ten minutes
+const LOGIN_2FA_MAX_TRIES = 5;
+
+//The marker login() returns instead of a user id. Deliberately not an int (the
+//client tests `id > 0`) and not a bare string (that path prints the value as an
+//error message), so neither existing branch can mistake it for something else.
+function login_2fa_pending_marker(){
+	return array('twoFactor' => 'required');
+}
+
+function login_2fa_is_pending($result){
+	return is_array($result) && isset($result['twoFactor']) && $result['twoFactor'] === 'required';
+}
+
+/*
+ * Does this account have to pass a second factor?
+ *
+ * Administrators always do while the feature is on - they are the accounts that
+ * can publish, manage users and change server configuration. Ordinary members
+ * do only when twoFactorAllUsers is also on, which puts the mail server in
+ * front of every sign-in on the site.
+ */
+function login_2fa_required_for($userId){
+	if(!ghoti::$enableTwoFactor){ return false; }
+	if(isAdmin((int)$userId) === true){ return true; }
+	return ghoti::$twoFactorAllUsers === true;
+}
+
+//Codes are compared as hashes so a readable one never sits in session storage.
+function login_2fa_hash($code){
+	return hash('sha256', 'ghoti-2fa|'.$code);
+}
+
+function login_2fa_generate_code(){
+	//Six digits, uniform, from a CSPRNG. Kept as a string so a leading zero
+	//survives - "042931" must not become 42931.
+	return str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+}
+
+function login_2fa_clear(){
+	unset($_SESSION['pending2fa']);
+}
+
+/*
+ * Put the challenge on the session and mail the code. Returns true, or an error
+ * string the caller shows the person trying to sign in.
+ */
+function login_2fa_begin($userId, $username, $fingerprint){
+	$db = $_SESSION["loginObj"]->logindb;
+	$email = $db->getUserEmailById($userId);
+	if(!is_string($email) || trim($email) === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)){
+		ghoti::logWarn("login.async.php:login_2fa_begin", "admin uid $userId has no usable e-mail address; sign-in refused");
+		return "This account needs a valid e-mail address before it can sign in. Ask another administrator to add one.";
+	}
+	$mailer = ghoti_mail_mailer();
+	if($mailer === null || !ghoti_mail_verified()){
+		ghoti::logError("login.async.php:login_2fa_begin", "two-factor is on but outbound mail is not verified; uid $userId cannot sign in");
+		return "Sign-in codes cannot be sent because outbound mail is not working. Contact the site operator.";
+	}
+
+	$code = login_2fa_generate_code();
+	$siteTitle = ghoti::$siteTitle;
+	$body = "Your sign-in code for ".$siteTitle." is:\n\n"
+		.$code."\n\n"
+		."Type it into the page you are signing in from. The code is good for ten minutes and can only be used once.\n\n"
+		."If you did not just try to sign in, someone else has your password. Change it as soon as you can.\n\n"
+		."Requested from: ".loginRemoteAddr()."\n";
+	$sent = ghoti_mail_send_themed($mailer, $email, $username, "Your ".$siteTitle." sign-in code", $body, 'member');
+	if($sent !== true){
+		ghoti::logError("login.async.php:login_2fa_begin", "could not send sign-in code to uid $userId: ".(is_string($sent) ? $sent : 'unknown error'));
+		return "Your sign-in code could not be sent. Try again in a moment, or contact the site operator.";
+	}
+
+	//Regenerate here too: the id that existed before the password was accepted
+	//must not be the one the session is finally authenticated on.
+	session_regenerate_id(true);
+	$_SESSION['pending2fa'] = array(
+		'userId'      => (int)$userId,
+		'username'    => (string)$username,
+		'codeHash'    => login_2fa_hash($code),
+		'expiresAt'   => time() + LOGIN_2FA_TTL,
+		'attempts'    => 0,
+		'fingerprint' => $fingerprint,
+	);
+	ghoti::logInfo("login.async.php:login_2fa_begin", "sign-in code issued for uid $userId from ".loginRemoteAddr());
+	return true;
+}
+
+/*
+ * Second step of signing in. Returns the user id on success, 0 for a wrong
+ * code, or a string explaining why the attempt cannot continue.
+ */
+function verifyTwoFactor($code){
+	//Fails closed: no challenge means there is nothing to verify, and this must
+	//never fall through to establishing a session.
+	if(empty($_SESSION['pending2fa']) || !is_array($_SESSION['pending2fa'])){
+		ghoti::logWarn("login.async.php:verifyTwoFactor", "code submitted with no challenge in session from ".loginRemoteAddr());
+		return "Your sign-in attempt has expired. Start again.";
+	}
+	//An already-authenticated session has no business here.
+	if(!empty($_SESSION['loggedIn'])){
+		login_2fa_clear();
+		return "You are already signed in.";
+	}
+	$pending = $_SESSION['pending2fa'];
+
+	if(time() > (int)$pending['expiresAt']){
+		login_2fa_clear();
+		ghoti::logInfo("login.async.php:verifyTwoFactor", "expired code for uid ".$pending['userId']);
+		return "That code has expired. Start again.";
+	}
+
+	$throttle = login_throttle_store();
+	$throttleKeys = login_throttle_keys($pending['username']);
+
+	$code = preg_replace('/\D+/', '', (string)$code); //people paste "042 931"
+	if($code === ''){ return 0; }
+
+	if(!hash_equals((string)$pending['codeHash'], login_2fa_hash($code))){
+		$_SESSION['pending2fa']['attempts'] = (int)$pending['attempts'] + 1;
+		//A six-digit code is a small space, so a wrong one counts against the
+		//same throttle a wrong password does - otherwise it could be guessed at
+		//whatever rate the network allows.
+		foreach($throttleKeys as $key){ $throttle->recordFailure($key); }
+		ghoti_security_record_failed_login($throttle);
+		ghoti::logWarn("login.async.php:verifyTwoFactor", "wrong sign-in code for uid ".$pending['userId']." (attempt ".$_SESSION['pending2fa']['attempts'].") from ".loginRemoteAddr());
+		if($_SESSION['pending2fa']['attempts'] >= LOGIN_2FA_MAX_TRIES){
+			login_2fa_clear();
+			return "Too many incorrect codes. Start again.";
+		}
+		return 0;
+	}
+
+	//Correct. Spend the challenge before establishing anything, so a replay of
+	//the same request cannot produce a second session.
+	$userId = (int)$pending['userId'];
+	$fingerprint = $pending['fingerprint'];
+	login_2fa_clear();
+	$throttle->clear('user:'.strtolower($pending['username']));
+
+	session_regenerate_id(true);
+	$_SESSION['loggedIn'] = true;
+	$_SESSION['credentialFingerprint'] = $fingerprint;
+	$_SESSION['userId'] = $userId;
+	$_SESSION['admin'] = isAdmin($userId);
+	$_SESSION['last_activity'] = time();
+	$_SESSION['login_attempts'] = 0;
+	$_SESSION['login_last_attempt'] = 0;
+	ghoti::logInfo("login.async.php:verifyTwoFactor", "sign-in completed for uid $userId from ".loginRemoteAddr());
+	return $userId;
+}
+
+//Abandoning the form should not leave a live challenge behind.
+function cancelTwoFactor(){
+	login_2fa_clear();
 	return true;
 }
 
@@ -269,6 +451,19 @@ function login($username,$password){
 		// admin) with no password at all. Doing it here, keyed to the id we just
 		// authenticated, closes that bypass. session_regenerate_id prevents
 		// session fixation.
+		//A correct password is the FIRST factor. When a second one is required
+		//this returns without setting loggedIn at all - see verifyTwoFactor().
+		login_2fa_clear();
+		if(login_2fa_required_for($id)){
+			$started = login_2fa_begin((int)$id, $username, $fingerprint);
+			if($started !== true){
+				ghoti::logWarn("login.async.php:login", "two-factor could not start for '$username': ".$started);
+				return $started; //a string: the client prints it as the reason
+			}
+			ghoti::logInfo("login.async.php:login", "Password accepted for '$username' (uid $id); awaiting sign-in code");
+			return login_2fa_pending_marker();
+		}
+
 		session_regenerate_id(true);
 		$_SESSION['loggedIn'] = true;
 		$_SESSION['credentialFingerprint'] = $fingerprint;
@@ -283,6 +478,165 @@ function login($username,$password){
 		ghoti::logWarn("login.async.php:login", "Login failed for '$username'");
 	}
 	return $id;
+}
+
+/* ================================================================== *
+ *  E-mail verification for new registrations
+ *
+ *  Same shape as the two-factor flow: a code is mailed and the thing being
+ *  asked for does not happen until it comes back. The difference is WHAT is
+ *  withheld - here it is the account itself. Nothing is written to `users`
+ *  until the code is confirmed, so there are no half-made accounts to reap and
+ *  no "verified" column to gate every later login on.
+ *
+ *  It applies only when outbound mail has been proven to work. With no working
+ *  mail there is nobody to send a code to, and refusing every registration
+ *  would be worse than the behaviour this replaces, so registration then works
+ *  exactly as it did before.
+ *
+ *  This is the first sender in the app that mails an address a STRANGER typed.
+ *  The captcha and duplicate check already sit in front of it, and sends are
+ *  rate limited per address below, so it cannot be used to post mail at anyone.
+ * ================================================================== */
+
+const LOGIN_REG_TTL        = 900; //fifteen minutes
+const LOGIN_REG_MAX_TRIES  = 5;
+const LOGIN_REG_MAX_PER_IP = 5;   //verification e-mails per hour, per address
+
+//Its own domain prefix: a code minted for one flow must not hash equal to the
+//same digits minted for the other.
+function login_reg_hash($code){
+	return hash('sha256', 'ghoti-register|'.$code);
+}
+
+function login_reg_pending_marker($email){
+	return array('verifyEmail' => 'required', 'email' => (string)$email);
+}
+
+function login_reg_is_pending($result){
+	return is_array($result) && isset($result['verifyEmail']) && $result['verifyEmail'] === 'required';
+}
+
+function login_reg_clear(){
+	unset($_SESSION['pendingRegistration']);
+}
+
+//Should registration ask for a code at all?
+function login_reg_verification_available(){
+	return function_exists('ghoti_mail_verified') && ghoti_mail_verified();
+}
+
+/*
+ * How many verification e-mails this address has already caused in the last
+ * hour. A separate throttle key from the login buckets on purpose: 'ip:' feeds
+ * ghoti_security_record_failed_login(), and a few abandoned registrations must
+ * not add up to an automatic IP blacklist.
+ */
+function login_reg_send_allowed($throttle){
+	$ip = loginRemoteAddr();
+	if($ip === ''){ return true; }
+	try{
+		return $throttle->countWindow('regmail:'.$ip, 3600) < LOGIN_REG_MAX_PER_IP;
+	}catch(Throwable $e){
+		ghoti::logWarn("login.async.php:login_reg_send_allowed", "throttle unavailable: ".$e->getMessage());
+		return false; //fail closed: unknown is not permission to send mail
+	}
+}
+
+/*
+ * Hold the registration and mail the code. $passwordHash is already hashed -
+ * a pending registration never parks a plaintext password in session storage.
+ * Returns true, or an error string for the person registering.
+ */
+function login_reg_begin($username, $email, $passwordHash){
+	$mailer = ghoti_mail_mailer();
+	if($mailer === null || !ghoti_mail_verified()){
+		return "Registration is temporarily unavailable. Try again later.";
+	}
+	$throttle = login_throttle_store();
+	if(!login_reg_send_allowed($throttle)){
+		ghoti::logWarn("login.async.php:login_reg_begin", "verification e-mail rate limit hit from ".loginRemoteAddr());
+		return "Too many registration attempts from here. Try again later.";
+	}
+
+	$code = login_2fa_generate_code(); //the generator has no domain; the hash does
+	$siteTitle = ghoti::$siteTitle;
+	$body = "Someone asked to create an account on ".$siteTitle." with this e-mail address.\n\n"
+		."Your confirmation code is:\n\n"
+		.$code."\n\n"
+		."Type it into the page you are registering from. The code is good for fifteen minutes and can only be used once.\n\n"
+		."If this was not you, nothing has been created and you can ignore this message. No account exists with this address unless the code is entered.\n\n"
+		."Requested from: ".loginRemoteAddr()."\n";
+	$sent = ghoti_mail_send_themed($mailer, $email, $username, "Confirm your ".$siteTitle." account", $body, 'none');
+	if($sent !== true){
+		ghoti::logError("login.async.php:login_reg_begin", "could not send the confirmation code to a registrant: ".(is_string($sent) ? $sent : 'unknown error'));
+		return "Your confirmation code could not be sent. Check the address and try again.";
+	}
+	//Only counted once a message actually went out.
+	try{ $throttle->recordFailure('regmail:'.loginRemoteAddr()); }catch(Throwable $e){ /* best effort */ }
+
+	$_SESSION['pendingRegistration'] = array(
+		'username'     => (string)$username,
+		'email'        => (string)$email,
+		'passwordHash' => (string)$passwordHash,
+		'codeHash'     => login_reg_hash($code),
+		'expiresAt'    => time() + LOGIN_REG_TTL,
+		'attempts'     => 0,
+	);
+	ghoti::logInfo("login.async.php:login_reg_begin", "confirmation code issued for a new registration from ".loginRemoteAddr());
+	return true;
+}
+
+/*
+ * Second step of registering: the account is created HERE and nowhere else in
+ * the verified flow. Returns true, 0 for a wrong code, or a string explaining
+ * why the attempt cannot continue.
+ */
+function verifyRegistration($code){
+	if(empty($_SESSION['pendingRegistration']) || !is_array($_SESSION['pendingRegistration'])){
+		return "Your registration has expired. Start again.";
+	}
+	$pending = $_SESSION['pendingRegistration'];
+
+	if(time() > (int)$pending['expiresAt']){
+		login_reg_clear();
+		return "That code has expired. Start again.";
+	}
+
+	$code = preg_replace('/\D+/', '', (string)$code);
+	if($code === ''){ return 0; }
+
+	if(!hash_equals((string)$pending['codeHash'], login_reg_hash($code))){
+		$_SESSION['pendingRegistration']['attempts'] = (int)$pending['attempts'] + 1;
+		ghoti::logWarn("login.async.php:verifyRegistration", "wrong confirmation code (attempt ".$_SESSION['pendingRegistration']['attempts'].") from ".loginRemoteAddr());
+		if($_SESSION['pendingRegistration']['attempts'] >= LOGIN_REG_MAX_TRIES){
+			login_reg_clear();
+			return "Too many incorrect codes. Start again.";
+		}
+		return 0;
+	}
+
+	//Spend the pending record before creating anything, so a replayed request
+	//cannot make a second account.
+	login_reg_clear();
+
+	//The duplicate check inside addUser() runs again here, which is what closes
+	//the window between the code being sent and being entered.
+	$result = $_SESSION["loginObj"]->logindb->addUser($pending['username'], $pending['passwordHash'], $pending['email'], true);
+	if(!$result){
+		ghoti::logWarn("login.async.php:verifyRegistration", "account creation failed after a correct code for '".$pending['username']."'");
+		return "That username or e-mail was taken while you were confirming. Start again.";
+	}
+	ghoti::logInfo("login.async.php:verifyRegistration", "Registered ".$pending['username']." (e-mail confirmed) from ".loginRemoteAddr());
+	//Deliberately NOT signing them in: registering is not authenticating, and
+	//an automatic session here would hand a brand-new account a way past the
+	//sign-in code that twoFactorAllUsers may require.
+	return true;
+}
+
+function cancelRegistration(){
+	login_reg_clear();
+	return true;
 }
 
 function addUser($username,$email,$password,$captchaAnswer=''){
@@ -324,6 +678,18 @@ function addUser($username,$email,$password,$captchaAnswer=''){
 	if($duplicate){
 		ghoti::logWarn("login.async.php:addUser", "Registration rejected for '$username': duplicate user/email");
 		return "Username or Email is already registered!";
+	}
+
+	//With working mail, the address is confirmed before the account exists.
+	//Without it there is nobody to send a code to, so registration behaves as
+	//it always has.
+	login_reg_clear();
+	if(login_reg_verification_available()){
+		$hash = $_SESSION["loginObj"]->logindb->hashPendingPassword($password);
+		$started = login_reg_begin($username, $email, $hash);
+		if($started !== true){ return $started; }
+		ghoti::logInfo("login.async.php:addUser", "Registration for '$username' is awaiting e-mail confirmation");
+		return login_reg_pending_marker($email);
 	}
 
 	ghoti::logDebug("login.async.php:addUser", "Calling addUser for '$username'");
@@ -456,7 +822,11 @@ function printManageUserForm(){
 		return "<h1>Users</h1><p>Admin access required.</p>";
 	}
 	$userList = $_SESSION["loginObj"]->logindb->getUserList();
-	return $_SESSION["loginObj"]->loginui->printManageUserForm($userList);
+	//Boards contribute two columns here when the module is on. They are fetched
+	//through function_exists() so this screen is unchanged when it is off.
+	$postCounts = function_exists('boards_user_post_counts') ? boards_user_post_counts() : array();
+	$moderates  = function_exists('boards_user_moderation_summary') ? boards_user_moderation_summary() : array();
+	return $_SESSION["loginObj"]->loginui->printManageUserForm($userList, $postCounts, $moderates);
 }
 
 function printLoginForm(){
@@ -520,7 +890,11 @@ ghoti_async_register(
 	"printRegisterForm",
 	"setSessionVars",
 	"saveUser",
-	"toggleAdmin"
+	"toggleAdmin",
+	"verifyTwoFactor",
+	"cancelTwoFactor",
+	"verifyRegistration",
+	"cancelRegistration"
 );
 
 /* ---------------------------------------------------------------- *
@@ -548,7 +922,9 @@ class loginui{
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showMailSettings');\">Mail Settings</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"showComposeMail();\">Send Email</a></li>\n";
+		if(ghoti::$enableBoards){
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showBoardManager');\">Boards</a></li>\n";
+		}
 		if(ghoti::$enableVhosts){
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showVhosts');\">Apache Vhosts</a></li>\n";
 		}
@@ -607,35 +983,64 @@ class loginui{
 		return $this->output;
 	}
 
-	function printManageUserForm($userList){
+	/*
+	 * $postCounts is array(userId => posts) and $moderates array(userId =>
+	 * array(board name, ...)); both are empty when the boards module is off,
+	 * which hides the board details on each user card.
+	 */
+	function printManageUserForm($userList, $postCounts = array(), $moderates = array()){
+		$showBoards = class_exists('ghoti') && ghoti::$enableBoards;
 		$this->output = "<section id=\"ghotiManageUsers\" class=\"ghotiAdminPanel\"><div class=\"ghotiCrudHeader\"><h1>Manage Users</h1></div>\n";
-		$docs = ghoti_docs_panel("How to manage users", "roles, edits, removal", array(
+		$docs = ghoti_docs_panel("How to manage users", "roles, edits, removal, email", array(
 			array('heading' => 'Roles',
 				'list' => array('The <b>Admin</b> / <b>User</b> button toggles admin rights.', 'The last remaining admin cannot be demoted or deleted.')),
 			array('heading' => 'Edit an account',
 				'list' => array('Change the username or email and press <b>Save</b>.', 'Usernames and emails must be unique &mdash; an address in use by another account is rejected.')),
+			array('heading' => 'Email users',
+				'list' => array('Press <b>email</b> beside a user to select them in the composer below the list.', 'For group email, choose <b>All users</b>, <b>Administrators only</b>, or <b>Selected users</b> below the list. Save address changes before composing.')),
+			array('heading' => 'Boards',
+				'list' => array('<b>Posts</b> counts everything the account has written across every board.', 'Press <b>Moderates</b> to choose which boards the account moderates. A moderator can edit or remove any post on their board, and lock, pin or delete its topics.', 'Administrators moderate every board without being listed.')),
 			array('heading' => 'Delete an account',
-				'list' => array('<b>Delete</b> removes the account and its comments. This cannot be undone.'))
+				'list' => array('<b>Delete</b> removes the account and everything it posted. This cannot be undone.'))
 		));
-		$this->output .= "<table class=\"ghotiManageTable\"><thead><tr><th>Username</th><th>Email</th><th>Admin</th><th>Actions</th></tr></thead><tbody>\n";
+		$this->output .= '<div class="ghotiUserList" aria-label="User accounts">';
+		$mailDirectory = array();
 		foreach($userList as $records => $row){
 			$userId = (int)$row[0];
+			$mailDirectory[] = array('userId'=>$userId, 'userName'=>$row[1], 'email'=>$row[2], 'admin'=>$row[3]);
 			$userName = htmlspecialchars((string)$row[1], ENT_QUOTES);
 			$userEmail = htmlspecialchars((string)$row[2], ENT_QUOTES);
 			$nameField = "user-".$userId."-name";
 			$emailField = "user-".$userId."-email";
-			$this->output .= "<tr>";
-			$this->output .= "<td data-label=\"Username\"><input type=\"text\" id=\"".$nameField."\" value=\"".$userName."\" /></td>\n";
-			$this->output .= "<td data-label=\"Email\"><input type=\"text\" id=\"".$emailField."\" value=\"".$userEmail."\" /></td>\n";
+			$this->output .= '<article class="ghotiUserCard" aria-label="Account: '.$userName.'"><div class="ghotiUserFields">';
+			$this->output .= "<label class=\"ghotiField\"><span>Username</span><input type=\"text\" id=\"".$nameField."\" value=\"".$userName."\" /></label>\n";
+			$this->output .= "<label class=\"ghotiField\"><span>Email</span><input type=\"email\" id=\"".$emailField."\" value=\"".$userEmail."\" /></label></div><div class=\"ghotiUserDetails\">\n";
 			if($row[3] == 1)
-				$this->output .= "<td data-label=\"Role\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/green-check.gif\" alt=\"\" />Admin</button></td>\n<td data-label=\"Actions\">";
+				$this->output .= "<div class=\"ghotiUserRole\"><span class=\"ghotiUserDetailLabel\">Role</span><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/green-check.gif\" alt=\"\" />Admin</button></div>\n";
 			else
-				$this->output .= "<td data-label=\"Role\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/red-x.gif\" alt=\"\" />User</button></td>\n<td data-label=\"Actions\">";
-			$this->output .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"saveUser('".$nameField."','".$emailField."','".$userId."');\"><img src=\"gfx/save.png\" alt=\"\" />Save</button>\n";
-			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"deleteUser('".$userId."');\"><img src=\"gfx/delete.png\" alt=\"\" />Delete</button></div></td>\n";
-			$this->output .= "</tr>\n";
+				$this->output .= "<div class=\"ghotiUserRole\"><span class=\"ghotiUserDetailLabel\">Role</span><button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"toggleAdmin('".$userId."');\"><img src=\"gfx/red-x.gif\" alt=\"\" />User</button></div>\n";
+			if($showBoards){
+				$posts = isset($postCounts[$userId]) ? (int)$postCounts[$userId] : 0;
+				//An admin moderates everything, so listing named boards beside
+				//one would suggest the others are out of their reach.
+				if($row[3] == 1){
+					$moderatesLabel = "All boards";
+				}else{
+					$boardNames = isset($moderates[$userId]) ? $moderates[$userId] : array();
+					$moderatesLabel = $boardNames ? implode(', ', $boardNames) : 'None';
+				}
+				$this->output .= "<div class=\"ghotiUserPosts\"><span class=\"ghotiUserDetailLabel\">Posts</span><strong>".$posts."</strong></div>\n";
+				$this->output .= "<div class=\"ghotiUserBoards\"><span class=\"ghotiUserDetailLabel\">Boards</span><span class=\"ghotiModeratesList\">".htmlspecialchars($moderatesLabel, ENT_QUOTES)."</span> ";
+				$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"ghotiModuleAction('boardsModeratorDialog',".$userId.");\">Moderates</button></div>\n";
+			}
+			$this->output .= "</div>";
+			$this->output .= "<div class=\"ghotiFormActions ghotiUserActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"saveUser('".$nameField."','".$emailField."','".$userId."');\"><img src=\"gfx/save.png\" alt=\"\" />Save</button>\n";
+			$this->output .= '<button type="button" class="ghotiButton ghotiButtonCompact ghotiButtonSecondary" onclick="composeMailToUser('.$userId.');">email</button>';
+			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"deleteUser('".$userId."');\"><img src=\"gfx/delete.png\" alt=\"\" />Delete</button></div>\n";
+			$this->output .= "</article>\n";
 		}
-		$this->output .= "</tbody></table>\n";
+		$this->output .= "</div>\n";
+		$this->output .= ghoti_mail_render_compose($mailDirectory, ghoti_mail_is_enabled(ghoti_mail_mailer()));
 		$this->output .= $docs;
 		$this->output .= "</section>\n";
 		return $this->output;

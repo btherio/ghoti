@@ -158,7 +158,7 @@ function ghoti_csrf_verify($token){
  * pageId, theme, ...) is untouched.
  */
 function ghoti_free_request_objects(){
-	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','commentsObj','analyticsObj','galleryObj','filemanagerObj','mailObj','vhostsObj','storeObj','bpongObj','ghotidb') as $k){
+	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','boardsObj','analyticsObj','galleryObj','filemanagerObj','mailObj','vhostsObj','storeObj','bpongObj','ghotidb') as $k){
 		unset($_SESSION[$k]);
 	}
 }
@@ -385,18 +385,14 @@ function ghoti_require_admin(){
 
 function getPage($content){
 	$_SESSION["ghotiObj"] = new ghoti();
-	$_SESSION["commentsObj"] = new comments();
 	$_SESSION["ghotiObj"]->ghotidb = new ghotidb();
 	//Sanitize on every render as well as on save. This protects visitors from
 	//unsafe markup stored by an older Ghoti version or written directly to DB.
-	$pageDisplay = ghoti_expand_shortcodes(ghoti_validate()->pageHtml($content)); // e.g. [gallery:name] -> inline gallery
-	//this next bit shows the comments for the current page
-	$pageComments = $_SESSION["commentsObj"]->commentsdb->getPageComments($_SESSION['pageId']);
-	$pageDisplay.= $_SESSION["commentsObj"]->commentsui->displayComments($pageComments,true);
-
-	if(checkLogin()){//print the comment button if we're logged in
-		$pageDisplay .= $_SESSION["commentsObj"]->commentsui->addCommentButton();
-	}
+	//e.g. [gallery:name] -> inline gallery, [board:support] -> a message board.
+	//Discussion is no longer appended to every page: it appears only where a
+	//[board:slug] tag puts it, which is the whole point of the boards module
+	//that replaced comments.
+	$pageDisplay = ghoti_expand_shortcodes(ghoti_validate()->pageHtml($content));
 	$content = "<div id=\"ghotiPageDisplay\">\n".$pageDisplay."</div>\n";
 	ghoti::logDebug("ghoti.async.php:getPage", "Checking for session userId");
 	$isAdminViewer = false;
@@ -934,9 +930,17 @@ class ghotiui{
 		$o .= "</div>\n";
 
 		$o .= "<form id=\"siteSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveSiteSettings(); return false;\">\n";
+		$tabs = array('identity'=>'Identity', 'visitors'=>'Visitor access', 'admin'=>'Admin experience',
+			'security'=>'Security', 'logging'=>'Logging & alerts', 'modules'=>'Optional modules');
+		$o .= '<div class="siteSettingsTabs" role="tablist" aria-label="Site settings">';
+		foreach($tabs as $key => $label){
+			$o .= '<button type="button" class="ghotiButton ghotiButtonSecondary" id="settings-tab-'.$key.'" role="tab" aria-controls="settings-panel-'.$key.'" aria-selected="'.($key === 'identity' ? 'true' : 'false').'" tabindex="'.($key === 'identity' ? '0' : '-1').'">'.$esc($label).'</button>';
+		}
+		$o .= '</div>';
 		$o .= "<div class=\"siteSettingsGrid\">\n";
 
 		/* ---- Identity: site presentation and public operator details ---- */
+		$o .= '<div id="settings-panel-identity" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-identity" tabindex="0">';
 		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide\"><legend>Identity</legend>\n";
 		$o .= "<p class=\"siteSettingsSectionIntro\">The name, look, and public identity details the site presents to everyone.</p>\n";
 		$o .= "<div class=\"ghotiFormGrid\">\n";
@@ -947,14 +951,17 @@ class ghotiui{
 		}
 		$o .= "</select></label>\n";
 		$o .= $text("headerImg", "Header image", ghoti::$headerImg, "text", "(path)", "maxlength=\"200\" placeholder=\"gfx/ghoti-logo.png\" ");
+		$o .= $text("backgroundImg", "Background image", ghoti::$backgroundImg, "text", "(path)", "maxlength=\"200\" placeholder=\"files/background.jpg\" ");
 		$o .= $text("privacyOperator", "Legal operator name", ghoti::$privacyOperator, "text", "", "maxlength=\"120\" placeholder=\"Example Media Ltd.\" ");
 		$o .= $text("privacyRegion", "Province or territory", ghoti::$privacyRegion, "text", "", "maxlength=\"120\" placeholder=\"Alberta, Canada\" ");
 		$o .= "</div>\n";
 		$contact = ghoti_admin_contact_email();
-		$o .= "<p class=\"ghotiHelpText\">Theme and header image apply on the next page load. Public identity details appear in the footer policy and accessibility notice; leave them blank to omit that notice. The published contact address is the administrator account&rsquo;s own e-mail (currently <code>".$esc($contact === '' ? 'none on file' : $contact)."</code>) &mdash; change it in <b>Manage Users</b>. The home page is chosen in <b>Manage Pages</b>.</p>\n";
+		$o .= "<p class=\"ghotiHelpText\">Theme and images apply on the next page load. Upload a background image through <b>Admin Menu &rarr; Files</b>, then enter its site-relative path above (for example, <code>files/background.jpg</code>). One image is shared by every theme that uses an image backdrop. Leave the background path blank to use each theme&rsquo;s bundled image. Public identity details appear in the footer policy and accessibility notice; leave them blank to omit that notice. The published contact address is the administrator account&rsquo;s own e-mail (currently <code>".$esc($contact === '' ? 'none on file' : $contact)."</code>) &mdash; change it in <b>Manage Users</b>. The home page is chosen in <b>Manage Pages</b>.</p>\n";
 		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
 
 		/* ---- Visitor access ---- */
+		$o .= '<div id="settings-panel-visitors" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-visitors" tabindex="0" hidden="hidden">';
 		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Visitor access</legend>\n";
 		$o .= "<p class=\"siteSettingsSectionIntro\">What visitors may do without an account.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
@@ -964,8 +971,10 @@ class ghotiui{
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-hideLoginButton-help\">With the login button hidden, sign in via <a href=\"?theme=login\">?theme=login</a> &mdash; that reveals it for one visit and keeps your theme.</p>\n";
 		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
 
 		/* ---- Administrator experience ---- */
+		$o .= '<div id="settings-panel-admin" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-admin" tabindex="0" hidden="hidden">';
 		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Admin experience</legend>\n";
 		$o .= "<p class=\"siteSettingsSectionIntro\">Choose how much guidance appears beside everyday tools.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
@@ -973,13 +982,42 @@ class ghotiui{
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-showHelpTips-help\">This hides expandable tips across admin screens. The complete guide remains available under <button type=\"button\" class=\"ghotiTextButton\" onclick=\"showDocumentation();\">Documentation</button>.</p>\n";
 		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
 
 		/* ---- Security policy and IP access controls ---- */
+		$o .= '<div id="settings-panel-security" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-security" tabindex="0" hidden="hidden">';
 		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide securitySettingsSection\"><legend>Security</legend>\n";
 		$o .= "<p class=\"siteSettingsSectionIntro\">Control login abuse, network blocks, and authenticated session lifetime.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
 		$o .= $choice("securityAutoBlacklist", "Automatically blacklist IPs after repeated failed logins", ghoti::$securityAutoBlacklist, "set-securityAutoBlacklist-help");
+
+		/* Two-factor. The control is always rendered, and disabled rather than
+		 * hidden when mail is unverified, so the reason it cannot be switched on
+		 * is visible instead of the setting simply not existing. saveSettings()
+		 * refuses it regardless of what the browser sends. */
+		$mailVerified = function_exists('ghoti_mail_verified') ? ghoti_mail_verified() : false;
+		$twoFactorAttrs = $mailVerified ? '' : ' disabled="disabled"';
+		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-enableTwoFactor\""
+			.(ghoti::$enableTwoFactor ? " checked=\"checked\"" : "").$twoFactorAttrs
+			." aria-describedby=\"set-enableTwoFactor-help\" /> Require an emailed sign-in code for administrators</label>\n";
 		$o .= "</div>\n";
+
+		//Widening it to members is a dependent control: it does nothing on its
+		//own, and saveSettings() refuses that combination outright.
+		$o .= "<div id=\"two-factor-scope\" class=\"settingsDependent\"".(ghoti::$enableTwoFactor ? "" : " data-inactive=\"true\"").">\n";
+		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"set-twoFactorAllUsers\""
+			.(ghoti::$twoFactorAllUsers ? " checked=\"checked\"" : "").$twoFactorAttrs
+			." aria-describedby=\"set-twoFactorAllUsers-help\" /> Require it for ordinary members too</label>\n";
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-twoFactorAllUsers-help\">Off, only administrators are asked for a code and members sign in with a password as usual. On, <b>every</b> account is asked &mdash; which puts the mail server in front of every sign-in on the site, and refuses any member who has no valid e-mail address on file. Check <b>Users</b> for blank addresses before turning this on.</p>\n";
+		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-enableTwoFactor-help\">"
+			.($mailVerified
+				? "Administrators sign in with their password and then a six-digit code sent to the address on their account. The code lasts ten minutes, can be used once, and wrong codes count towards the same throttle as wrong passwords. Accounts without a valid e-mail address cannot sign in while this is on."
+				: "<b>Unavailable until outbound mail is tested.</b> The code is delivered by e-mail and there is no fallback, so enabling this against an untested mail server would lock every administrator out. Open <b>Mail Settings</b>, send a test message, then come back.")
+			."</p>\n";
+		$o .= "<p class=\"ghotiHelpText\">If mail stops working while this is on, nobody can sign in. Recover by setting <code>\"enableTwoFactor\": false</code> in <code>ghoti.settings.json</code> on the server.</p>\n";
 		$o .= "<div id=\"security-auto-controls\" class=\"settingsDependent securityAutoControls\"".(ghoti::$securityAutoBlacklist ? "" : " data-inactive=\"true\"").">\n";
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= $text("securityFailedLoginThreshold", "Failed attempts", ghoti::$securityFailedLoginThreshold, "number", "(3–100)", "min=\"3\" max=\"100\" step=\"1\" ");
@@ -1015,10 +1053,12 @@ class ghotiui{
 		}
 		$o .= "</div>\n";
 		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
 
 		/* ---- Logging and alerts. There is no recipient field: alerts go to every
 		 * administrator account, so keeping that list current is user
 		 * management's job rather than a setting to retype here. ---- */
+		$o .= '<div id="settings-panel-logging" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-logging" tabindex="0" hidden="hidden">';
 		$o .= "<fieldset class=\"siteSettingsSection\"><legend>Logging &amp; alerts</legend>\n";
 		$o .= "<p class=\"siteSettingsSectionIntro\">Diagnostics, and who hears about incidents.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
@@ -1035,16 +1075,20 @@ class ghotiui{
 		}
 		$o .= "<p class=\"ghotiHelpText\">Sent through <b>Mail Settings</b>, addressed to each administrator individually. Covers application errors, and 5 failed-login or suspicious-access events within 15 minutes &mdash; one delivery per category per 15 minutes.</p>\n";
 		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
 
 		/* ---- Optional modules ---- */
+		$o .= '<div id="settings-panel-modules" class="siteSettingsPanel" role="tabpanel" aria-labelledby="settings-tab-modules" tabindex="0" hidden="hidden">';
 		$o .= "<fieldset class=\"siteSettingsSection siteSettingsSectionWide\"><legend>Optional modules</legend>\n";
 		$o .= "<p class=\"siteSettingsSectionIntro\">Off by default. Turning one off leaves its saved configuration alone.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
+		$o .= $choice("enableBoards", "Boards &mdash; message boards and comment sections placed with [board:name]", ghoti::$enableBoards, "set-enableBoards-help");
 		$o .= $choice("enableVhosts", "Apache Vhosts &mdash; manage virtual hosts and TLS certificates", ghoti::$enableVhosts);
 		$o .= $choice("enableStore", "Store &mdash; sell physical and digital goods through PayPal", ghoti::$enableStore, "set-enableStore-help");
 		$o .= $choice("enableBpong", "Pong &mdash; put a playable Bitcoin Pong board on a page", ghoti::$enableBpong, "set-enableBpong-help");
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\">Save and reload to show or hide it in the workspace. It opens read-only; writing to Apache needs a root-owned helper installed first.</p>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-enableBoards-help\">Boards add the shortcode <b>[board:name]</b>, which puts a message board or a comment section wherever you place it &mdash; discussion never appears on a page by itself. Create and configure boards under <b>Admin Menu &rarr; Boards</b>, and name per-board moderators under <b>Admin Menu &rarr; Users</b>. Turning boards off hides them and their posts without deleting anything. See the <a href=\"docs/boards.md\" target=\"_blank\" rel=\"noopener noreferrer\">boards guide</a>.</p>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-enableStore-help\">The store sells nothing until PayPal credentials are saved under <b>Admin Menu &rarr; Store</b>. Enabling it also lets pages load PayPal&rsquo;s button script, which widens this site&rsquo;s content-security policy to PayPal&rsquo;s hosts; turning the store off restores the tighter policy. See the <a href=\"docs/store.md\" target=\"_blank\" rel=\"noopener noreferrer\">store guide</a>.</p>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-enableBpong-help\">Pong adds the shortcode <b>[bpong:game]</b>, which puts a playable board on any page. The match runs entirely in the visitor&rsquo;s browser: nothing is submitted, no score is stored, and no sign-in is needed. Speed and difficulty are set under <b>Admin Menu &rarr; Pong</b>. See the <a href=\"docs/bpong.md\" target=\"_blank\" rel=\"noopener noreferrer\">pong guide</a>.</p>\n";
 		$o .= ghoti_docs_panel("Enabling Apache Vhosts", "optional, staged setup", array(
@@ -1055,6 +1099,7 @@ class ghotiui{
 					'Certificate monitoring is set up separately. Disabling this stops the module and its certificate watcher; the Apache sites themselves keep running.'))
 		));
 		$o .= "</fieldset>\n";
+		$o .= "</div>\n"; //tab panel
 
 		$o .= "</div>\n"; //siteSettingsGrid
 		$o .= "<div class=\"ghotiFormActions siteSettingsFooterActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveSiteSettings();\">Save Settings</button>\n";

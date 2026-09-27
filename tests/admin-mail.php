@@ -1,6 +1,6 @@
 <?php
 /*
- * tests/admin-mail.php - Admin Menu -> Send Email.
+ * tests/admin-mail.php - Admin Menu -> Manage Users.
  *
  * Covers the parts that can go wrong silently: theme-palette extraction for
  * every installed theme, escaping and structure of the rendered message,

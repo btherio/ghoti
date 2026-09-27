@@ -19,17 +19,40 @@ foreach($products as $index => $product){
 	$id = $index + 1;
 	$db->products[$id] = array_merge(array('productId'=>$id,'name'=>'','sku'=>'','description'=>'','priceCents'=>0,'kind'=>'physical','category'=>'default','imageUrl'=>'','downloadPath'=>'','active'=>true,'sortOrder'=>0,'createdAt'=>$id,'fulfilment'=>'self','dropProvider'=>'','dropProductId'=>'','dropVariantId'=>'','externalUrl'=>'','featured'=>false,'compareAtCents'=>0,'badge'=>'','deliveryNote'=>''), $product);
 }
+$theme = 'default'; $view = 'catalog';
+foreach($argv as $argument){
+	if(strpos($argument, '--theme=') === 0){ $theme = substr($argument, 8); }
+	if(strpos($argument, '--view=') === 0){ $view = substr($argument, 7); }
+}
+$themeFiles = array('default'=>array(), 'prosimii'=>array('css/prosimii/prosimii-modern.css'), 'smurfius'=>array('css/smurfius/style.css'), 'ghoticms'=>array('css/ghoticms/style.css'), 'cyber'=>array('css/cyber/cyber.css'), 'ironhide'=>array('css/ironhide/ironhide.css', 'css/ironhide/store.css'), 'mahogany'=>array('css/mahogany/mahogany.css', 'css/mahogany/store.css'), 'spore'=>array('css/spore/spore.css'), 'veil'=>array('css/veil/veil.css'));
+if(!isset($themeFiles[$theme]) || !in_array($view, array('catalog', 'cart', 'checkout', 'promotions'), true)){ throw new RuntimeException('Unknown preview theme or view'); }
+$db->settings['commerceConfig'] = storeValidateCommerce(array('freeShipping'=>'60', 'pointsPerUnit'=>2, 'loyaltyThreshold'=>500, 'loyaltyPercent'=>5, 'coupons'=>array(array('code'=>'WELCOME', 'type'=>'percent', 'value'=>10, 'minimum'=>'0', 'start'=>'', 'end'=>'', 'active'=>1))));
+storeTestSignOut();
+$bodyClass = $theme === 'prosimii' ? 'prosimii-modern' : ($theme === 'default' ? '' : $theme.'-theme');
+$contentClass = array('mahogany'=>'mahogany-content', 'ironhide'=>'ironhide-content', 'spore'=>'spore-reading', 'veil'=>'veil-document', 'prosimii'=>'prosimii-content')[$theme] ?? '';
 $ui = storeUi();
 $method = new ReflectionMethod(storeui::class, 'renderProductAdmin');
 ?><!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Store preview — fixture data</title>
 <style><?php readfile(__DIR__.'/../css/ghoti/ghoti.css'); readfile(__DIR__.'/../mod/store/store.css'); ?>
-body{margin:0;padding:24px;font-family:system-ui,sans-serif;background:#eee;color:#171717}main{max-width:1250px;margin:auto}#ghotiStoreManager{margin-top:36px;padding:24px;background:var(--store-surface);border-radius:18px}.preview-only{font-size:12px;color:#777}.preview-narrow{max-width:370px;margin:32px auto}@media(prefers-color-scheme:dark){body{background:#111;color:#eee}}@media(max-width:600px){body{padding:12px}#ghotiStoreManager{padding:12px}}</style>
-<main><p class="preview-only">LOCAL PREVIEW · FIXTURE PRODUCTS</p>
-<?php echo $ui->renderStorefront(array_values($db->products)); ?>
+body{margin:0;padding:24px;font-family:system-ui,sans-serif;background:#eee;color:#171717}main{max-width:1250px;margin:auto}#ghotiStoreManager{margin-top:36px;padding:24px;background:var(--store-surface);border-radius:18px}.preview-only{font-size:12px;color:#777}.preview-narrow{max-width:370px;margin:32px auto}@media(prefers-color-scheme:dark){body{background:#111;color:#eee}}@media(max-width:600px){body{padding:12px}#ghotiStoreManager{padding:12px}}</style><style><?php foreach($themeFiles[$theme] as $file){ readfile(__DIR__.'/../'.$file); } ?></style>
+<body class="<?php echo htmlspecialchars($bodyClass, ENT_QUOTES); ?>"><main><section class="<?php echo htmlspecialchars($contentClass, ENT_QUOTES); ?>"><div id="ghotiContent"><p class="preview-only">LOCAL PREVIEW · FIXTURE PRODUCTS</p>
+<?php if($view === 'catalog'){ echo $ui->renderStorefront(array_values($db->products)); ?>
 <section id="ghotiStoreManager"><h1>Store management</h1><?php echo $method->invoke($ui, $db->settings); ?></section>
 <div class="preview-narrow"><?php echo $ui->renderStorefront(array($db->products[2]), 'apparel', true); ?></div>
-</main><script><?php readfile(__DIR__.'/../mod/store/store.js'); ?>
+<?php }else{
+	$_SESSION['storeCart'] = array(1=>1, 3=>1, 4=>1); $_SESSION['storeCoupon'] = 'WELCOME';
+	if($view === 'cart'){ echo storeShowCart(); }
+	elseif($view === 'checkout'){ echo storeShowCheckout(); }
+	else { storeTestSignIn(true); echo showStoreManager('promotions'); }
+} ?></div></section></main><script><?php readfile(__DIR__.'/../mod/store/store.js'); ?>
 function pageFeedBack(message){ window.lastFeedback = message; }
 function x_storeAddToCart(id, qty, callback){ window.lastCart = {id:id, qty:qty}; callback({ok:true, name:'Fixture product', summary:qty+' items'}); }
 function x_saveStoreProduct(product, callback){window.lastSaved = product; callback('Fixture only: nothing saved');}
-</script><?php if(in_array('--test', $argv, true)){ ?><script><?php readfile(__DIR__.'/store-browser.js'); ?></script><?php } ?></html>
+</script><?php if(in_array('--test', $argv, true)){ ?><script><?php readfile(__DIR__.'/'.($view === 'catalog' ? 'store-browser.js' : 'store-commerce-browser.js')); ?></script><?php } ?>
+<script>
+window.addEventListener('load', function(){
+ document.body.dataset.overflow = String(document.documentElement.scrollWidth > innerWidth + 1);
+ var shop = document.querySelector('.ghotiStore, #ghotiStoreManager');
+ document.body.dataset.surface = getComputedStyle(shop).getPropertyValue('--store-surface').trim();
+});
+</script></body></html>

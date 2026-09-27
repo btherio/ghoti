@@ -24,6 +24,8 @@
  *  Shared helpers
  * ---------------------------------------------------------------- */
 
+require_once __DIR__.'/store.promotions.php';
+
 function storeDb(){
 	if(!isset($_SESSION['storeObj'])){ throw new RuntimeException('The store module is not loaded.'); }
 	return $_SESSION['storeObj']->storedb;
@@ -79,6 +81,7 @@ function storeCartLines(){
 			'unitCents' => $product['priceCents'],
 			'quantity'  => $quantity,
 			'lineCents' => $product['priceCents'] * $quantity,
+			'saleSavingsCents' => max(0, (int)($product['compareAtCents'] ?? 0) - $product['priceCents']) * $quantity,
 		);
 	}
 	return $lines;
@@ -88,17 +91,24 @@ function storeCartTotals($lines = null){
 	$lines = $lines === null ? storeCartLines() : $lines;
 	$settings = storeDb()->getSettings();
 	$subtotal = 0;
+	$saleSavings = 0;
 	$hasPhysical = false;
 	$units = 0;
 	foreach($lines as $line){
 		$subtotal += $line['lineCents'];
+		$saleSavings += $line['saleSavingsCents'] ?? 0;
 		$units += $line['quantity'];
 		if($line['kind'] === 'physical'){ $hasPhysical = true; }
 	}
 	//Shipping is a flat rate per order, charged only when something has to be
 	//posted. An all-digital cart never pays it.
 	$shipping = $hasPhysical ? max(0, (int)$settings['shippingCents']) : 0;
-	return array(
+	$config = array_merge(storeCommerceDefaults(), $settings['commerceConfig'] ?? array());
+	$signedIn = isset($_SESSION['userId']) && ghoti_require_login();
+	$points = $signedIn && $config['pointsPerUnit'] > 0 ? storeDb()->getLoyaltyPoints((int)$_SESSION['userId'], $settings['currency']) : 0;
+	$promotion = storeCalculatePromotions($subtotal, $shipping, $config, $_SESSION['storeCoupon'] ?? '', $points, $signedIn, gmdate('Y-m-d'));
+	return array_merge(array(
+		'saleSavingsCents' => $saleSavings,
 		'subtotalCents' => $subtotal,
 		'shippingCents' => $shipping,
 		'totalCents'    => $subtotal + $shipping,
@@ -106,7 +116,7 @@ function storeCartTotals($lines = null){
 		'hasPhysical'   => $hasPhysical,
 		'units'         => $units,
 		'lines'         => count($lines),
-	);
+	), $promotion);
 }
 
 /*
@@ -149,8 +159,12 @@ function showStore($category = 'all'){
 	}
 }
 
-function storeShowCart(){
+function storeShowCart($code = null){
 	try{
+		if($code !== null){
+			try{ $_SESSION['storeCoupon'] = storeCouponCode($code); }
+			catch(Exception $e){ return storeUi()->renderCart(storeCartLines(), storeCartTotals()).'<p role="alert">'.htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8').'</p>'; }
+		}
 		return storeUi()->renderCart(storeCartLines(), storeCartTotals());
 	}catch (Throwable $e){
 		ghoti::logException("store.async.php:storeShowCart", $e);
@@ -228,6 +242,7 @@ function storeBeginCheckout($customer){
 		$lines = storeCartLines();
 		if(!$lines){ return array('ok' => false, 'error' => 'Your cart is empty.'); }
 		$totals = storeCartTotals($lines);
+		if($totals['couponError'] !== ''){ return array('ok' => false, 'error' => $totals['couponError'].' Return to the cart to change or remove it.'); }
 		if($totals['totalCents'] <= 0){
 			return array('ok' => false, 'error' => 'This order has no payable total.');
 		}
@@ -239,6 +254,9 @@ function storeBeginCheckout($customer){
 			'email'         => $v->email(isset($customer['email']) ? $customer['email'] : ''),
 			'customerName'  => $v->text(isset($customer['name']) ? $customer['name'] : '', 120, true, "name"),
 			'address1'      => '', 'address2' => '', 'city' => '', 'region' => '', 'postcode' => '', 'country' => '',
+			'discountCents' => $totals['discountCents'],
+			'discountLabel' => $totals['discountLabel'],
+			'loyaltyPoints' => $totals['loyaltyPoints'],
 			'subtotalCents' => $totals['subtotalCents'],
 			'shippingCents' => $totals['shippingCents'],
 			'totalCents'    => $totals['totalCents'],
@@ -346,7 +364,7 @@ function storeCaptureOrder($paypalOrderId){
 		$downloads = storeDb()->getOrderDownloads($order['orderId']);
 
 		$_SESSION['storeCart'] = array();
-		unset($_SESSION['storeOrderId']);
+		unset($_SESSION['storeOrderId'], $_SESSION['storeCoupon']);
 		ghoti::logInfo("store.async.php:storeCaptureOrder", "Order ".$order['reference']." paid (".$order['totalCents']." ".$order['currency'].")");
 		storeSendOrderMail($order, $items, $downloads);
 
@@ -377,13 +395,15 @@ function storeIssueDownloads($orderId, $items, $settings){
 function storeSendOrderMail($order, $items, $downloads){
 	if(!isset($_SESSION['mailObj'])){ return; }
 	try{
+		//A buyer is a customer, not a member: the footer must not tell them they
+		//have an account here, because usually they do not.
 		$body = storeUi()->receiptText($order, $items, $downloads);
-		$result = $_SESSION['mailObj']->send($order['email'], $order['customerName'], 'Your order '.$order['reference'], $body);
+		$result = ghoti_mail_send_themed($_SESSION['mailObj'], $order['email'], $order['customerName'], 'Your order '.$order['reference'], $body, 'customer');
 		if($result !== true){ ghoti::logWarn("store.async.php:storeSendOrderMail", "Receipt for ".$order['reference']." not sent: ".$result); }
 
 		$adminBody = "A new order was paid.\n\n".storeUi()->receiptText($order, $items, array());
 		foreach(ghoti_admin_emails() as $address){
-			$_SESSION['mailObj']->send($address, '', 'New order '.$order['reference'], $adminBody);
+			ghoti_mail_send_themed($_SESSION['mailObj'], $address, '', 'New order '.$order['reference'], $adminBody, 'operator');
 		}
 	}catch (Throwable $e){
 		ghoti::logException("store.async.php:storeSendOrderMail", $e);
@@ -663,12 +683,26 @@ function saveStoreDropshipSettings($settings){
 
 function showStoreManager($tab = 'products'){
 	if(!storeRequireAdmin()){ return "<h1>Store</h1><p>Admin access required.</p>"; }
-	$tab = in_array($tab, array('products','orders','settings','dropship'), true) ? $tab : 'products';
+	$tab = in_array($tab, array('products','orders','settings','dropship','promotions'), true) ? $tab : 'products';
 	try{
 		return storeUi()->renderManager($tab);
 	}catch (Throwable $e){
 		ghoti::logException("store.async.php:showStoreManager", $e);
 		return "<h1>Store</h1><p>The store manager could not be loaded.</p>";
+	}
+}
+
+function saveStorePromotions($input){
+	if(!storeRequireAdmin()){ return 'Admin access required.'; }
+	try{ $config = storeValidateCommerce($input); }
+	catch(Exception $e){ return $e->getMessage(); }
+	try{
+		if(!storeDb()->saveSettings(array('commerceConfig' => $config))){ return 'The promotions could not be saved.'; }
+		ghoti::logInfo('store.async.php:saveStorePromotions', 'Promotions updated by UID:'.($_SESSION['userId'] ?? '?'));
+		return true;
+	}catch(Throwable $e){
+		ghoti::logException('store.async.php:saveStorePromotions', $e);
+		return 'The promotions could not be saved.';
 	}
 }
 
@@ -940,6 +974,7 @@ ghoti_async_register(
 	"saveStoreProduct",
 	"deleteStoreProduct",
 	"saveStoreSettings",
+	"saveStorePromotions",
 	"showStoreOrder",
 	"setStoreOrderStatus"
 );
@@ -1001,11 +1036,18 @@ class storeui{
 		$o .= '<h1 class="ghotiStoreTitle">'.($category === 'all' ? 'Find your next favourite.' : $this->esc(ucfirst($category))).'</h1>';
 		$o .= '<p class="ghotiStoreLead">Explore the collection. Find something that feels like you.</p></div>';
 		$o .= '<button type="button" class="ghotiButton ghotiButtonSecondary ghotiStoreCartButton" onclick="storeShowCart();">Cart <span class="ghotiStoreCartSummary">'.$this->esc($this->cartSummaryText($totals)).'</span></button></header>';
+		$config = $totals['commerce'];
+		if($config['freeShippingCents'] > 0 || $config['pointsPerUnit'] > 0){
+			$o .= '<div class="ghotiStoreOfferStrip">';
+			if($config['freeShippingCents'] > 0){ $o .= '<span>Free shipping from '.$this->money($config['freeShippingCents'], $totals['currency']).' after discounts</span>'; }
+			if($config['pointsPerUnit'] > 0){ $o .= '<span>'.($totals['signedIn'] ? 'Your rewards: '.(int)$totals['pointsBalance'].' points' : 'Members earn '.$config['pointsPerUnit'].' points per '.$this->esc($totals['currency']).' 1 spent').'</span>'; }
+			$o .= '<small>Local checkout only; Spring purchases are separate.</small></div>';
+		}
 		if(!$products){
 			return $o.'<div class="ghotiStoreEmpty"><h2>A little something is on its way.</h2><p>Check back soon for new additions to the collection.</p></div></section>';
 		}
 		$o .= '<div class="ghotiStoreTools"><label class="ghotiStoreSearch"><span>Search the collection</span><input type="search" data-store-search placeholder="Search products, descriptions, or SKU…" oninput="storeFilterCatalog(this);" /></label>';
-		$o .= '<label><span>Product type</span><select data-store-kind onchange="storeFilterCatalog(this);"><option value="all">All products</option><option value="physical">Physical goods</option><option value="digital">Digital downloads</option><option value="spring">Spring merch</option></select></label>';
+		$o .= '<label><span>Product type</span><select data-store-kind onchange="storeFilterCatalog(this);"><option value="all">All products</option><option value="physical">Physical goods</option><option value="digital">Digital downloads</option><option value="spring">Spring merch</option><option value="sale">On sale</option><option value="saved">Saved favourites</option></select></label>';
 		$o .= '<label><span>Sort by</span><select data-store-sort onchange="storeFilterCatalog(this);"><option value="featured">Featured</option><option value="newest">Newest first</option><option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option><option value="name">Name: A–Z</option></select></label></div>';
 		$o .= '<div class="ghotiStoreCollectionBar"><div class="ghotiStoreChips" role="group" aria-label="Categories"><button type="button" data-store-category="all" aria-pressed="true" onclick="storeSelectCategory(this);">All items</button>';
 		foreach(array_keys($categories) as $name){
@@ -1019,7 +1061,8 @@ class storeui{
 			$featured = !empty($product['featured']);
 			$compareAt = (int)($product['compareAtCents'] ?? 0);
 			$badge = $product['badge'] ?? '';
-			$o .= '<article class="ghotiStoreCard" data-category="'.$this->esc($product['category']).'" data-kind="'.$this->esc($product['kind']).'" data-spring="'.($spring ? '1' : '0').'" data-name="'.$this->esc($product['name']).'" data-search="'.$this->esc($product['name'].' '.$product['description'].' '.$product['sku']).'" data-price="'.(int)$product['priceCents'].'" data-featured="'.($featured ? '1' : '0').'" data-created="'.(int)$product['createdAt'].'" data-index="'.(int)$index.'">';
+			if($compareAt > $product['priceCents']){ $badge = 'On sale · Save '.intdiv(($compareAt - $product['priceCents']) * 100, $compareAt).'%'; }
+			$o .= '<article class="ghotiStoreCard" data-product-id="'.$id.'" data-sale="'.($compareAt > $product['priceCents'] ? '1' : '0').'" data-category="'.$this->esc($product['category']).'" data-kind="'.$this->esc($product['kind']).'" data-spring="'.($spring ? '1' : '0').'" data-name="'.$this->esc($product['name']).'" data-search="'.$this->esc($product['name'].' '.$product['description'].' '.$product['sku']).'" data-price="'.(int)$product['priceCents'].'" data-featured="'.($featured ? '1' : '0').'" data-created="'.(int)$product['createdAt'].'" data-index="'.(int)$index.'">';
 			$o .= '<div class="ghotiStoreThumb">';
 			if($product['imageUrl'] !== ''){
 				$o .= '<img src="'.$this->esc($product['imageUrl']).'" alt="'.$this->esc($product['name']).'" loading="lazy" decoding="async" />';
@@ -1028,7 +1071,7 @@ class storeui{
 			}
 			if($badge !== '' || $featured){ $o .= '<span class="ghotiStoreRibbon">'.$this->esc($badge !== '' ? $badge : 'Featured').'</span>'; }
 			$o .= '</div><div class="ghotiStoreCardBody"><div class="ghotiStoreMeta"><span>'.$this->esc(ucfirst($product['category'])).'</span><span>'.($spring ? 'Spring' : ($product['kind'] === 'digital' ? 'Digital download' : 'Physical goods')).'</span></div>';
-			$o .= '<h2>'.$this->esc($product['name']).'</h2>';
+			$o .= '<h2>'.$this->esc($product['name']).'</h2><button type="button" class="ghotiStoreSave" data-store-save="'.$id.'" aria-pressed="false" aria-label="Save '.$this->esc($product['name']).'" onclick="storeToggleSaved(this);">♡ Save favourite</button>';
 			if($product['description'] !== ''){
 				$o .= '<details class="ghotiStoreDescription"><summary>Product details</summary><p class="ghotiStoreBlurb">'.nl2br($this->esc($product['description'])).'</p></details>';
 			}
@@ -1073,13 +1116,18 @@ class storeui{
 		}
 		$o .= "</tbody></table></div>\n";
 
+		$o .= '<form class="ghotiStoreCoupon" onsubmit="storeApplyCoupon(this); return false;"><label for="storeCoupon">Discount code</label><div><input id="storeCoupon" name="code" maxlength="32" autocomplete="off" value="'.$this->esc($_SESSION['storeCoupon'] ?? '').'" placeholder="Enter your code" /><button class="ghotiButton" type="submit">Apply</button><button class="ghotiButton ghotiButtonSecondary" type="button" onclick="storeShowCart(\'\');">Clear</button></div><small>One offer per order. The better of your code or member reward applies.</small></form>';
+		if(!empty($totals['couponError'])){ $o .= '<p class="ghotiStoreStatus is-error" role="alert">'.$this->esc($totals['couponError']).'</p>'; }
+		$o .= $this->renderRewards($totals);
 		$o .= "<dl class=\"ghotiStoreTotals\">\n";
 		$o .= "<div><dt>Subtotal</dt><dd>".$this->money($totals['subtotalCents'], $totals['currency'])."</dd></div>\n";
+		$o .= $this->renderDiscount($totals);
 		if($totals['hasPhysical']){
 			$o .= "<div><dt>Shipping</dt><dd>".$this->money($totals['shippingCents'], $totals['currency'])."</dd></div>\n";
 		}
 		$o .= "<div class=\"ghotiStoreGrand\"><dt>Total</dt><dd>".$this->money($totals['totalCents'], $totals['currency'])."</dd></div>\n";
 		$o .= "</dl>\n";
+		if(!empty($totals['saleSavingsCents'])){ $o .= '<p class="ghotiStoreSavings">Sale prices already save you '.$this->money($totals['saleSavingsCents'], $totals['currency']).'.</p>'; }
 		$o .= "<div class=\"ghotiStoreActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"storeShowCheckout();\">Checkout</button></div>\n";
 		$o .= "</div>\n";
 		return $o;
@@ -1094,12 +1142,14 @@ class storeui{
 		foreach($lines as $line){
 			$o .= "<li><span>".(int)$line['quantity']." &times; ".$this->esc($line['name'])."</span><span>".$this->money($line['lineCents'], $totals['currency'])."</span></li>\n";
 		}
+		$o .= $this->renderDiscount($totals, true);
 		if($totals['hasPhysical']){
 			$o .= "<li><span>Shipping".($settings['shippingNote'] !== '' ? ' &mdash; '.$this->esc($settings['shippingNote']) : '')."</span><span>".$this->money($totals['shippingCents'], $totals['currency'])."</span></li>\n";
 		}
 		$o .= "<li class=\"ghotiStoreGrand\"><span>Total</span><span>".$this->money($totals['totalCents'], $totals['currency'])."</span></li>\n";
 		$o .= "</ul></div>\n";
 
+		$o .= $this->renderRewards($totals);
 		$o .= "<form id=\"ghotiStoreCheckoutForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"return false;\">\n";
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= "<label class=\"ghotiField\"><span>Your name</span><input type=\"text\" id=\"storeName\" maxlength=\"120\" autocomplete=\"name\" required=\"required\" /></label>\n";
@@ -1138,12 +1188,14 @@ class storeui{
 		$o .= "</tbody></table>\n";
 		$o .= "<dl class=\"ghotiStoreTotals\">\n";
 		$o .= "<div><dt>Subtotal</dt><dd>".$this->money($order['subtotalCents'], $order['currency'])."</dd></div>\n";
+		$o .= $this->renderDiscount($order);
 		if($order['hasPhysical']){
 			$o .= "<div><dt>Shipping</dt><dd>".$this->money($order['shippingCents'], $order['currency'])."</dd></div>\n";
 		}
 		$o .= "<div class=\"ghotiStoreGrand\"><dt>Paid</dt><dd>".$this->money($order['totalCents'], $order['currency'])."</dd></div>\n";
 		$o .= "</dl>\n";
 
+		if(!empty($order['loyaltyPoints'])){ $o .= '<p class="ghotiStoreBenefit">Member points earned: '.(int)$order['loyaltyPoints'].'</p>'; }
 		if($downloads){
 			$o .= "<div class=\"ghotiStoreDownloads\"><h2>Your downloads</h2><ul>\n";
 			foreach($downloads as $grant){
@@ -1171,6 +1223,8 @@ class storeui{
 			$lines[] = $item['quantity'].' x '.$item['name'].'  '.$order['currency'].' '.StorePaypalClient::amount($item['unitCents'] * $item['quantity']);
 		}
 		$lines[] = '';
+		if(!empty($order['discountCents'])){ $lines[] = 'Discount ('.$order['discountLabel'].'): -'.$order['currency'].' '.StorePaypalClient::amount($order['discountCents']); }
+		if(!empty($order['loyaltyPoints'])){ $lines[] = 'Member points earned: '.(int)$order['loyaltyPoints']; }
 		$lines[] = 'Subtotal: '.$order['currency'].' '.StorePaypalClient::amount($order['subtotalCents']);
 		if($order['hasPhysical']){
 			$lines[] = 'Shipping: '.$order['currency'].' '.StorePaypalClient::amount($order['shippingCents']);
@@ -1203,13 +1257,14 @@ class storeui{
 		$o .= "<div class=\"ghotiCrudHeader\"><div><h1>Store</h1><p class=\"ghotiHelpText\">Catalogue, orders, and the PayPal connection. Put a shop on any page with <code>[store:all]</code>.</p></div></div>\n";
 
 		$o .= "<div class=\"ghotiStoreTabs\" aria-label=\"Store management\">\n";
-		foreach(array('products' => 'Products', 'orders' => 'Orders', 'settings' => 'PayPal &amp; shipping', 'dropship' => 'Dropshipping') as $key => $label){
+		foreach(array('products' => 'Products', 'orders' => 'Orders', 'promotions' => 'Promotions &amp; loyalty', 'settings' => 'PayPal &amp; shipping', 'dropship' => 'Dropshipping') as $key => $label){
 			$active = $tab === $key;
 			$o .= "<button type=\"button\" aria-pressed=\"".($active ? 'true' : 'false')."\" class=\"ghotiStoreTab".($active ? " is-active" : "")."\" onclick=\"showStoreManager('".$key."');\">".$label."</button>\n";
 		}
 		$o .= "</div>\n";
 
 		if($tab === 'products'){ $o .= $this->renderProductAdmin($settings); }
+		elseif($tab === 'promotions'){ $o .= $this->renderPromotionsAdmin($settings); }
 		elseif($tab === 'orders'){ $o .= $this->renderOrderAdmin(); }
 		elseif($tab === 'dropship'){ $o .= $this->renderDropshipAdmin($settings); }
 		else { $o .= $this->renderSettingsAdmin($settings); }
@@ -1304,6 +1359,65 @@ class storeui{
 		}
 		$o .= "</tbody></table></div>\n";
 		return $o;
+	}
+
+	private function renderPromotionsAdmin($settings){
+		$config = array_merge(storeCommerceDefaults(), $settings['commerceConfig'] ?? array());
+		$o = '<h2>Promotions &amp; loyalty</h2><p>Reward repeat customers and make every offer clear. These rules apply to local checkout; Spring purchases are separate.</p>';
+		$o .= '<form class="ghotiForm" onsubmit="storeSavePromotions(this); return false;"><fieldset class="ghotiStoreFieldset"><legend>Shipping &amp; member rewards</legend><div class="ghotiFormGrid">';
+		$fields = array('freeShipping' => array('Free shipping from (0 disables)', StorePaypalClient::amount($config['freeShippingCents']), 'text', ''),
+			'pointsPerUnit' => array('Points per currency unit spent (0 disables)', $config['pointsPerUnit'], 'number', 'min="0" max="100"'),
+			'loyaltyThreshold' => array('Points needed for member discount', $config['loyaltyThreshold'], 'number', 'min="1" max="1000000"'),
+			'loyaltyPercent' => array('Member discount (%)', $config['loyaltyPercent'], 'number', 'min="1" max="50"'));
+		foreach($fields as $name => $field){
+			$o .= '<label class="ghotiField"><span>'.$field[0].'</span><input name="'.$name.'" type="'.$field[2].'" value="'.$this->esc($field[1]).'" '.$field[3].' required /></label>';
+		}
+		$o .= '</div><p class="ghotiHelpText">Members earn points on paid merchandise after discounts, excluding shipping. Points unlock an ongoing discount; they are not spent. Cancelled orders do not count. The better of a code or member reward applies. Free shipping uses the merchandise total after discounts.</p></fieldset>';
+		$o .= '<h3>Discount codes</h3><p class="ghotiHelpText">Reusable codes, up to 50. Dates are inclusive in UTC; blank dates have no limit. Percentage discounts are capped at 90%. Offers always leave at least one cent payable. Remove or disable a code to stop new checkouts using it; existing pending orders keep their quote.</p><div data-store-coupons>';
+		foreach($config['coupons'] as $coupon){ $o .= $this->renderCouponEditor($coupon); }
+		$o .= '</div><template id="storeCouponTemplate">'.$this->renderCouponEditor(array()).'</template>';
+		$o .= '<div class="ghotiFormActions"><button class="ghotiButton ghotiButtonSecondary" type="button" onclick="storeAddCoupon(this);">Add discount code</button><button class="ghotiButton" type="submit">Save promotions</button></div></form>';
+		return $o;
+	}
+
+	private function renderCouponEditor($coupon){
+		$o = '<fieldset class="ghotiStoreFieldset" data-store-coupon><legend>Discount code</legend><div class="ghotiFormGrid">';
+		$fields = array('code' => array('Code', $coupon['code'] ?? '', 'text', 'maxlength="32" pattern="[A-Za-z0-9-]+" required'),
+			'value' => array('Discount amount or percentage', isset($coupon['value']) ? ($coupon['type'] === 'fixed' ? StorePaypalClient::amount($coupon['value']) : $coupon['value']) : '', 'text', 'required'),
+			'minimum' => array('Minimum merchandise spend', StorePaypalClient::amount($coupon['minimumCents'] ?? 0), 'text', 'required'),
+			'start' => array('Starts (UTC, optional)', $coupon['start'] ?? '', 'date', ''),
+			'end' => array('Ends (UTC, optional)', $coupon['end'] ?? '', 'date', ''));
+		foreach($fields as $name => $field){ $o .= '<label class="ghotiField"><span>'.$field[0].'</span><input data-coupon-field="'.$name.'" type="'.$field[2].'" value="'.$this->esc($field[1]).'" '.$field[3].' /></label>'; }
+		$o .= '<label class="ghotiField"><span>Discount type</span><select data-coupon-field="type"><option value="percent">Percentage</option><option value="fixed"'.(($coupon['type'] ?? '') === 'fixed' ? ' selected' : '').'>Fixed amount</option></select></label></div>';
+		$o .= '<label class="ghotiInlineChoice"><input type="checkbox" data-coupon-field="active"'.(!isset($coupon['active']) || $coupon['active'] ? ' checked' : '').' /> Active</label><button class="ghotiButton ghotiButtonSecondary" type="button" onclick="this.closest(\'[data-store-coupon]\').remove();">Remove code</button></fieldset>';
+		return $o;
+	}
+
+	private function renderRewards($totals){
+		$config = $totals['commerce'] ?? storeCommerceDefaults();
+		$o = '';
+		if($config['freeShippingCents'] > 0 && $totals['hasPhysical']){
+			$remaining = $totals['freeShippingRemaining'];
+			$o .= '<div class="ghotiStoreBenefit"><strong>'.($remaining > 0 ? $this->money($remaining, $totals['currency']).' away from free shipping' : 'You unlocked free shipping').'</strong><progress aria-label="Progress toward free shipping" max="'.(int)$config['freeShippingCents'].'" value="'.(int)max(0, $config['freeShippingCents'] - $remaining).'"></progress><small>Based on merchandise after discounts.</small></div>';
+		}
+		if($config['pointsPerUnit'] > 0){
+			$o .= '<div class="ghotiStoreBenefit"><strong>Member rewards</strong>';
+			if(!empty($totals['signedIn'])){
+				$o .= '<span>'.(int)$totals['pointsBalance'].' points · Earn '.(int)$totals['loyaltyPoints'].' with this order</span>';
+				$o .= '<small>'.($totals['pointsBalance'] >= $config['loyaltyThreshold'] ? 'Your '.$config['loyaltyPercent'].'% member discount is unlocked.' : max(0, $config['loyaltyThreshold'] - $totals['pointsBalance']).' more points unlock '.$config['loyaltyPercent'].'% off future orders.').'</small>';
+			}else{
+				$o .= '<span>Sign in before checkout to earn '.$config['pointsPerUnit'].' points per '.$this->esc($totals['currency']).' 1 spent on merchandise.</span><small>'.$config['loyaltyThreshold'].' points unlock '.$config['loyaltyPercent'].'% off future orders. Guest checkout is always welcome.</small>';
+			}
+			$o .= '<small>Points are not spent. The better of a code or member reward applies.</small></div>';
+		}
+		return $o === '' ? '' : '<aside class="ghotiStoreBenefits" aria-label="Shopping benefits">'.$o.'</aside>';
+	}
+
+	private function renderDiscount($totals, $list = false){
+		if(empty($totals['discountCents'])){ return ''; }
+		$label = 'Discount · '.$this->esc($totals['discountLabel']);
+		$value = '−'.$this->money($totals['discountCents'], $totals['currency']);
+		return $list ? '<li><span>'.$label.'</span><span>'.$value.'</span></li>' : '<div class="ghotiStoreSavings"><dt>'.$label.'</dt><dd>'.$value.'</dd></div>';
 	}
 
 	private function renderSettingsAdmin($settings){
@@ -1459,6 +1573,10 @@ class storeui{
 		$o .= "</tbody></table>\n";
 		$o .= "<p class=\"ghotiStoreOrderTotal\">Total ".$this->money($order['totalCents'], $order['currency'])."</p>\n";
 
+		$o .= '<dl class="ghotiStoreTotals">'.$this->renderDiscount($order).'<div><dt>Member points</dt><dd>'.(int)($order['loyaltyPoints'] ?? 0).'</dd></div></dl>';
+		if(in_array($order['status'], array('paid','shipped'), true)){
+			$o .= '<button type="button" class="ghotiButton ghotiButtonSecondary ghotiButtonDanger" onclick="storeSetOrderStatus('.(int)$order['orderId'].', \'cancelled\');">Cancel order / record external refund</button><p class="ghotiHelpText">This removes earned loyalty points. Refund the payment in PayPal separately; supplier orders and download grants are not revoked automatically.</p>';
+		}
 		$fulfilments = storeDb()->getOrderFulfilments($order['orderId']);
 		if($fulfilments){
 			$o .= "<h4>Supplier fulfilment</h4><ul class=\"ghotiStoreFulfilmentList\">\n";

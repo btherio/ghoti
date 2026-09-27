@@ -48,7 +48,7 @@ class ghotidb{
     private static $pdo = null;
 
     /* Module names allowed to be auto-provisioned via loadModuleSql(). */
-    private static $validModules = array('pages','banners','comments','links','login','analytics','gallery','mail','vhosts','store','bpong');
+    private static $validModules = array('pages','banners','boards','links','login','analytics','gallery','mail','vhosts','store','bpong');
     private static $moduleInitState = array();
     private static $pageSchemaReady = false;
     const PAGE_SCHEMA_VERSION = 1;
@@ -588,7 +588,10 @@ class ghotidb{
     function deletePage($m_id){
         try{
             $this->query("delete from pages where id=?",array($m_id));
-            $this->query("delete from comments where pageId=?",array($m_id));
+            //Nothing else to clean up: a board is placed in a page with
+            //[board:slug] rather than owned by it, and the same board may be
+            //placed on other pages. Deleting the page deletes the tag, not the
+            //conversation. Boards are removed in Admin -> Boards.
         }catch (Throwable $e){
             ghoti::logException("ghoti.db.php:deletePage", $e);
             return false;
@@ -763,13 +766,14 @@ class GhotiAdminDirectory extends ghotidb{
 
 /*
  * Full user directory, for features that address users rather than admins
- * (Admin Menu -> Send Email). Separate from GhotiAdminDirectory on purpose:
+ * (Admin Menu -> Manage Users). Separate from GhotiAdminDirectory on purpose:
  * that one answers "who do we alert", this one answers "who has an account",
  * and only the latter may include non-admins.
  *
- * Addresses are returned as stored, valid or not: the Send Email screen shows
- * accounts with a missing/invalid address as unselectable and reports how many
- * were skipped, which is more useful to an admin than a silently shorter list.
+ * Addresses are returned as stored, valid or not: the Manage Users email
+ * composer shows accounts with a missing/invalid address as unselectable and
+ * reports how many were skipped, which is more useful to an admin than a
+ * silently shorter list.
  * Every consumer still format-checks before handing an address to the mailer.
  */
 class GhotiUserDirectory extends ghotidb{

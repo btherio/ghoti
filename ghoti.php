@@ -25,6 +25,7 @@ class ghoti {
 	public static $defaultPageTitle = "Home"; 		//this page must exist          [UI]
 	public static $defaultTheme = "ghoticms";		//default theme                 [UI]
 	public static $allowRegister = False; 			//allow or disallow new registrations [UI]
+	public static $backgroundImg = ""; //shared theme background; blank uses theme defaults
 	public static $headerImg = "gfx/ghoti-logo.png"; //header image to use            [UI]
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
 	public static $privacyOperator = "";
@@ -38,6 +39,9 @@ class ghoti {
 	public static $securityIpBlacklist = "";      //manual IP/CIDR deny rules       [UI]
 	public static $securityIpAllowlist = "";      //automatic-block exemptions      [UI]
 	public static $sessionTimeoutMinutes = 30;    //authenticated idle timeout       [UI]
+	public static $enableTwoFactor = False;       //emailed sign-in codes for admins [UI]
+	public static $twoFactorAllUsers = False;     //...and for ordinary members too [UI]
+	public static $enableBoards = False;          //optional message-board module [UI]
 	public static $enableVhosts = False;          //optional privileged module [UI]
 	public static $enableStore = False;           //optional shop module        [UI]
 	public static $enableBpong = False;           //optional pong module        [UI]
@@ -79,6 +83,7 @@ class ghoti {
 		'defaultPageTitle'   => 'text',
 		'defaultTheme'       => 'theme',
 		'headerImg'          => 'path',
+		'backgroundImg'      => 'background',
 		'allowRegister'      => 'bool',
 		'enableThemeChanger' => 'bool',
 		'hideLoginButton'    => 'bool',
@@ -93,6 +98,9 @@ class ghoti {
 		'privacyOperator'    => 'text',
 		'privacyRegion'      => 'text',
 		'enableDebug'        => 'bool',
+		'enableTwoFactor'    => 'bool',
+		'twoFactorAllUsers'  => 'bool',
+		'enableBoards'       => 'bool',
 		'enableVhosts'       => 'bool',
 		'enableStore'        => 'bool',
 		'enableBpong'        => 'bool',
@@ -110,7 +118,8 @@ class ghoti {
 		$this->html = new html();
 	}
 	public static function enabledModules(){
-		$modules = array('links','login','banners','comments','analytics','gallery','filemanager','mail');
+		$modules = array('links','login','banners','analytics','gallery','filemanager','mail');
+		if(self::$enableBoards){ $modules[] = 'boards'; }
 		if(self::$enableVhosts){ $modules[] = 'vhosts'; }
 		if(self::$enableStore){ $modules[] = 'store'; }
 		if(self::$enableBpong){ $modules[] = 'bpong'; }
@@ -193,6 +202,12 @@ class ghoti {
 		if($level === self::LOG_LEVEL_DEBUG && self::$enableDebug !== True){
 			return True;
 		}
+		//One entry, one line. Callers interpolate what visitors typed (a login
+		//name, a path), and a CR/LF in it would otherwise let a signed-out visitor
+		//forge whole entries - which the Errors tab and critical alerts read back.
+		//Tabs survive; every other control character becomes a space.
+		$context = preg_replace('/[\x00-\x08\x0A-\x1F\x7F]+/', ' ', (string)$context);
+		$line = preg_replace('/[\x00-\x08\x0A-\x1F\x7F]+/', ' ', (string)$line);
 		$levelName = isset(self::$levelNames[$level]) ? self::$levelNames[$level] : 'INFO';
 		$prefix = $levelName;
 		if($context !== null && $context !== ''){
@@ -289,10 +304,54 @@ class ghoti {
 			return "No administrator account has a valid e-mail address. Add one in Manage Users before enabling alerts.";
 		}
 
+		/*
+		 * Two-factor authentication may only be switched on when outbound mail has
+		 * been PROVEN to work, because the code is delivered by email and there is
+		 * no fallback by design: enabling it against an untested mail server locks
+		 * every administrator out of the site.
+		 *
+		 * Server-side on purpose. The Site Settings form disables the control when
+		 * mail is unverified, but that is a courtesy to the person using it, not
+		 * the control - this is.
+		 */
+		$twoFactorWanted = array_key_exists('enableTwoFactor', $settings) ? self::sanitizeSetting('bool', $settings['enableTwoFactor']) : self::$enableTwoFactor;
+		$allUsersWanted  = array_key_exists('twoFactorAllUsers', $settings) ? self::sanitizeSetting('bool', $settings['twoFactorAllUsers']) : self::$twoFactorAllUsers;
+
+		//Both switches arrive in the same save, so the RESULTING state is what is
+		//judged: extending codes to members while the feature itself is off would
+		//be a setting that silently does nothing.
+		if($allUsersWanted && !$twoFactorWanted){
+			return "Codes for all members need two-factor authentication itself to be on. Tick both, or neither.";
+		}
+		//Widening the requirement to every member is the same risk as switching it
+		//on in the first place - more so, since it puts the mail server in front of
+		//every sign-in on the site - so it is gated the same way.
+		if(($twoFactorWanted && !self::$enableTwoFactor) || ($allUsersWanted && !self::$twoFactorAllUsers)){
+			//A recorded successful test is the whole check, and it is a stronger
+			//one than it looks: mailDeliverTestMessage() refuses outright when no
+			//administrator has a usable address, and records the marker only after
+			//a message actually reached one. So this already proves both that mail
+			//works and that an administrator could receive a code.
+			//
+			//Deliberately NOT also requiring ghoti_admin_emails() here: it returns
+			//an empty list both when there genuinely are no admin addresses and
+			//when the directory could not be read, and refusing on the second case
+			//would block the setting for a reason that is not true. The per-account
+			//case is caught at sign-in instead, by login_2fa_begin(), which refuses
+			//an administrator with no address and says so.
+			if(!function_exists('ghoti_mail_verified') || !ghoti_mail_verified()){
+				return "Two-factor authentication needs outbound mail that has been tested. Open Mail Settings, send a test message, then enable it.";
+			}
+		}
+
 		//Give explicit feedback for a bad theme rather than silently ignoring it.
 		if(isset($settings['defaultTheme']) && $settings['defaultTheme'] !== ''
 			&& !self::isValidTheme($settings['defaultTheme'])){
 			return "That theme doesn't exist.";
+		}
+
+		if(array_key_exists('backgroundImg', $settings) && self::sanitizeSetting('background', $settings['backgroundImg']) === null){
+			return "Background image must be an existing local PNG, JPEG, GIF, WebP or AVIF image path, or blank to use theme defaults.";
 		}
 
 		$clean = self::currentSettings(); //start from what's active, override per key
@@ -328,6 +387,15 @@ class ghoti {
 				catch(InvalidArgumentException $e){ return null; }
 			case 'theme':
 				return self::isValidTheme($value) ? (string)$value : null;
+			case 'background':
+				if(!is_string($value)){ return null; }
+				$value = trim($value);
+				if($value === ''){ return ''; }
+				if(strlen($value) > 200 || !preg_match('#^(?:[A-Za-z0-9_-][A-Za-z0-9_. -]*/)*[A-Za-z0-9_-][A-Za-z0-9_. -]*\.(?:png|jpe?g|gif|webp|avif)$#i', $value)){ return null; }
+				$path = realpath(__DIR__.'/'.$value);
+				if($path === false || !str_starts_with($path, __DIR__.DIRECTORY_SEPARATOR) || !is_file($path)){ return null; }
+				$image = @getimagesize($path);
+				return $image && in_array($image['mime'], array('image/png','image/jpeg','image/gif','image/webp','image/avif'), true) ? $value : null;
 			case 'path':
 				//Used as an <img src> in themes (printed unescaped), so strip
 				//anything that could break out of the attribute or inject markup.
@@ -340,6 +408,12 @@ class ghoti {
 				$v = str_replace(array('"',"\r","\n"), '', $v);
 				return trim(substr($v, 0, 120));
 		}
+	}
+
+	//Themes with image backdrops share one override; other themes keep their own design.
+	public static function themeBackground($fallback){
+		$path = self::sanitizeSetting('background', self::$backgroundImg);
+		return $path !== null && $path !== '' ? $path : $fallback;
 	}
 
 	//A theme is valid only if it is a safe name AND its stylesheet loader exists.

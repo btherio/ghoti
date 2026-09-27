@@ -43,13 +43,14 @@ class storedb extends ghotidb{
 			'dropshipEnabled'    => false,
 			'dropshipAutoSubmit' => true,
 			'dropshipConfig'     => array(),
+			'commerceConfig' => array(),
 			'updatedAt'      => 0,
 		);
 	}
 
 	public function getSettings(){
 		try{
-			$rows = $this->queryArray("select paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt from store where id = 1 limit 1");
+			$rows = $this->queryArray("select paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt,commerceConfig from store where id = 1 limit 1");
 			if(isset($rows[0])){
 				$row = $rows[0];
 				return array(
@@ -68,6 +69,7 @@ class storedb extends ghotidb{
 					//every new driver has to migrate.
 					'dropshipConfig'     => self::decodeConfig($row[10]),
 					'updatedAt'      => (int)$row[11],
+					'commerceConfig' => self::decodeConfig($row[12] ?? ''),
 				);
 			}
 		}catch (Throwable $e){
@@ -92,19 +94,19 @@ class storedb extends ghotidb{
 			$settings = array_merge($current, $settings);
 			$config = isset($settings['dropshipConfig']) && is_array($settings['dropshipConfig']) ? $settings['dropshipConfig'] : array();
 			$this->query(
-				"insert into store (id,paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt)"
-				." values (1,?,?,?,?,?,?,?,?,?,?,?,?)"
+				"insert into store (id,paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt,commerceConfig)"
+				." values (1,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 				." on duplicate key update paypalClientId=values(paypalClientId),paypalSecret=values(paypalSecret),paypalEnv=values(paypalEnv),"
 				." currency=values(currency),shippingCents=values(shippingCents),shippingNote=values(shippingNote),"
 				." downloadHours=values(downloadHours),downloadLimit=values(downloadLimit),"
 				." dropshipEnabled=values(dropshipEnabled),dropshipAutoSubmit=values(dropshipAutoSubmit),dropshipConfig=values(dropshipConfig),"
-				." updatedAt=values(updatedAt)",
+				." updatedAt=values(updatedAt),commerceConfig=values(commerceConfig)",
 				array(
 					$settings['paypalClientId'], $settings['paypalSecret'], $settings['paypalEnv'],
 					$settings['currency'], (int)$settings['shippingCents'], $settings['shippingNote'],
 					(int)$settings['downloadHours'], (int)$settings['downloadLimit'],
 					!empty($settings['dropshipEnabled']) ? 1 : 0, !empty($settings['dropshipAutoSubmit']) ? 1 : 0,
-					json_encode($config), time()
+					json_encode($config), time(), json_encode($settings['commerceConfig'] ?? array())
 				)
 			);
 			return true;
@@ -296,10 +298,13 @@ class storedb extends ghotidb{
 			'createdAt'      => (int)$row[21],
 			'paidAt'         => (int)$row[22],
 			'shippedAt'      => (int)$row[23],
+			'discountCents' => (int)($row[24] ?? 0),
+			'discountLabel' => (string)($row[25] ?? ''),
+			'loyaltyPoints' => (int)($row[26] ?? 0),
 		);
 	}
 
-	private const ORDER_COLUMNS = "orderId,reference,status,userId,email,customerName,address1,address2,city,region,postcode,country,subtotalCents,shippingCents,totalCents,currency,hasPhysical,paypalOrderId,paypalCaptureId,payerEmail,note,createdAt,paidAt,shippedAt";
+	private const ORDER_COLUMNS = "orderId,reference,status,userId,email,customerName,address1,address2,city,region,postcode,country,subtotalCents,shippingCents,totalCents,currency,hasPhysical,paypalOrderId,paypalCaptureId,payerEmail,note,createdAt,paidAt,shippedAt,discountCents,discountLabel,loyaltyPoints";
 
 	//Writes the order and its line items as one transaction: an order without
 	//its items would be unreconcilable. Returns the new orderId, or false.
@@ -310,13 +315,14 @@ class storedb extends ghotidb{
 			try{
 				$this->query(
 					"insert into store_orders (reference,status,userId,email,customerName,address1,address2,city,region,postcode,country,"
-					."subtotalCents,shippingCents,totalCents,currency,hasPhysical,paypalOrderId,note,createdAt)"
-					." values (?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+					."subtotalCents,shippingCents,totalCents,currency,hasPhysical,paypalOrderId,note,createdAt,discountCents,discountLabel,loyaltyPoints)"
+					." values (?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
 					array($order['reference'], $order['userId'], $order['email'], $order['customerName'],
 						$order['address1'], $order['address2'], $order['city'], $order['region'],
 						$order['postcode'], $order['country'], (int)$order['subtotalCents'],
 						(int)$order['shippingCents'], (int)$order['totalCents'], $order['currency'],
-						$order['hasPhysical'] ? 1 : 0, $order['paypalOrderId'], $order['note'], time())
+						$order['hasPhysical'] ? 1 : 0, $order['paypalOrderId'], $order['note'], time(),
+						(int)($order['discountCents'] ?? 0), $order['discountLabel'] ?? '', (int)($order['loyaltyPoints'] ?? 0))
 				);
 				$orderId = (int)$pdo->lastInsertId();
 				foreach($items as $item){
@@ -668,6 +674,19 @@ class storedb extends ghotidb{
 		}catch (Throwable $e){
 			ghoti::logException("store.db.php:updateFulfilmentTracking", $e);
 			return false;
+		}
+	}
+
+	// Derived from verified paid orders: capture retries cannot award twice, and
+	// cancelled orders stop contributing. Never identify customers by typed email.
+	public function getLoyaltyPoints($userId, $currency){
+		try{
+			$rows = $this->queryArray("select coalesce(sum(loyaltyPoints),0) from store_orders where userId=? and currency=? and status in ('paid','shipped')", array((int)$userId, (string)$currency));
+			return (int)($rows[0][0] ?? 0);
+		}catch(Throwable $e){
+			ghoti::logException('store.db.php:getLoyaltyPoints', $e);
+			// A missing balance must not silently remove the customer's reward.
+			throw new RuntimeException('Member rewards are temporarily unavailable. Please try again later.');
 		}
 	}
 

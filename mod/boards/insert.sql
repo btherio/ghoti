@@ -1,0 +1,1 @@
+insert into boards(`name`,`slug`,`description`,`mode`,`postPolicy`,`readPolicy`,`sortOrder`,`createdAt`) values('General','general','Anything and everything.','board','users','public',0,unix_timestamp());

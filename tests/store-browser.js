@@ -20,6 +20,15 @@
 		var kind = root.querySelector('[data-store-kind]'); kind.value = 'spring'; storeFilterCatalog(kind);
 		check(visible().length === 1 && visible()[0].dataset.spring === '1', 'Spring filter');
 		check(!visible()[0].querySelector('input[type=number]'), 'No local quantities on Spring card');
+		kind.value = 'sale'; storeFilterCatalog(kind);
+		check(visible().length === 1 && visible()[0].dataset.sale === '1', 'Sale filter');
+		check(visible()[0].querySelector('.ghotiStoreRibbon').textContent.includes('33%'), 'Sale percentage displayed');
+		GHOTI_STORE_SAVED = [];
+		storeToggleSaved(visible()[0].querySelector('[data-store-save]'));
+		kind.value = 'saved'; storeFilterCatalog(kind);
+		check(visible().length === 1 && visible()[0].querySelector('[data-store-save]').getAttribute('aria-pressed') === 'true', 'Saved favourites filter');
+		storeToggleSaved(visible()[0].querySelector('[data-store-save]'));
+		check(visible().length === 0, 'Removing saved item updates filter');
 		kind.value = 'all'; storeFilterCatalog(kind);
 		storeSelectCategory(root.querySelector('[data-store-category="apparel"]'));
 		check(visible().length === 2, 'Category filter');

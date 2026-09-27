@@ -75,6 +75,13 @@ class StoreDbFake{
 		$this->products[(int)$id] = array_merge($this->products[(int)$id], $product);
 		return true;
 	}
+	public function getLoyaltyPoints($userId, $currency){
+		$points = 0;
+		foreach($this->orders as $order){
+			if($order['userId'] === $userId && $order['currency'] === $currency && in_array($order['status'], array('paid', 'shipped'), true)){ $points += $order['loyaltyPoints'] ?? 0; }
+		}
+		return $points;
+	}
 	public function getSettings(){ return $this->settings; }
 	public function saveSettings($settings){ $this->settings = array_merge($this->settings, $settings); return true; }
 	public function getProduct($id){ return isset($this->products[(int)$id]) ? $this->products[(int)$id] : null; }

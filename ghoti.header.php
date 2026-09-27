@@ -35,7 +35,6 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 
 <?/*Module javascript*/?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/banners/banners.js'); ?>"></script>
-<script type="text/javascript" src="<?php echo $ghotiAsset('mod/comments/comments.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/links/links.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/login/login.js'); ?>"></script>
 <?/* Filename avoids "analytics.js" - Firefox ETP / uBlock Origin block that
@@ -46,6 +45,9 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/gallery/gallery.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/filemanager/filemanager.js'); ?>"></script>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/mail/mail.js'); ?>"></script>
+<?php if(ghoti::$enableBoards){ ?>
+<script type="text/javascript" src="<?php echo $ghotiAsset('mod/boards/boards.js'); ?>"></script>
+<?php } ?>
 <?php if(ghoti::$enableVhosts){ ?>
 <script type="text/javascript" src="<?php echo $ghotiAsset('mod/vhosts/vhosts.js'); ?>"></script>
 <?php } ?>
@@ -62,6 +64,9 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/analytics/apachelog.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/gallery/gallery.css'); ?>" />
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/filemanager/filemanager.css'); ?>" />
+<?php if(ghoti::$enableBoards){ ?>
+<link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/boards/boards.css'); ?>" />
+<?php } ?>
 <?php if(ghoti::$enableVhosts){ ?>
 <link rel="stylesheet" type="text/css" href="<?php echo $ghotiAsset('mod/vhosts/vhosts.css'); ?>" />
 <?php } ?>

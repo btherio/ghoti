@@ -42,6 +42,13 @@ $expected = array(
 	//upgrade has to CREATE a table rather than only ALTER existing ones.
 	'banners'   => array('banners' => array('id','alt','imgUrl','linkUrl','smallBanner'),
 	                     'banner_settings' => array('source','adClient','adSlotSmall','adSlotLarge','adFormat','adTest')),
+	//boards is the same shape of risk: the module table must be named after the
+	//module (loadModuleSql() probes it to decide "fresh install"), and the three
+	//board_* tables beside it have to be created on an upgrade, not only altered.
+	'boards'    => array('boards' => array('boardId','name','slug','mode','postPolicy','readPolicy','locked'),
+	                     'board_topics' => array('topicId','boardId','title','locked','sticky','lastPostAt'),
+	                     'board_posts' => array('postId','boardId','topicId','userId','body','editedAt'),
+	                     'board_moderators' => array('boardId','userId','grantedAt')),
 	'store'     => array('store' => array('paypalClientId','paypalSecret','currency'),
 	                     'store_products' => array('productId','sku','priceCents','kind','downloadPath'),
 	                     'store_orders' => array('orderId','reference','status','paypalOrderId','totalCents'),

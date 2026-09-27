@@ -25,6 +25,10 @@ $(document).ready(function(){
 	}
 
 	injectIcons();
+
+	//A page rendered by the server (rather than fetched by printPage) still has
+	//its board containers waiting to be filled.
+	if(typeof boardsScan === 'function'){ boardsScan(); }
 });
 
 //regular javascript
@@ -677,15 +681,24 @@ function showBackupRestore(){
 	x_printBackupRestore(printPage);
 }
 
-/* ---- Send Email (Admin Menu -> Send Email) ----------------------
+/* ---- Send Email (Manage Users) ----------------------
  * The panel is rendered server-side; this half collects the form, keeps the
  * live preview in step with what is typed, and reports the delivery summary.
  */
-function showComposeMail(){
-	x_printComposeMail(function(content){
-		printPage(content);
-		initComposeMail();
+function composeMailToUser(userId){
+	var form = document.getElementById("composeMailForm");
+	if(!form){ return; }
+	form.querySelector('input[name="composeMailMode"][value="selected"]').checked = true;
+	var recipient = null;
+	form.querySelectorAll('.composeMailUser').forEach(function(checkbox){
+		checkbox.checked = !checkbox.disabled && Number(checkbox.value) === Number(userId);
+		if(Number(checkbox.value) === Number(userId)){ recipient = checkbox; }
 	});
+	composeMailModeChanged();
+	document.getElementById("composeMailFeedback").textContent = !recipient || recipient.disabled
+		? "This user has no valid email address. Save a valid address before composing." : "";
+	document.getElementById("ghotiComposeMail").scrollIntoView({block: "start"});
+	if(recipient && !recipient.disabled){ document.getElementById("composeMail-subject").focus(); }
 }
 function initComposeMail(){
 	composeMailModeChanged();
@@ -796,7 +809,42 @@ function restoreGhotiBackup(kind){
  * is visible as you toggle and not only on the next render. The fields stay
  * enabled and readable on purpose - hiding them would lose sight of saved
  * values, and disabling them would drop those values from the save payload. */
+var ghotiSettingsTab = 'identity';
+function selectSiteSettingsTab(tab){
+	var root = document.getElementById('ghotiSiteSettings');
+	if(!root || !tab){ return; }
+	root.querySelectorAll('[role="tab"]').forEach(function(button){
+		var active = button === tab;
+		button.setAttribute('aria-selected', active ? 'true' : 'false');
+		button.tabIndex = active ? 0 : -1;
+		document.getElementById(button.getAttribute('aria-controls')).hidden = !active;
+	});
+	ghotiSettingsTab = tab.id.replace('settings-tab-', '');
+}
 function initSiteSettings(){
+	var root = document.getElementById('ghotiSiteSettings');
+	if(!root){ return; }
+	var tabs = Array.from(root.querySelectorAll('[role="tab"]'));
+	tabs.forEach(function(tab, index){
+		tab.addEventListener('click', function(){ selectSiteSettingsTab(tab); });
+		tab.addEventListener('keydown', function(event){
+			var next;
+			if(event.key === 'ArrowRight'){ next = (index + 1) % tabs.length; }
+			else if(event.key === 'ArrowLeft'){ next = (index + tabs.length - 1) % tabs.length; }
+			else if(event.key === 'Home'){ next = 0; }
+			else if(event.key === 'End'){ next = tabs.length - 1; }
+			else { return; }
+			event.preventDefault();
+			selectSiteSettingsTab(tabs[next]);
+			tabs[next].focus();
+		});
+	});
+	selectSiteSettingsTab(document.getElementById('settings-tab-' + ghotiSettingsTab) || tabs[0]);
+	// Reveal a hidden field before the browser focuses a validation error.
+	root.addEventListener('invalid', function(event){
+		var panel = event.target.closest('[role="tabpanel"]');
+		if(panel){ selectSiteSettingsTab(document.getElementById(panel.getAttribute('aria-labelledby'))); }
+	}, true);
 	function bindDependent(boxId, rowId){
 		var box = document.getElementById(boxId);
 		var row = document.getElementById(rowId) || (box && box.closest('fieldset').querySelector('.settingsDependent'));
@@ -818,13 +866,18 @@ function clearAutoBlockedIp(ip){
 function saveSiteSettings(){
 	var settings = {
 		siteTitle: $("#set-siteTitle").val(),
+		enableTwoFactor: $("#set-enableTwoFactor").is(":checked") ? 1 : 0,
+		twoFactorAllUsers: $("#set-twoFactorAllUsers").is(":checked") ? 1 : 0,
+		enableBoards: $("#set-enableBoards").is(":checked") ? 1 : 0,
 		enableVhosts: $("#set-enableVhosts").is(":checked") ? 1 : 0,
 		enableStore: $("#set-enableStore").is(":checked") ? 1 : 0,
+		enableBpong: $("#set-enableBpong").is(":checked") ? 1 : 0,
 		enableCriticalAlerts: $("#set-enableCriticalAlerts").is(":checked") ? 1 : 0,
 		privacyOperator: $("#set-privacyOperator").val(),
 		privacyRegion: $("#set-privacyRegion").val(),
 		defaultTheme: $("#set-defaultTheme").val(),
 		headerImg: $("#set-headerImg").val(),
+		backgroundImg: $("#set-backgroundImg").val(),
 		allowRegister: $("#set-allowRegister").is(":checked") ? 1 : 0,
 		enableThemeChanger: $("#set-enableThemeChanger").is(":checked") ? 1 : 0,
 		hideLoginButton: $("#set-hideLoginButton").is(":checked") ? 1 : 0,
@@ -887,6 +940,10 @@ function printPage(content) {
 	//bpongInit() skips boards it has already set up, so calling it here is safe
 	//however many times it runs.
 	if(typeof bpongInit === 'function'){ bpongInit($target[0]); }
+	//Same reasoning for a [board:slug] placed in the page: the shortcode leaves
+	//an empty container behind and boardsScan() fills it. It skips containers it
+	//has already filled, so repeated calls are free.
+	if(typeof boardsScan === 'function'){ boardsScan(); }
 
 	$("#managePageForm").slideUp(0);//workaround to hide ugly space at the bottom.
 }

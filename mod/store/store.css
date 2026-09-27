@@ -1,32 +1,24 @@
-/* Store module. Scoped under .ghotiStore (storefront, cart, checkout, receipt)
- * and #ghotiStoreManager (admin), so nothing here leaks into the rest of the
- * site. Colours come from tokens defined on each root below rather than being
- * hard-coded per rule, so both surfaces follow the visitor's light/dark theme. */
-.ghotiStore,
-#ghotiStoreManager{
-	--store-surface:   #fcfcfb;
-	--store-raised:    #f4f4f1;
-	--store-text:      #0b0b0b;
-	--store-muted:     #6a6963;
-	--store-line:      rgba(11,11,11,0.12);
-	--store-accent:    #2a6fd6;
-	--store-good:      #1b8a5a;
-	--store-warn:      #b06a00;
-	--store-bad:       #c0392b;
+/* Store tokens inherit Ghoti's selected theme, including AJAX-rendered views. */
+.ghotiStore, #ghotiStoreManager {
+	--store-surface: var(--surface, #fcfcfb);
+	--store-raised: var(--surface-2, #f4f4f1);
+	--store-text: var(--text, #17160f);
+	--store-muted: var(--text-2, #6a6963);
+	--store-line: var(--border, #ddd);
+	--store-accent: var(--accent, #2a6fd6);
+	--store-good: var(--good, #1b8a5a);
+	--store-warn: #b06a00;
+	--store-bad: var(--bad, #c0392b);
+	min-width: 0;
 }
-@media (prefers-color-scheme: dark){
-	.ghotiStore,
-	#ghotiStoreManager{
-		--store-surface: #1a1a19;
-		--store-raised:  #232322;
-		--store-text:    #ffffff;
-		--store-muted:   #a8a79f;
-		--store-line:    rgba(255,255,255,0.14);
-		--store-accent:  #6aa5f0;
-		--store-good:    #4cc38a;
-		--store-warn:    #e0a33a;
-		--store-bad:     #e06a5c;
-	}
+:is(.smurfius-theme, .ghoticms-theme) :is(.ghotiStore, #ghotiStoreManager) {
+	color-scheme: dark;
+	--store-surface: var(--bg-panel);
+	--store-raised: var(--bg-elevated);
+	--store-text: var(--text-primary);
+	--store-muted: #a5adbf;
+	--store-line: var(--border-glow);
+	--store-warn: var(--accent-warn);
 }
 
 .ghotiStore{ color: var(--store-text); }
@@ -259,3 +251,40 @@
 @media(max-width:640px) {
 	#ghotiStoreManager .ghotiStoreProductForm .ghotiFormGrid { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Commerce controls share the site's typography, colours and touch targets. */
+.ghotiStoreBenefits { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:1rem; margin-block:1.25rem; }
+.ghotiStoreBenefit { display:flex; flex-direction:column; gap:.55rem; padding:1.1rem; border:1px solid var(--store-line); border-radius:12px; background:var(--store-raised); line-height:1.5; }
+.ghotiStoreBenefit small, .ghotiStoreCoupon small { color:var(--store-muted); }
+.ghotiStoreBenefit progress { width:100%; height:.55rem; accent-color:var(--store-accent); }
+.ghotiStoreCoupon { margin-block:1.5rem; display:flex; flex-direction:column; gap:.6rem; }
+.ghotiStoreCoupon > div { display:flex; flex-wrap:wrap; gap:.5rem; }
+.ghotiStoreCoupon input { flex:1 1 180px; min-width:0; }
+.ghotiStoreSave { align-self:flex-start; border:0; padding:.4rem 0; min-height:44px; color:var(--store-muted); background:transparent; font:inherit; font-size:.8rem; cursor:pointer; }
+.ghotiStoreSave[aria-pressed="true"], .ghotiStoreSavings { color:var(--store-accent); }
+:is(.ghotiStore, #ghotiStoreManager) :is(input, select, textarea) { max-width:100%; min-height:44px; color:var(--store-text); background:var(--store-surface); border:1px solid var(--store-line); padding:.65rem; border-radius:6px; font:inherit; }
+:is(.ghotiStore, #ghotiStoreManager) input[type="checkbox"] { min-height:auto; accent-color:var(--store-accent); }
+:is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+:is(.ghotiStore, #ghotiStoreManager) :is(.ghotiField, fieldset) { min-width:0; }
+.ghotiStore :is(.ghotiButton, .ghotiStoreSave) { min-height:44px; }
+.ghotiStoreSummary li > span:first-child { min-width:0; overflow-wrap:anywhere; }
+.ghotiStoreSummary li > span:last-child { flex-shrink:0; }
+#ghotiStoreCart .ghotiStoreTable td:first-child { overflow-wrap:anywhere; }
+@media(max-width:600px) {
+	:is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid { grid-template-columns:minmax(0,1fr); }
+	.ghotiStore :is(input, select, textarea) { font-size:16px; }
+	#ghotiStoreCart .ghotiStoreTable { min-width:0; }
+	#ghotiStoreCart .ghotiStoreTable thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+	#ghotiStoreCart .ghotiStoreTable :is(tbody, tr) { display:block; }
+	#ghotiStoreCart .ghotiStoreTable tr { display:grid; grid-template-columns:1fr 1fr; gap:.3rem; padding:.8rem 0; border-bottom:1px solid var(--store-line); }
+	#ghotiStoreCart .ghotiStoreTable td { display:block; border:0; padding:.35rem; }
+	#ghotiStoreCart .ghotiStoreTable td:first-child { grid-column:1 / -1; font-weight:700; }
+	#ghotiStoreCart .ghotiStoreTable td:nth-child(2)::before { content:'Each: '; color:var(--store-muted); }
+	#ghotiStoreCart .ghotiStoreTable td:nth-child(4)::before { content:'Line: '; color:var(--store-muted); }
+	#ghotiStoreCart .ghotiStoreTable td:last-child { text-align:right; }
+	.ghotiStoreTools { gap:.7rem; }
+}
+
+.ghotiStoreOfferStrip { display:flex; flex-wrap:wrap; gap:.75rem 1.5rem; padding:1rem 0; border-bottom:1px solid var(--store-line); color:var(--store-accent); font-size:.8rem; }
+.ghotiStoreOfferStrip small { flex-basis:100%; color:var(--store-muted); }
+.ghotiStore .ghotiStoreSave { box-shadow:none; border-radius:0; }

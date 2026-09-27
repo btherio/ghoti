@@ -9,10 +9,10 @@
   <link rel="stylesheet" href="./css/ghoticms/style.css?v=<?php echo filemtime(__DIR__.'/style.css'); ?>">
   <?php include_once "ghoti.header.php"; ?>
 </head>
-<body>
+<body class="ghoticms-theme">
   <a class="ghotiSkip" href="#ghotiContent">Skip to content</a>
   <div class="bg-layer" aria-hidden="true">
-    <img src="./css/ghoticms/background.png" alt="" class="bg-layer__image" width="1920" height="1080">
+    <img src="<?php echo htmlspecialchars(ghoti::themeBackground('css/ghoticms/background.png'), ENT_QUOTES, 'UTF-8'); ?>" alt="" class="bg-layer__image" width="1920" height="1080">
     <div class="bg-layer__veil"></div>
   </div>
   <div class="grid-overlay" aria-hidden="true"></div>
