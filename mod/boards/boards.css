@@ -1,0 +1,223 @@
+/*
+ * boards.css - message boards placed with [board:slug], and the Boards admin screen.
+ *
+ * Self-contained like gallery.css: its own variables, derived from currentColor
+ * and translucent neutrals rather than fixed colours, so a board sits inside any
+ * theme's page body without being restyled per theme.
+ */
+
+.ghotiBoard{
+	--b-line: rgba(127,127,160,0.28);
+	--b-card: rgba(127,127,160,0.06);
+	--b-badge: rgba(127,127,160,0.18);
+	--b-radius: 10px;
+	margin: 1.5rem 0;
+}
+
+/* ---------- header ---------- */
+
+.ghotiBoardHeader{
+	border-bottom: 1px solid var(--b-line);
+	padding-bottom: 0.6rem;
+	margin-bottom: 1rem;
+}
+.ghotiBoardHeader h2{
+	margin: 0 0 0.2rem;
+	font-size: 1.35rem;
+	line-height: 1.2;
+}
+.ghotiBoardCommentsHeader h2{
+	font-size: 1.1rem;
+	opacity: 0.85;
+}
+.ghotiBoardDescription{
+	margin: 0;
+	opacity: 0.75;
+	font-size: 0.92rem;
+}
+.ghotiBoardTopicTitle{
+	margin: 0.6rem 0 0.4rem;
+	font-size: 1.1rem;
+}
+.ghotiBoardLocked,
+.ghotiBoardMessage{
+	margin: 0.6rem 0;
+	padding: 0.5rem 0.7rem;
+	background: var(--b-card);
+	border-left: 3px solid var(--b-line);
+	border-radius: 0 var(--b-radius) var(--b-radius) 0;
+	font-size: 0.9rem;
+	opacity: 0.9;
+}
+.ghotiBoardLoading,
+.ghotiBoardEmpty{
+	margin: 0.8rem 0;
+	opacity: 0.7;
+	font-style: italic;
+}
+
+/* ---------- topic list ---------- */
+
+.ghotiBoardTopics{
+	list-style: none;
+	margin: 0 0 1rem;
+	padding: 0;
+}
+.ghotiBoardTopic{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.4rem 1rem;
+	padding: 0.6rem 0.2rem;
+	border-bottom: 1px solid var(--b-line);
+}
+.ghotiBoardSticky{
+	background: var(--b-card);
+}
+.ghotiBoardTopicLink{
+	flex: 1 1 18rem;
+	text-align: left;
+	background: none;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	font-weight: 600;
+	color: inherit;
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.ghotiBoardTopicLink:hover,
+.ghotiBoardTopicLink:focus-visible{
+	opacity: 0.75;
+}
+.ghotiBoardTopicMeta,
+.ghotiBoardPostCount,
+.ghotiBoardPostDate{
+	font-size: 0.82rem;
+	opacity: 0.7;
+}
+.ghotiBoardBadge{
+	display: inline-block;
+	margin-right: 0.4rem;
+	padding: 0.05rem 0.4rem;
+	border-radius: 999px;
+	background: var(--b-badge);
+	font-size: 0.72rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	vertical-align: 0.08em;
+}
+
+/* ---------- posts ---------- */
+
+.ghotiBoardPosts{
+	margin-bottom: 1rem;
+}
+.ghotiBoardPost{
+	padding: 0.8rem 0;
+	border-bottom: 1px solid var(--b-line);
+}
+.ghotiBoardPostHeader{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.3rem 0.8rem;
+	margin-bottom: 0.4rem;
+}
+.ghotiBoardAuthor{
+	font-weight: 600;
+}
+.ghotiBoardPostActions{
+	margin-left: auto;
+	display: flex;
+	gap: 0.3rem;
+}
+.ghotiBoardPostBody{
+	line-height: 1.55;
+	overflow-wrap: anywhere; /* a pasted URL must not widen the page */
+}
+.ghotiBoardModTools{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin-bottom: 0.8rem;
+}
+
+/* ---------- pager ---------- */
+
+.ghotiBoardPager{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin: 0.8rem 0;
+}
+.ghotiBoardPage{
+	min-width: 2rem;
+	padding: 0.2rem 0.5rem;
+	border: 1px solid var(--b-line);
+	border-radius: var(--b-radius);
+	background: none;
+	color: inherit;
+	font: inherit;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+.ghotiBoardPageCurrent{
+	background: var(--b-badge);
+	font-weight: 700;
+	cursor: default;
+}
+
+/* ---------- post form ---------- */
+
+.ghotiBoardForm{
+	margin-top: 1rem;
+	padding-top: 0.8rem;
+	border-top: 1px solid var(--b-line);
+}
+.ghotiBoardForm textarea{
+	width: 100%;
+	box-sizing: border-box;
+	resize: vertical;
+}
+
+/* ---------- admin screen ---------- */
+
+#ghotiManageBoards .ghotiBoardRow{
+	padding: 0.8rem 0;
+	border-bottom: 1px solid var(--b-line, rgba(127,127,160,0.28));
+}
+#ghotiManageBoards .ghotiCrudRowActions{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+	margin-top: 0.5rem;
+}
+#ghotiManageBoards .ghotiCrudMeta{
+	margin-right: auto;
+	font-size: 0.82rem;
+	opacity: 0.75;
+}
+#ghotiManageBoards .ghotiBoardStatus{
+	font-size: 0.82rem;
+	opacity: 0.8;
+}
+.ghotiFieldCheck{
+	flex-direction: row;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+@media (max-width: 640px){
+	.ghotiBoardPostActions{
+		margin-left: 0;
+		width: 100%;
+	}
+	.ghotiBoardTopic{
+		flex-direction: column;
+	}
+}

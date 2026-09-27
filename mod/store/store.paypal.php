@@ -79,6 +79,10 @@ class StorePaypalClient{
 			$breakdown['shipping'] = array('currency_code' => $currency, 'value' => self::amount((int)$order['shippingCents']));
 		}
 
+		if(!empty($order['discountCents'])){
+			$breakdown['discount'] = array('currency_code' => $currency, 'value' => self::amount((int)$order['discountCents']));
+		}
+
 		$lineItems = array();
 		foreach($items as $item){
 			$lineItems[] = array(

@@ -19,6 +19,7 @@ create table if not exists store(
 	`dropshipEnabled` int(1) not null default 0,       -- route dropship products to a supplier
 	`dropshipAutoSubmit` int(1) not null default 1,    -- submit as soon as an order is paid
 	`dropshipConfig` mediumtext null,                  -- per-provider credentials as JSON; see store.db.php
+	`commerceConfig` mediumtext null,                -- promotions and loyalty rules as JSON
 	`updatedAt` int(11) not null default 0,
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 ;
@@ -81,6 +82,9 @@ create table if not exists store_orders(
 	`createdAt` int(11) not null default 0,
 	`paidAt` int(11) not null default 0,
 	`shippedAt` int(11) not null default 0,
+	`discountCents` bigint not null default 0,
+	`discountLabel` varchar(80) not null default '',
+	`loyaltyPoints` bigint not null default 0,
   PRIMARY KEY  (`orderId`),
   UNIQUE KEY `uq_store_reference` (`reference`),
   UNIQUE KEY `uq_store_paypal_order` (`paypalOrderId`),

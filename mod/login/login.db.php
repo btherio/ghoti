@@ -102,7 +102,16 @@ class logindb extends ghotidb{
 		}
 	}
 
-	public function addUser($userName,$password,$email){
+	/*
+	 * $passwordIsHash is for e-mail-verified registration: the password was
+	 * validated and hashed when the person filled the form, and only the HASH
+	 * was held while the code was outstanding - a pending registration must not
+	 * park a plaintext password in session storage. Everything else about
+	 * creating the account is identical, and deliberately so: the duplicate
+	 * check below is the race protection, and a second insert path that grew its
+	 * own copy of it is exactly what this parameter exists to avoid.
+	 */
+	public function addUser($userName,$password,$email,$passwordIsHash = false){
 		$userName = $this->normalizeValue($userName);
 		$email = $this->normalizeValue($email);
 		$password = (string) $password;
@@ -116,10 +125,16 @@ class logindb extends ghotidb{
 
 		if(!$this->checkDuplicate($userName,$email)){
 			try{
+				if($passwordIsHash){
+					//Already validated and hashed before the code was sent.
+					$hashedPassword = $password;
+					ghoti::logDebug("login.db.php:addUser", "using pre-hashed password for '$userName'");
+				}else{
 				$this->validatePassword($password);
 				ghoti::logDebug("login.db.php:addUser", "password validated for '$userName'");
 				$hashedPassword = $this->hashPassword($password);
 				ghoti::logDebug("login.db.php:addUser", "hashing succeeded for '$userName'");
+				}
 				$this->query("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$hashedPassword,$email,0));
 				ghoti::logInfo("login.db.php:addUser", "insert succeeded for '$userName'");
 
@@ -132,6 +147,16 @@ class logindb extends ghotidb{
 		}
 		ghoti::logWarn("login.db.php:addUser", "rejected for '$userName': duplicate detected");
 		return false;
+	}
+
+	/*
+	 * Hash a password for a registration that is waiting on an e-mail code.
+	 * Public because the pending record lives outside this class; it is the same
+	 * hasher account creation uses, so the stored hash is indistinguishable from
+	 * one made the ordinary way.
+	 */
+	public function hashPendingPassword($password){
+		return $this->hashPassword($password);
 	}
 
 	public function checkDuplicate($userName,$email){
@@ -274,7 +299,11 @@ class logindb extends ghotidb{
 				Throw new Exception("Can't delete only admin.");
 			}else{
 				$this->query("delete from users where userId = ?;",array($userId));
-				$this->query("delete from comments where userId = ?;",array($userId));
+				//Board posts and moderator grants go with the account, so a new
+				//account issued the same userId does not inherit them.
+				if(isset($_SESSION['boardsObj'])){
+					$_SESSION['boardsObj']->boardsdb->deleteUserContent($userId);
+				}
 			}
 		}catch (Throwable $e){
 			ghoti::logException("login.db.php:deleteUser", $e);

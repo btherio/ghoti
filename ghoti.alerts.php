@@ -102,6 +102,11 @@ function ghoti_alert_log($level, $context, $line){
         $service = new GhotiAlertService(new GhotiAlertLimiter(__DIR__.'/critical-alerts.json'), function($to, $subject, $body){
             require_once __DIR__.'/mod/mail/mail.php';
             $mailer = new mail();
+            //The themed pair is built here rather than in GhotiAlertService, so
+            //the service keeps its three-argument transport contract.
+            if(function_exists('ghoti_mail_send_themed')){
+                return ghoti_mail_send_themed($mailer, $to, '', $subject, $body, 'operator');
+            }
             return $mailer->send($to, '', $subject, $body);
         });
     }

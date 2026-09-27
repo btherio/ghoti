@@ -6,7 +6,7 @@ require_once 'ghoti.php';
 require_once 'mod/login/login.async.php';
 require_once 'mod/login/login.db.php';
 require_once 'mod/filemanager/filemanager.async.php';
-require_once 'mod/comments/comments.async.php';
+require_once 'mod/boards/boards.async.php';
 ghoti::$ghotiLog = sys_get_temp_dir().'/ghoti-security-test-'.getmypid().'.log';
 $checks = 0;
 function check($condition, $message){
@@ -136,7 +136,8 @@ $_SESSION=array();
 check(fmSaveTextFile('', 'index.php', 'malicious') === 'Admin access required.', 'anonymous file write denied');
 check(savePage(1, 'title', 'content') === false, 'anonymous page write denied');
 check(printDocumentation() === '<p>Admin access required.</p>', 'anonymous documentation access denied');
-check(deleteComment(1) === false, 'anonymous comment delete denied');
+$anonDelete = boardsDeletePost(1);
+check($anonDelete['success'] === false && $anonDelete['error']['code'] === 'forbidden', 'anonymous board post delete denied');
 check(setSessionVars(1) === false, 'client cannot elevate session by ID');
 
 // Model SQL effects/failures to exercise the real reset method without a DB.
@@ -180,8 +181,33 @@ class RegistrationDb extends logindb{
 $r=new RegistrationDb(); check($r->addUser('first','safe-password','first@example.test'), 'ordinary registration succeeds at data layer');
 check(count($r->writes) === 1 && $r->writes[0][1][3] === 0, 'first public registrant receives no admin promotion');
 check(ghoti::$allowRegister === false, 'fresh installs disable public registration');
-class PrivatePageDb{ function getPageById($id){ return array(array('body','title','private')); } }
-$_SESSION=array('pageId'=>42, 'ghotiObj'=>(object)array('ghotidb'=>new PrivatePageDb()));
-check(getPageComments() === '', 'stale public-page session cannot read newly private comments');
+// A board's read policy is enforced on the request, not on what the session
+// was allowed to see when it started.
+$_SESSION=array();
+check(boards_can_read(array('boardId'=>1,'readPolicy'=>'users')) === false, 'signed-out visitor cannot read a members-only board');
+check(boards_can_read(array('boardId'=>1,'readPolicy'=>'public')) === true, 'signed-out visitor can read a public board');
+check(boards_can_moderate(1) === false, 'signed-out visitor moderates nothing');
+// A slug is the only way to name a board, so it must never carry anything the
+// shortcode charset cannot express.
+check(boards_slug('Trip Reports') === 'trip-reports', 'a board slug folds spaces to hyphens');
+check(preg_match('/^[A-Za-z0-9_.-]*$/', boards_slug('a<b>"x\' onerror=1')) === 1, 'a slug cannot escape the shortcode charset');
+// A signed-out caller is refused before any board or topic lookup. With no
+// boards object loaded, reaching the lookup would answer db_error instead.
+foreach(array(
+    'boardsAddTopic'      => function(){ return boardsAddTopic('general', 'title', 'body'); },
+    'boardsAddPost'       => function(){ return boardsAddPost('general', 1, 'body'); },
+    'boardsSetTopicFlags' => function(){ return boardsSetTopicFlags(1, true, false); },
+    'boardsDeleteTopic'   => function(){ return boardsDeleteTopic(1); },
+) as $name => $call){
+    $reply = $call();
+    check($reply['success'] === false && $reply['error']['code'] === 'forbidden', $name.' refuses a signed-out caller up front');
+}
+// Log lines carry visitor input (a typed login name); a line break in it must
+// not become a second, forged entry.
+if(is_file(ghoti::$ghotiLog)){ unlink(ghoti::$ghotiLog); }
+ghoti::logInfo("security-test\r\nctx", "Login attempt(bob\r\n[Mon Jan 1] ERROR [forged]: fake) from 203.0.113.9");
+$logged = (string)file_get_contents(ghoti::$ghotiLog);
+check(substr_count($logged, "\n") === 1 && strpos($logged, "\r") === false, 'a CR/LF in a log line cannot forge a second entry');
+check(strpos($logged, 'bob [Mon Jan 1] ERROR [forged]: fake') !== false, 'the neutralised log line keeps its content');
 if(is_file(ghoti::$ghotiLog)){ unlink(ghoti::$ghotiLog); }
 echo "PASS: $checks security assertions\n";

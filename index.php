@@ -67,11 +67,12 @@ $_SESSION['ghotiObj']->loadModules($modules);
 $_SESSION['linksObj'] = new links();
 $_SESSION['loginObj'] = new login();
 $_SESSION['bannersObj'] = new banners();
-$_SESSION['commentsObj'] = new comments();
 $_SESSION['analyticsObj'] = new analytics();
 $_SESSION['galleryObj'] = new gallery();
 $_SESSION['mailObj'] = new mail();
 $_SESSION['filemanagerObj'] = new filemanager();
+if(ghoti::$enableBoards){ $_SESSION['boardsObj'] = new boards(); }
+else { unset($_SESSION['boardsObj']); }
 if(ghoti::$enableVhosts){ $_SESSION['vhostsObj'] = new vhosts(); }
 else { unset($_SESSION['vhostsObj']); }
 if(ghoti::$enableStore){ $_SESSION['storeObj'] = new store(); }

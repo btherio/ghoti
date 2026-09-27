@@ -81,7 +81,9 @@ class VhostsNotifier{
 		}
 		$body .= "\n-- \nSent by the vhosts module. Turn these off under Admin Menu -> Apache Vhosts -> Settings.\n";
 
-		$result = $this->mailer->send($this->recipient(), '', $subject, $body);
+		$result = function_exists('ghoti_mail_send_themed')
+			? ghoti_mail_send_themed($this->mailer, $this->recipient(), '', $subject, $body, 'operator')
+			: $this->mailer->send($this->recipient(), '', $subject, $body);
 		if($result !== true){
 			//Log, never rethrow: see the fail-soft note at the top of the file.
 			ghoti::logWarn("vhosts.notify.php", "could not send '".$summary."': ".(is_string($result) ? $result : 'unknown error'));

@@ -22,8 +22,8 @@ function showStore(category){
 	});
 }
 
-function storeShowCart(){
-	x_storeShowCart(function(html){
+function storeShowCart(code){
+	x_storeShowCart(code === undefined ? null : code, function(html){
 		printPage(html);
 	});
 }
@@ -132,6 +132,8 @@ function storeMountPaypal(){
 			//createOrder sends the buyer's details and nothing else. The server
 			//prices the cart, records a pending order, and returns PayPal's id.
 			createOrder: function(){
+				var form = document.getElementById('ghotiStoreCheckoutForm');
+				if(form && !form.reportValidity()){ return Promise.reject(new Error('Check your checkout details.')); }
 				storePayStatus('Preparing your order…');
 				return new Promise(function(resolve, reject){
 					x_storeBeginCheckout(storeCheckoutFields(), function(result){
@@ -547,7 +549,7 @@ function storeFilterCatalog(control){
 		var data = card.dataset;
 		var match = (!query || data.search.toLocaleLowerCase().includes(query))
 			&& (category === 'all' || data.category === category)
-			&& (kind === 'all' || (kind === 'spring' ? data.spring === '1' : data.kind === kind));
+			&& (kind === 'all' || (kind === 'sale' ? data.sale === '1' : kind === 'saved' ? storeSavedIds().includes(Number(data.productId)) : kind === 'spring' ? data.spring === '1' : data.kind === kind));
 		card.hidden = !match;
 		if(match){ visible++; }
 	});
@@ -591,3 +593,78 @@ function storeFilterProducts(input){
 	var status = document.getElementById('storeAdminResults');
 	if(status){ status.textContent = count + ' product' + (count === 1 ? '' : 's'); }
 }
+
+/* Saved favourites stay on this browser; no account or tracking request needed. */
+var GHOTI_STORE_SAVED = null;
+function storeSavedIds(){
+	if(GHOTI_STORE_SAVED !== null){ return GHOTI_STORE_SAVED; }
+	try{
+		var ids = JSON.parse(localStorage.getItem('ghoti-store-favourites') || '[]');
+		GHOTI_STORE_SAVED = Array.isArray(ids) ? ids.filter(function(id){ return Number.isSafeInteger(id) && id > 0; }).slice(0, 500) : [];
+	}catch(error){ GHOTI_STORE_SAVED = []; }
+	return GHOTI_STORE_SAVED;
+}
+function storeSyncSaved(){
+	var ids = storeSavedIds();
+	document.querySelectorAll('[data-store-save]').forEach(function(button){
+		var saved = ids.includes(Number(button.dataset.storeSave));
+		var label = saved ? '♥ Saved favourite' : '♡ Save favourite';
+		button.setAttribute('aria-pressed', String(saved));
+		if(button.textContent !== label){ button.textContent = label; }
+	});
+}
+function storeToggleSaved(button){
+	var id = Number(button.dataset.storeSave), ids = storeSavedIds();
+	var index = ids.indexOf(id);
+	if(index >= 0){ ids.splice(index, 1); }
+	else if(ids.length < 500){ ids.push(id); }
+	else { pageFeedBack('You can save up to 500 favourites. Remove one first.'); return; }
+	try{ localStorage.setItem('ghoti-store-favourites', JSON.stringify(ids)); }
+	catch(error){ pageFeedBack('Browser storage is unavailable. Favourites will last until you reload this page.'); }
+	storeSyncSaved();
+	document.querySelectorAll('.ghotiStoreCatalog [data-store-kind]').forEach(function(control){
+		if(control.value === 'saved'){ storeFilterCatalog(control); }
+	});
+}
+function storeApplyCoupon(form){
+	storeShowCart(form.elements.code.value);
+}
+function storeAddCoupon(button){
+	var form = button.closest('form'), list = form.querySelector('[data-store-coupons]');
+	if(list.children.length >= 50){ pageFeedBack('Keep at most 50 codes.'); return; }
+	list.appendChild(document.getElementById('storeCouponTemplate').content.cloneNode(true));
+	list.lastElementChild.querySelector('input').focus();
+}
+function storeSavePromotions(form){
+	var data = {};
+	['freeShipping', 'pointsPerUnit', 'loyaltyThreshold', 'loyaltyPercent'].forEach(function(name){ data[name] = form.elements[name].value; });
+	data.coupons = Array.from(form.querySelectorAll('[data-store-coupon]')).map(function(row){
+		var coupon = {};
+		row.querySelectorAll('[data-coupon-field]').forEach(function(input){ coupon[input.dataset.couponField] = input.type === 'checkbox' ? (input.checked ? 1 : 0) : input.value; });
+		return coupon;
+	});
+	var submit = form.querySelector('[type="submit"]');
+	submit.disabled = true;
+	x_saveStorePromotions(data, function(result){
+		submit.disabled = false;
+		pageFeedBack(result === true ? 'Promotions saved.' : (result || 'Promotions could not be saved.'));
+		if(result === true){ showStoreManager('promotions'); }
+	});
+}
+function storeWatchCatalogs(){
+	storeSyncSaved();
+	new MutationObserver(function(records){
+		if(records.some(function(record){ return Array.from(record.addedNodes).some(function(node){ return node.nodeType === 1 && (node.matches('[data-store-save]') || node.querySelector('[data-store-save]')); }); })){
+			storeSyncSaved();
+		}
+	}).observe(document.body, {childList:true, subtree:true});
+}
+if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', storeWatchCatalogs); }
+else { storeWatchCatalogs(); }
+window.addEventListener('storage', function(event){
+	if(event.key === 'ghoti-store-favourites'){
+		GHOTI_STORE_SAVED = null;
+		storeSyncSaved();
+		document.querySelectorAll('[data-store-kind]').forEach(function(control){ if(control.value === 'saved'){ storeFilterCatalog(control); } });
+	}
+});

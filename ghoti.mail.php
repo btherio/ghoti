@@ -1,6 +1,6 @@
 <?php
 /*
- * ghoti.mail.php - admin "Send Email" workspace (core, not a module).
+ * ghoti.mail.php - Manage Users email composer (core, not a module).
  *
  * Lets an administrator write one message and deliver it to a single user,
  * a chosen set of users, or everyone with a usable address. Transport is the
@@ -357,7 +357,7 @@ function ghoti_mail_body_html($message, array $palette){
  * and some force a light background behind the message - so each text node
  * carries its own explicit colour and each block its own background.
  */
-function ghoti_mail_render_html($siteTitle, $subject, $message, array $palette = null, $siteUrl = null){
+function ghoti_mail_render_html($siteTitle, $subject, $message, array $palette = null, $siteUrl = null, $footerNote = null){
 	if($palette === null){ $palette = ghoti_mail_palette(); }
 	if($siteUrl === null){ $siteUrl = ghoti_mail_site_url(); }
 	$esc = function($value){ return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); };
@@ -387,8 +387,12 @@ function ghoti_mail_render_html($siteTitle, $subject, $message, array $palette =
 	$html .= $body;
 	$html .= '</td></tr>'."\n";
 
+	//The footer says why this message arrived, which is not the same sentence for
+	//a member, a buyer who has no account, or an operator being alerted. A
+	//receipt that claims the customer has an account here would simply be false.
+	$note = $footerNote === null ? 'You received this message because you have an account on '.$title.'.' : $esc($footerNote);
 	$html .= '<tr><td bgcolor="'.$palette['inset'].'" style="background-color:'.$palette['inset'].';padding:16px 24px;border-top:1px solid '.$palette['border'].';border-radius:0 0 8px 8px;font-family:'.$font.';color:'.$palette['muted'].';font-size:12px;line-height:1.5;">'
-		.'You received this message because you have an account on '.$title.'.'.$footerLink.'</td></tr>'."\n";
+		.$note.$footerLink.'</td></tr>'."\n";
 
 	$html .= '</table>'."\n".'</td></tr>'."\n".'</table>'."\n".'</body></html>';
 	return $html;
@@ -396,15 +400,71 @@ function ghoti_mail_render_html($siteTitle, $subject, $message, array $palette =
 
 /* The text/plain part. Not a stripped copy of the HTML: it is the admin's
  * message as typed, which is what a plain-text reader should get. */
-function ghoti_mail_render_text($siteTitle, $subject, $message, $siteUrl = null){
+function ghoti_mail_render_text($siteTitle, $subject, $message, $siteUrl = null, $footerNote = null){
 	if($siteUrl === null){ $siteUrl = ghoti_mail_site_url(); }
 	$clean = function($value){ return str_replace("\r\n", "\n", (string)$value); };
 	$text  = $clean($subject)."\n".str_repeat('=', max(3, min(60, strlen($clean($subject)))))."\n\n";
 	$text .= trim($clean($message))."\n\n";
 	$text .= "--\n";
-	$text .= 'You received this message because you have an account on '.$clean($siteTitle).".\n";
+	$text .= ($footerNote === null ? 'You received this message because you have an account on '.$clean($siteTitle).'.' : $clean($footerNote))."\n";
 	if($siteUrl !== ''){ $text .= $siteUrl."\n"; }
 	return $text;
+}
+
+/* ================================================================== *
+ *  One themed message, for every sender in the app
+ *
+ *  Before this existed each sender wrote its own body and most of them sent
+ *  bare plain text, so a password reset, a certificate warning and a backup
+ *  looked like three different pieces of software - and the one HTML template
+ *  that did exist hardcoded the ghoticms accent, which is wrong on every other
+ *  theme. Everything now goes through ghoti_mail_compose(), so a message is
+ *  written as plain text once and dressed in the site's own colours on the way
+ *  out.
+ * ================================================================== */
+
+//Why this message arrived, per audience. 'member' is the default and says what
+//it has always said.
+function ghoti_mail_footer_note($audience, $siteTitle){
+	switch($audience){
+		case 'customer':
+			return 'You received this message about your order from '.$siteTitle.'.';
+		case 'operator':
+			return 'You received this message because you administer '.$siteTitle.'.';
+		case 'none':
+			return '';
+		case 'member':
+		default:
+			return null; //the renderer's own default
+	}
+}
+
+/*
+ * Build the text and HTML parts of one message. $message is plain text; the
+ * HTML part is generated from it, so no caller has to write markup.
+ *
+ * Returns array('text' => ..., 'html' => ...).
+ */
+function ghoti_mail_compose($subject, $message, $audience = 'member', $siteTitle = null, $textOverride = null){
+	if($siteTitle === null){ $siteTitle = class_exists('ghoti') ? ghoti::$siteTitle : ''; }
+	$palette = ghoti_mail_palette();          //memoized per request
+	$siteUrl = ghoti_mail_site_url();
+	$note = ghoti_mail_footer_note($audience, $siteTitle);
+	return array(
+		//A caller with a plain-text body it has already composed (the backup
+		//notice) keeps it verbatim rather than having it re-wrapped.
+		'text' => $textOverride !== null ? $textOverride : ghoti_mail_render_text($siteTitle, $subject, $message, $siteUrl, $note),
+		'html' => ghoti_mail_render_html($siteTitle, $subject, $message, $palette, $siteUrl, $note),
+	);
+}
+
+/*
+ * Send one themed message through any object exposing the mailer's send()
+ * signature. Returns whatever send() returns (true, or an error string).
+ */
+function ghoti_mail_send_themed($mailer, $toAddress, $toName, $subject, $message, $audience = 'member', array $attachments = array(), $textOverride = null){
+	$parts = ghoti_mail_compose($subject, $message, $audience, null, $textOverride);
+	return $mailer->send($toAddress, $toName, $subject, $parts['text'], $attachments, $parts['html']);
 }
 
 /* ================================================================== *
@@ -473,6 +533,26 @@ function ghoti_mail_send_bulk($mailer, array $recipients, $subject, $textBody, $
 /* The configured mailer, or null when mail is off/unavailable. Resolved the
  * same way the alert path does: the request's module instance if it is still
  * around, otherwise a fresh one. */
+/*
+ * Has outbound mail been PROVEN to work? Not "is it configured" - a positive
+ * test message that actually reached an administrator, recorded as
+ * successfulTestAt by mailDeliverTestMessage().
+ *
+ * This is the gate for anything that would lock people out if mail were merely
+ * assumed to work. Emailed backups already use the same marker; two-factor
+ * authentication is the other, and a far less forgiving one: switch it on with
+ * broken mail and nobody can sign in.
+ */
+function ghoti_mail_verified($settings = null){
+	if($settings === null){
+		$mailer = ghoti_mail_mailer();
+		if($mailer === null){ return false; }
+		try{ $settings = $mailer->maildb->getSettings(); }
+		catch(Throwable $e){ return false; } //fail closed: unknown is not verified
+	}
+	return !empty($settings['enabled']) && (int)($settings['successfulTestAt'] ?? 0) > 0;
+}
+
 function ghoti_mail_mailer(){
 	if(isset($_SESSION['mailObj']) && is_object($_SESSION['mailObj'])){ return $_SESSION['mailObj']; }
 	if(!in_array('mail', ghoti::enabledModules(), true) || !is_file(__DIR__.'/mod/mail/mail.php')){ return null; }
@@ -496,7 +576,7 @@ function ghoti_mail_is_enabled($mailer){
  * ================================================================== */
 
 function printComposeMail(){
-	if(!ghoti_require_admin()){ return '<h1>Send Email</h1><p>Admin access required.</p>'; }
+	if(!ghoti_require_admin()){ return '<h1>Email users</h1><p>Admin access required.</p>'; }
 	$mailer = ghoti_mail_mailer();
 	$directory = array();
 	$directoryError = '';
@@ -612,7 +692,7 @@ function ghoti_mail_render_compose(array $directory, $mailEnabled, $directoryErr
 	$withAddress = count(ghoti_mail_resolve_recipients('all', array(), $directory)['recipients']);
 
 	$o  = '<section id="ghotiComposeMail" class="ghotiAdminPanel">';
-	$o .= '<div class="ghotiCrudHeader"><div><h1>Send Email</h1>';
+	$o .= '<div class="ghotiCrudHeader"><div><h2>Email users</h2>';
 	$o .= '<p class="ghotiHelpText">Write one message and send it to a single user, a selection, or everyone with an address. Each person receives their own copy, so recipients never see each other.</p></div></div>';
 
 	if(!$mailEnabled){
@@ -625,7 +705,7 @@ function ghoti_mail_render_compose(array $directory, $mailEnabled, $directoryErr
 	$disabled = ($mailEnabled && $withAddress > 0) ? '' : ' disabled="disabled"';
 
 	$o .= '<form id="composeMailForm" class="ghotiForm" action="#" onsubmit="sendComposedMail(); return false;">';
-	$o .= '<fieldset class="siteSettingsSection"><legend>Recipients</legend>';
+	$o .= '<fieldset class="siteSettingsSection"><legend>Group email options</legend>';
 	$o .= '<div class="siteSettingsChoices">';
 	$o .= '<label class="ghotiInlineChoice"><input type="radio" name="composeMailMode" value="all" checked="checked" onchange="composeMailModeChanged();"'.$disabled.' /> All users <i>('.$withAddress.' with an address)</i></label>';
 	$o .= '<label class="ghotiInlineChoice"><input type="radio" name="composeMailMode" value="admins" onchange="composeMailModeChanged();"'.$disabled.' /> Administrators only</label>';

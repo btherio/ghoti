@@ -136,7 +136,10 @@ function mailDeliverTestMessage($mailer, array $recipients){
 	$lastError = '';
 	$sent = 0;
 	foreach($recipients as $address){
-		$result = $mailer->send($address, '', $subject, $body);
+		//Themed like every other message this app sends - this is the one an
+		//administrator actually looks at, so it should show what the rest will
+		//look like rather than being the odd plain-text one out.
+		$result = ghoti_mail_send_themed($mailer, $address, '', $subject, $body, 'operator');
 		if($result === true){ $sent++; continue; }
 		$failures[] = $address;
 		if(is_string($result)){ $lastError = $result; }

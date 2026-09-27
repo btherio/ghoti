@@ -82,7 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $settings = $mailDb->getSettings();
                     if ($settings['enabled']) {
                         $client = new MailSmtpClient($settings);
-                        if (!$client->send($email, '', "Reset your ".ghoti::$siteTitle." password", $body)) {
+                        $subject = "Reset your ".ghoti::$siteTitle." password";
+                        if (ghoti_mail_send_themed($client, $email, '', $subject, $body, 'member') !== true) {
                             ghoti::logError("password-reset.php", "send failed for userId $userId: ".$client->lastError);
                         }
                     } else {

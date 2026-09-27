@@ -60,8 +60,10 @@ The responsive collection includes product search (name, description, or SKU),
 category chips, physical/digital/Spring filters, and sorting by featured, newest,
 price, or name. Controls are independent when multiple `[store:…]` shortcodes
 appear on one page. Product details expand in place; missing images get a styled
-placeholder. Light/dark appearance, keyboard focus, and reduced-motion preferences
-are supported.
+placeholder. Colours inherit the selected Ghoti theme across catalogue, cart, checkout and
+management. Laptop and phone layouts, keyboard focus, and reduced-motion
+preferences are supported. The phone cart rearranges each item into a compact
+card instead of requiring horizontal scrolling.
 
 Products can be featured, carry a short badge and delivery note, and show a sale
 price beside an optional higher original price. The admin catalogue includes live,
@@ -73,6 +75,65 @@ This does not introduce automatic variant or inventory synchronization.
 Existing installations gain `externalUrl`, `featured`, `compareAtCents`, `badge`,
 and `deliveryNote` through the normal additive module schema upgrade. No existing
 products change fulfilment route; defaults preserve their current behaviour.
+
+## Promotions, shipping offers, and loyalty
+
+Open **Store → Promotions & loyalty**. All new rules default to disabled, so an
+upgrade does not change your prices or promise rewards automatically.
+
+- **On sale:** set a product's original price above its selling price. The card
+  shows the original price, selling price, and rounded-down percentage saving.
+  Customers can choose **On sale** in the product filter; the cart also shows
+  savings already included in sale prices.
+- **Discount codes:** add up to 50 reusable codes. Choose a percentage (1–90%) or
+  fixed amount in the store currency, an optional minimum merchandise spend,
+  inclusive start/end dates in UTC, and an active switch. Blank dates mean no
+  date limit. Remove or disable a code to stop new checkouts using it.
+- **Free shipping:** enter a merchandise threshold in the store currency; zero
+  disables it. Eligibility uses merchandise **after discounts**, excludes
+  shipping itself, and applies to the normal flat shipping charge. Digital-only
+  orders still never pay shipping. The cart shows progress toward the threshold.
+- **Loyalty points:** set points per currency unit (1–100); zero disables the
+  programme. Set a points threshold and member discount (1–50%). Signed-in
+  customers earn points on merchandise after discounts, rounded down per order,
+  excluding shipping. At the threshold, future purchases qualify for the member
+  discount automatically. Points are not spent or redeemable for cash.
+
+Customers enter or clear a code in the cart. The better of a valid code or member
+reward applies; they never stack with one another, but both can apply to sale
+prices. Minimum spend for a code uses the sale-priced merchandise subtotal before
+that code. Discounts leave at least one cent of merchandise payable because this
+checkout requires a PayPal payment. An invalid, disabled, or expired selected code
+must be changed or cleared before starting checkout.
+
+Rewards are attached to the authenticated Ghoti account, never an email typed into
+checkout. Guests can buy normally, but earn no points, and guest purchases cannot
+be claimed later. Points are counted only from paid/shipped orders, separately
+for each currency; cancelled orders stop contributing. Orders placed before this
+feature have zero points. Changing the earning rate does not rewrite previously
+quoted orders. Disabling loyalty pauses earning and member discounts without
+erasing recorded points. PayPal refunds are still manual: use **Cancel order / record external refund** in the order detail to remove
+its points. This does not cancel supplier orders or revoke download grants.
+
+The PayPal request uses its documented [order amount breakdown](https://developer.paypal.com/sdk/orders/v2/definitions/order/)
+with a separate discount, leaving line-item prices intact.
+
+Amounts, discount labels, and earned points are snapshotted on each pending order
+and shown on receipts (including email) and admin order details. Changing a rule
+or removing a code does not reprice an existing pending PayPal order. Points become
+eligible only after verified payment; capture retries do not award them twice.
+Code usage is unlimited: there are no single-use or per-customer redemption caps.
+
+Spring purchases remain entirely separate and do not receive local discounts,
+shipping offers, or loyalty points. **Save favourite** works for all catalogue
+products; **Saved favourites** filters the collection. Favourites stay in this
+browser's local storage (up to 500), with an in-memory fallback if storage is
+unavailable. They do not sync between devices or accounts.
+
+The normal additive schema upgrade adds `store.commerceConfig` and the order
+columns `discountCents`, `discountLabel`, and `loyaltyPoints`. No manual data
+migration is required. Promotions are admin-gated; cart code changes use the
+existing CSRF-protected cart RPC. No customer-provided prices or points are trusted.
 
 ## How payment works
 
@@ -304,6 +365,7 @@ safe to leave or cancel.
 | --- | --- |
 | `mod/store/store.php` | Module entry point; wires `storedb` + `storeui` |
 | `mod/store/store.db.php` | Settings, catalogue, orders, download grants |
+| `mod/store/store.promotions.php` | Promotion validation and deterministic discount, shipping, and points calculations |
 | `mod/store/store.paypal.php` | PayPal Orders v2 client (`StorePaypalClient`), injectable transport |
 | `mod/store/store.dropship.php` | Supplier drivers (Printful, Printify, CJ, webhook) behind one interface |
 | `mod/store/store.fulfil.php` | CLI drain for the supplier queue, for cron |
@@ -313,6 +375,18 @@ safe to leave or cancel.
 | `mod/store/store.sql`, `insert.sql` | Schema and the seed settings row |
 
 ## Validation
+
+- `python tests/store-responsive.py`: Chromium checks all eight themes at 390px
+  and 1366px across catalogue, cart, checkout, and promotions. Requires Chromium
+  on PATH and uses disposable fixtures.
+- `php tests/store-promotions.php`: code dates/minimums, fixed/percentage amounts,
+  shipping thresholds, loyalty eligibility, checkout snapshots, PayPal discount
+  breakdown, paid-only points, replay safety, and admin authorization.
+- `tests/store-preview.php` also accepts `--theme=prosimii` (or any theme name)
+  and `--view=cart`, `--view=checkout`, or `--view=promotions`. Fixtures never use
+  a live database or payment provider. The catalogue's `--test` assertions also
+  exercise sale and favourite filters. Browser fixtures expose `data-overflow`
+  and `data-surface` for responsive/theme checks.
 
 - `php tests/store-product-db.php`: verifies SQL parameter binding and field
   persistence for new and edited products using a query spy.
@@ -366,9 +440,9 @@ fix is manual — nothing is lost, and the payment is unaffected.
 
 ## What this module is not
 
-There is no inventory tracking, no tax calculation, no discount codes, no
+There is no inventory tracking, no tax calculation, no simultaneous
 multi-currency, no refunds from the admin screen (refund in PayPal, then cancel
-the order here), and no customer account area. Shipping is one flat rate, not a
+the order here), and no customer order-history area. Loyalty uses existing Ghoti accounts. Shipping is one flat rate, not a
 table of zones or weights.
 
 None of the supplier integrations have been run against a real account: they are

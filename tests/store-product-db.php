@@ -47,3 +47,41 @@ list($sql, $params) = end($db->calls);
 productDbCheck(strpos($sql, 'active = 1') !== false && $params === array('apparel'), 'Public catalogue does not restrict active category');
 productDbCheck(strpos($sql, 'featured desc, sortOrder asc, name asc') !== false, 'Featured product ordering missing');
 echo "PASS: $checks product persistence assertions; SQL bindings verified without a database\n";
+
+// Settings and order snapshots must preserve SQL binding order after upgrades.
+$db->rows = array();
+productDbCheck($db->saveSettings(array('commerceConfig'=>array('pointsPerUnit'=>2))), 'Commerce settings save failed');
+list($sql, $params) = end($db->calls);
+productDbCheck(json_decode(end($params), true) === array('pointsPerUnit'=>2), 'Commerce settings binding missing');
+$db->rows = array(array('client','secret','sandbox','CAD',0,'',72,5,0,1,'{}',123,'{"pointsPerUnit":2}'));
+productDbCheck($db->getSettings()['commerceConfig']['pointsPerUnit'] === 2, 'Commerce settings not decoded');
+$db->rows = array(array(73));
+productDbCheck($db->getLoyaltyPoints(42, 'CAD') === 73, 'Loyalty aggregate mapping');
+list($sql, $params) = end($db->calls);
+productDbCheck($params === array(42, 'CAD') && strpos($sql, "status in ('paid','shipped')") !== false, 'Loyalty query must isolate account, currency and paid status');
+class StoreOrderTransactionSpy {
+	public $committed = false;
+	public function beginTransaction(){}
+	public function lastInsertId(){ return '7'; }
+	public function commit(){ $this->committed = true; }
+	public function rollBack(){}
+}
+class StoreOrderDbSpy extends StoreProductDbSpy {
+	public $transaction;
+	public function __construct(){ $this->transaction = new StoreOrderTransactionSpy(); }
+	protected function db(){ return $this->transaction; }
+}
+$orderDb = new StoreOrderDbSpy();
+$order = array('reference'=>'GH-TEST','userId'=>42,'email'=>'test@example.test','customerName'=>'Test','address1'=>'','address2'=>'','city'=>'','region'=>'','postcode'=>'','country'=>'','subtotalCents'=>1000,'shippingCents'=>0,'totalCents'=>900,'currency'=>'CAD','hasPhysical'=>false,'paypalOrderId'=>'TEST','note'=>'','discountCents'=>100,'discountLabel'=>'SAVE10','loyaltyPoints'=>18);
+productDbCheck($orderDb->createOrder($order, array()) === 7 && $orderDb->transaction->committed, 'Order snapshot transaction failed');
+list($sql, $params) = $orderDb->calls[0];
+preg_match('/store_orders \(([^)]+)\)/', $sql, $match);
+$columns = array_values(array_filter(explode(',', $match[1]), function($column){ return $column !== 'status'; }));
+$snapshot = array_combine($columns, $params);
+foreach(array('discountCents', 'discountLabel', 'loyaltyPoints', 'totalCents') as $field){ productDbCheck($snapshot[$field] === $order[$field], 'Order binding mismatch: '.$field); }
+$stored = array();
+foreach(explode(',', 'orderId,reference,status,userId,email,customerName,address1,address2,city,region,postcode,country,subtotalCents,shippingCents,totalCents,currency,hasPhysical,paypalOrderId,paypalCaptureId,payerEmail,note,createdAt,paidAt,shippedAt,discountCents,discountLabel,loyaltyPoints') as $field){ $stored[] = $snapshot[$field] ?? ($field === 'status' ? 'paid' : 0); }
+$orderDb->rows = array($stored);
+$loaded = $orderDb->getOrder(7);
+foreach(array('discountCents', 'discountLabel', 'loyaltyPoints', 'totalCents') as $field){ productDbCheck($loaded[$field] === $order[$field], 'Order read mismatch: '.$field); }
+echo "PASS: $checks total product, promotion and order persistence assertions\n";
