@@ -153,6 +153,10 @@
 #ghotiStoreManager .ghotiStoreAdminHead h2,
 #ghotiStoreManager .ghotiStoreAdminHead h3{ margin:0; font-size:1.05rem; }
 #ghotiStoreManager .ghotiStoreAdminTableWrap{ overflow-x:auto; }
+/* The name column gives way last: with the badge and action buttons unable to
+ * wrap, a narrow screen would otherwise squeeze names to a word per line. The
+ * wrapper scrolls sideways instead. */
+#ghotiStoreManager .ghotiStoreTable td:first-child{ min-width:12rem; }
 #ghotiStoreManager .ghotiStoreProductForm,
 #ghotiStoreManager .ghotiStoreOrderDetail{
 	margin-bottom:1rem; padding:1rem;
@@ -168,7 +172,7 @@
 #ghotiStoreManager .ghotiStoreDownloadList{ margin:.3rem 0 0; padding-left:1.1rem; color: var(--store-muted); font-size:.85rem; }
 
 .ghotiStoreBadge{
-	display:inline-block; padding:.1rem .5rem; border-radius:999px;
+	display:inline-block; padding:.1rem .5rem; border-radius:999px; white-space:nowrap;
 	font-size:.72rem; font-weight:700; text-transform:uppercase;
 	background: color-mix(in srgb, var(--store-muted) 18%, transparent); color: var(--store-muted);
 }

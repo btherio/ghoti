@@ -53,7 +53,9 @@ Square's [Web Payments SDK](https://developer.squareup.com/docs/web-payments/ove
 tokenizes the card in the browser. The one-time token is sent to this server,
 which writes a pending order and calls [CreatePayment](https://developer.squareup.com/reference/square/payments/create-payment)
 with an idempotency key, the server-computed amount, currency, location, and order
-reference. Only a matching `COMPLETED` payment fulfils the order.
+reference. Only a matching `COMPLETED` payment fulfils the order. Square requires
+the checkout to run over HTTPS and the site's Content Security Policy must allow
+the Web Payments SDK domains listed in Square's deployment guidance.
 
 Stripe and Square in this version cover one-time orders. Recurring service plans
 continue to use PayPal subscriptions. There is no public Stripe or Square webhook
