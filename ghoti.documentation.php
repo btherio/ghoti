@@ -207,6 +207,12 @@ unset ghoti_admin_password</code></pre>
             <dd>Save the Mail tab of Site Settings, send a test message, verify the From address and TLS name, then confirm <code>GHOTI_PUBLIC_URL</code>. Review SMTP and application logs without exposing credentials.</dd>
             <dt>HTML disappears from a page</dt>
             <dd>Use HTML mode and Preview to see the stored-safe result. Ghoti keeps common content markup but removes scripts, inline styles, forms, frames, event handlers, and unsafe URL schemes.</dd>
+            <dt>A button is spinning and will not respond</dt>
+            <dd>A button that starts work on the server shows a spinner and ignores further presses until that request finishes, so a slow save cannot be submitted twice. If it spins for a long time the server is slow or unreachable; wait, then reload and check Analytics &rarr; Log.</dd>
+            <dt>An administrator lost the phone with their authenticator app</dt>
+            <dd>Another administrator presses <b>Reset app</b> on that account in <b>Users</b>; it then gets e-mailed codes. If no administrator can sign in, set <code>"enableTwoFactor": false</code> in <code>ghoti.settings.json</code> on the server.</dd>
+            <dt>robots.txt or sitemap.xml returns 404</dt>
+            <dd>Set the Site URL under <b>Site Settings &rarr; SEO</b> and leave indexing on. The root addresses need <code>mod_rewrite</code> and <code>AllowOverride</code>; without them use <code>seo.php?file=robots</code> and <code>seo.php?file=sitemap</code>.</dd>
             <dt>An admin tool is missing</dt>
             <dd>Confirm the account still has admin access. Apache Vhosts additionally must be enabled under Site Settings and the page reloaded.</dd>
           </dl>

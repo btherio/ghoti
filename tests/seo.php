@@ -132,7 +132,7 @@ foreach($refusals as $key => $value){
 }
 
 /* ---- every tracked theme's <title> goes through the helper ---- */
-foreach(array('cyber','ghoticms','ironhide','mahogany','prosimii','smurfius','spore','veil') as $theme){
+foreach(array('cyber','ghoticms','hianxiety','ironhide','mahogany','prosimii','smurfius','spore','veil') as $theme){
 	$src = file_get_contents("css/$theme/$theme.php");
 	seoCheck(strpos($src, '<title><?php echo ghoti_seo_title_html(); ?></title>') !== false, "$theme does not use the SEO title");
 	seoCheck(substr_count($src, 'name="description"') <= 1 && (strpos($src, 'name="description"') === false || strpos($src, "ghoti::\$seoDescription === ''") !== false), "$theme can emit two descriptions");
