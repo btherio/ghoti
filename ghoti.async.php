@@ -232,16 +232,18 @@ function ghotiAsync(fn, argList){
 	}else if(args.length && args[args.length - 1] && typeof args[args.length - 1] === 'object' && typeof args[args.length - 1].callback === 'function'){
 		callback = args.pop().callback;
 	}
-	//Button feedback: if this call was triggered by a recent button press
-	//(see ghoti.js), show the spinner on it for the duration of the request.
+	//Button feedback: the control that was pressed to start this request (see
+	//ghoti.js) spins until it finishes, however it finishes.
+	var settle = function(){};
 	var trigger = null;
-	if(typeof GHOTI_LAST_TRIGGER !== 'undefined' && GHOTI_LAST_TRIGGER && (Date.now() - GHOTI_LAST_TRIGGER_AT) < 700){
-		trigger = GHOTI_LAST_TRIGGER;
-		GHOTI_LAST_TRIGGER = null;
-		if(typeof ghotiButtonBusy === 'function'){ ghotiButtonBusy(trigger, true); }
+	if(typeof ghotiTakeTrigger === 'function' && typeof ghotiBusyBegin === 'function'){
+		trigger = ghotiTakeTrigger();
+		if(trigger){ settle = ghotiBusyBegin(trigger); }
 	}
-	function settle(){
-		if(trigger && typeof ghotiButtonBusy === 'function'){ ghotiButtonBusy(trigger, false); }
+	function respond(result){
+		if(!callback){ return; }
+		if(trigger && typeof ghotiRunAsPress === 'function'){ ghotiRunAsPress(trigger, function(){ callback(result); }); }
+		else { callback(result); }
 	}
 	fetch(GHOTI_ASYNC_URL, {
 		method: 'POST',
@@ -251,12 +253,18 @@ function ghotiAsync(fn, argList){
 	}).then(function(resp){
 		return resp.json();
 	}).then(function(data){
-		if(data && data.ok){
-			if(callback){ callback(data.result); }
-		}else if(window.console){
-			console.error('ghotiAsync ' + fn + ': ' + (data && data.error));
+		//The callback runs first so it can re-enable what it likes, and any
+		//request it sends joins the same press; the spinner ends even if the
+		//callback throws.
+		try{
+			if(data && data.ok){
+				respond(data.result);
+			}else if(window.console){
+				console.error('ghotiAsync ' + fn + ': ' + (data && data.error));
+			}
+		}finally{
+			settle();
 		}
-		settle();
 	}).catch(function(err){
 		if(window.console){ console.error('ghotiAsync ' + fn + ' failed', err); }
 		settle();

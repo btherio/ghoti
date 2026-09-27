@@ -843,13 +843,15 @@ button img{
   object-fit: contain;
 }
 
-/* busy: label swapped for a spinner (also works on <a> buttons). The label
-   text is made transparent (text nodes can't be targeted with visibility)
-   and the spinner uses --text so it reads on accent, secondary and danger
-   buttons alike. */
-.ghotiButton.is-busy, .btn.is-busy{ pointer-events: none; color: transparent; }
-.ghotiButton.is-busy > *, .btn.is-busy > *{ visibility: hidden; }
-.ghotiButton.is-busy::after, .btn.is-busy::after{
+/* busy: set by ghotiButtonBusy() in ghoti.js while a press's request is in
+   flight. A button - any <button>, styled or not, and <a> buttons - swaps its
+   label for a spinner. The label text is made transparent (text nodes can't
+   be targeted with visibility), !important because several themes colour
+   their buttons more specifically than this, and the spinner uses --text so
+   it reads on accent, secondary and danger buttons alike. */
+.ghotiButton.is-busy, .btn.is-busy, button.is-busy{ pointer-events: none; color: transparent !important; }
+.ghotiButton.is-busy > *, .btn.is-busy > *, button.is-busy > *{ visibility: hidden; }
+.ghotiButton.is-busy::after, .btn.is-busy::after, button.is-busy::after{
   content: "";
   position: absolute; inset: 0; margin: auto;
   width: 1.15em; height: 1.15em;
@@ -859,6 +861,42 @@ button img{
   animation: ghotiSpin .7s linear infinite;
 }
 @keyframes ghotiSpin{ to { transform: rotate(360deg); } }
+
+/* Links and menu items that run script (the admin menu, page navigation) keep
+   their text and show a small spinner after it. content is !important because
+   some themes decorate menu links with an ::after arrow through an id
+   selector; the arrow gives way to the spinner only while busy. */
+a.is-busy:not(.ghotiButton):not(.btn):not(.ghotiIconButton),
+[role="button"].is-busy:not(button):not(.ghotiButton):not(.btn):not(.ghotiIconButton),
+[role="menuitem"].is-busy:not(button):not(.ghotiButton):not(.btn):not(.ghotiIconButton),
+[role="tab"].is-busy:not(button):not(.ghotiButton):not(.btn):not(.ghotiIconButton){ pointer-events: none; }
+a.is-busy:not(.ghotiButton):not(.btn):not(.ghotiIconButton)::after,
+[role="button"].is-busy:not(button):not(.ghotiButton):not(.btn):not(.ghotiIconButton)::after,
+[role="menuitem"].is-busy:not(button):not(.ghotiButton):not(.btn):not(.ghotiIconButton)::after,
+[role="tab"].is-busy:not(button):not(.ghotiButton):not(.btn):not(.ghotiIconButton)::after,
+.ghotiProgressBusy::before{
+  content: "" !important;
+  display: inline-block;
+  width: .9em; height: .9em;
+  margin: 0 .45em;
+  vertical-align: -.1em;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%;
+  animation: ghotiSpin .7s linear infinite;
+}
+.ghotiProgressBusy::before{ margin-left: 0; }
+
+/* While any press is waiting on the server, the whole page says so - the
+   feedback that survives a control that disappears on press, such as a
+   dropdown menu closing behind the item you chose. */
+html.ghotiBusy, html.ghotiBusy *{ cursor: progress !important; }
+
+/* Reduced motion flattens every animation to nothing, which would freeze a
+   spinner into a plain ring. A busy indicator carries information, so it
+   keeps a slow turn instead. */
+@media (prefers-reduced-motion: reduce){
+  .is-busy::after, .ghotiProgressBusy::before{ animation-duration: 1.8s !important; }
+}
 
 /* standalone spinner (progress text, placeholders, ...) */
 .ghotiSpinner{
@@ -990,7 +1028,7 @@ button.ghotiButtonDanger:hover{
   text-decoration: none;
   transition: transform .12s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
-.ghotiIconButton.is-busy{ pointer-events: none; color: transparent; }
+.ghotiIconButton.is-busy{ pointer-events: none; color: transparent !important; }
 .ghotiIconButton.is-busy > *{ visibility: hidden; }
 .ghotiIconButton.is-busy::after{
   content: "";
