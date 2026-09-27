@@ -49,10 +49,11 @@ $expected = array(
 	                     'board_topics' => array('topicId','boardId','title','locked','sticky','lastPostAt'),
 	                     'board_posts' => array('postId','boardId','topicId','userId','body','editedAt'),
 	                     'board_moderators' => array('boardId','userId','grantedAt')),
-	'store'     => array('store' => array('paypalClientId','paypalSecret','currency'),
-	                     'store_products' => array('productId','sku','priceCents','kind','downloadPath'),
-	                     'store_orders' => array('orderId','reference','status','paypalOrderId','totalCents'),
-	                     'store_order_items' => array('itemId','orderId','unitCents'),
+	'store'     => array('store' => array('paypalClientId','paypalSecret','currency','cryptoEnabled','cryptoApiKey','cryptoCurrencies','stripeEnabled','stripeSecretKey','squareEnabled','squareAccessToken'),
+	                     'store_products' => array('productId','sku','priceCents','kind','downloadPath','serviceTerm','billingType','paypalPlanId'),
+	                     'store_subscriptions' => array('subscriptionId','paypalSubscriptionId','paypalPlanId','status','serviceStatus'),
+	                     'store_orders' => array('orderId','reference','status','paypalOrderId','totalCents','hasService','serviceStatus','paymentProvider','cryptoPaymentId','cryptoStatus','providerPaymentId','providerStatus'),
+	                     'store_order_items' => array('itemId','orderId','unitCents','serviceTerm','serviceDetails'),
 	                     'store_downloads' => array('downloadId','token','expiresAt')),
 );
 foreach(glob('mod/*/') as $dir){

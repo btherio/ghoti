@@ -222,3 +222,50 @@
 	#ghotiAnalytics .analytics-log-errors li{ grid-template-columns:minmax(0,1fr); }
 	#ghotiAnalytics .analytics-log-last{ grid-column:1; }
 }
+
+/* ---- Alerts tab ---- */
+#ghotiAnalytics .analytics-alerts-intro{ color: var(--text-secondary); margin:0 0 1rem; }
+#ghotiAnalytics .analytics-alerts{ display:flex; flex-direction:column; gap:.55rem; }
+#ghotiAnalytics .analytics-alert{
+	background: var(--surface-2);
+	border:1px solid var(--border);
+	border-left:4px solid var(--series-4);
+	border-radius:10px;
+}
+#ghotiAnalytics .analytics-alert--partial,
+#ghotiAnalytics .analytics-alert--sending{ border-left-color: var(--series-3); }
+#ghotiAnalytics .analytics-alert--failed{ border-left-color: var(--series-6); }
+#ghotiAnalytics .analytics-alert summary{
+	display:grid; grid-template-columns: 3.5rem minmax(0,1fr) auto auto;
+	gap:.7rem; align-items:center;
+	padding:.6rem .75rem; cursor:pointer;
+}
+#ghotiAnalytics .analytics-alert-id{ font-weight:700; font-variant-numeric: tabular-nums; }
+#ghotiAnalytics .analytics-alert-label{ font-weight:600; }
+#ghotiAnalytics .analytics-alert-when,
+#ghotiAnalytics .analytics-alert-status{ color: var(--text-muted); font-size:.82rem; font-variant-numeric: tabular-nums; }
+#ghotiAnalytics .analytics-alert-body{ padding:0 .75rem .8rem; }
+#ghotiAnalytics .analytics-alert-body h3{ font-size:.9rem; margin:.9rem 0 .4rem; }
+#ghotiAnalytics .analytics-alert-why{ margin:.1rem 0 .6rem; color: var(--text-secondary); }
+#ghotiAnalytics .analytics-alert-facts{ display:grid; grid-template-columns:max-content 1fr; gap:.2rem .8rem; margin:0; font-size:.88rem; }
+#ghotiAnalytics .analytics-alert-facts dt{ color: var(--text-muted); }
+#ghotiAnalytics .analytics-alert-facts dd{ margin:0; }
+#ghotiAnalytics .analytics-alert-events{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.3rem; }
+#ghotiAnalytics .analytics-alert-events li{
+	display:grid; grid-template-columns: 4.6rem 3.6rem minmax(0,14rem) minmax(0,1fr);
+	gap:.6rem; align-items:baseline;
+	padding:.35rem .5rem; border-radius:6px;
+	background: var(--surface-1); font-size:.85rem;
+}
+#ghotiAnalytics .analytics-alert-event-time{ font-variant-numeric: tabular-nums; color: var(--text-muted); }
+#ghotiAnalytics .analytics-alert-event-level{ font-weight:700; font-size:.75rem; }
+#ghotiAnalytics .analytics-alert-event-context{ overflow-wrap:anywhere; font-size:.78rem; color: var(--text-secondary); }
+#ghotiAnalytics .analytics-alert-event-line{ overflow-wrap:anywhere; }
+#ghotiAnalytics .analytics-alert-deliveries{ margin:0; padding-left:1.1rem; font-size:.88rem; }
+@media (max-width: 720px){
+	#ghotiAnalytics .analytics-alert summary{ grid-template-columns: auto minmax(0,1fr); }
+	#ghotiAnalytics .analytics-alert-when,
+	#ghotiAnalytics .analytics-alert-status{ grid-column: 2; }
+	#ghotiAnalytics .analytics-alert-events li{ grid-template-columns: auto auto minmax(0,1fr); }
+	#ghotiAnalytics .analytics-alert-event-line{ grid-column: 1 / -1; }
+}

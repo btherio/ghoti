@@ -10,6 +10,8 @@ if(PHP_SAPI !== 'cli'){ http_response_code(404); exit; }
  */
 require_once __DIR__.'/../ghoti.php';
 require_once __DIR__.'/../mod/store/store.paypal.php';
+require_once __DIR__.'/../mod/store/store.crypto.php';
+require_once __DIR__.'/../mod/store/store.cards.php';
 require_once __DIR__.'/../mod/store/store.dropship.php';
 require_once __DIR__.'/../mod/store/store.async.php';
 
@@ -38,6 +40,7 @@ class StoreDbFake{
 	public $orders = array();
 	public $items = array();
 	public $downloads = array();
+	public $subscriptions = array();
 	public $paidCalls = 0;
 	public $statusCalls = array();
 
@@ -45,6 +48,10 @@ class StoreDbFake{
 		$this->settings = array(
 			'paypalClientId' => 'test-client', 'paypalSecret' => 'test-secret',
 			'paypalEnv' => 'sandbox', 'currency' => 'CAD', 'shippingCents' => 995,
+			'cryptoEnabled' => true, 'cryptoApiKey' => 'crypto-test-key', 'cryptoCurrencies' => 'btc,eth,ltc,usdc',
+			'stripeEnabled'=>true,'stripePublishableKey'=>'pk_test_example123','stripeSecretKey'=>'sk_test_example123',
+			'squareEnabled'=>true,'squareApplicationId'=>'sandbox-sq0idb-example','squareLocationId'=>'LOC12345',
+			'squareAccessToken'=>'square-test-token','squareEnv'=>'sandbox',
 			'shippingNote' => '', 'downloadHours' => 72, 'downloadLimit' => 5, 'updatedAt' => 0,
 			'dropshipEnabled' => true, 'dropshipAutoSubmit' => true,
 			'dropshipConfig' => array('printful' => array('token' => 'pf-test-token')),
@@ -59,7 +66,19 @@ class StoreDbFake{
 				'fulfilment'=>'dropship','dropProvider'=>'printful','dropProductId'=>'','dropVariantId'=>'4012'),
 			3 => array('productId'=>3,'sku'=>'OLD','name'=>'Retired','description'=>'','priceCents'=>9900,
 				'kind'=>'physical','category'=>'default','imageUrl'=>'','downloadPath'=>'','active'=>false,'sortOrder'=>0,'createdAt'=>0),
+			5 => array('productId'=>5,'sku'=>'SETUP','name'=>'Mailbox setup','description'=>'','priceCents'=>2500,
+				'kind'=>'service','category'=>'services','imageUrl'=>'','downloadPath'=>'','active'=>true,'sortOrder'=>0,'createdAt'=>0,
+				'serviceTerm'=>'one-time setup','servicePrompt'=>'Which domain?','serviceRequired'=>true,'billingType'=>'one_time','paypalPlanId'=>''),
+			6 => array('productId'=>6,'sku'=>'HOST','name'=>'Web hosting','description'=>'','priceCents'=>1200,
+				'kind'=>'service','category'=>'services','imageUrl'=>'','downloadPath'=>'','active'=>true,'sortOrder'=>0,'createdAt'=>0,
+				'serviceTerm'=>'per month','servicePrompt'=>'Which domain?','serviceRequired'=>true,'billingType'=>'subscription','paypalPlanId'=>'P-1234567890'),
 		);
+		foreach($this->products as &$product){
+			$product = array_merge(array('fulfilment'=>'self','dropProvider'=>'','dropProductId'=>'','dropVariantId'=>'',
+				'externalUrl'=>'','featured'=>false,'compareAtCents'=>0,'badge'=>'','deliveryNote'=>'','serviceTerm'=>'',
+				'servicePrompt'=>'','serviceRequired'=>false,'billingType'=>'one_time','paypalPlanId'=>''), $product);
+		}
+		unset($product);
 	}
 	public function skuTaken($sku, $excludeId = 0){
 		foreach($this->products as $id => $product){ if($id !== (int)$excludeId && $product['sku'] === $sku){ return true; } }
@@ -104,9 +123,14 @@ class StoreDbFake{
 		$order['status'] = 'pending';
 		$order['paypalCaptureId'] = '';
 		$order['payerEmail'] = '';
+		$order = array_merge(array('paymentProvider'=>'paypal','cryptoPaymentId'=>'','cryptoStatus'=>'','cryptoCurrency'=>'',
+			'cryptoAmount'=>'','cryptoAddress'=>'','cryptoExtraId'=>'','cryptoNetwork'=>'','cryptoExpiresAt'=>0,'cryptoUpdatedAt'=>0,
+			'providerPaymentId'=>'','providerStatus'=>''), $order);
 		$order['createdAt'] = time();
 		$order['paidAt'] = 0;
 		$order['shippedAt'] = 0;
+		$order['serviceStatus'] = !empty($order['hasService']) ? 'pending' : '';
+		$order['serviceFulfilledAt'] = 0;
 		$this->orders[$id] = $order;
 		$this->items[$id] = $items;
 		return $id;
@@ -118,6 +142,11 @@ class StoreDbFake{
 		}
 		return null;
 	}
+	public function getOrderByCryptoPaymentId($paymentId){
+		foreach($this->orders as $order){ if($order['cryptoPaymentId'] === $paymentId){ return $order; } }
+		return null;
+	}
+	public function getOrderByProviderPaymentId($paymentId){ foreach($this->orders as $order){ if($order['providerPaymentId']===$paymentId){ return $order; } } return null; }
 	//Mirrors the real query: line items carry the product's current supplier
 	//mapping rather than a snapshot, so a corrected variant id can be retried.
 	public function getOrderItems($id){
@@ -198,9 +227,58 @@ class StoreDbFake{
 		$this->orders[(int)$id]['paidAt'] = time();
 		return true;
 	}
+	public function updateCryptoPayment($id, $payment){
+		if(!isset($this->orders[(int)$id])){ return false; }
+		foreach(array('status'=>'cryptoStatus','payAmount'=>'cryptoAmount','address'=>'cryptoAddress','extraId'=>'cryptoExtraId','network'=>'cryptoNetwork','expiresAt'=>'cryptoExpiresAt') as $from=>$to){
+			$this->orders[(int)$id][$to] = $payment[$from];
+		}
+		$this->orders[(int)$id]['cryptoUpdatedAt'] = time();
+		return true;
+	}
+	public function markCryptoOrderPaid($id, $paymentId){
+		$this->paidCalls++;
+		if(!isset($this->orders[(int)$id]) || $this->orders[(int)$id]['status'] !== 'pending' || $this->orders[(int)$id]['cryptoPaymentId'] !== $paymentId){ return false; }
+		$this->orders[(int)$id]['status'] = 'paid';
+		$this->orders[(int)$id]['paidAt'] = time();
+		return true;
+	}
+	public function updateProviderPayment($id,$paymentId,$status){ if(!isset($this->orders[(int)$id])){return false;} $this->orders[(int)$id]['providerPaymentId']=$paymentId; $this->orders[(int)$id]['providerStatus']=$status; return true; }
+	public function markProviderOrderPaid($id,$paymentId,$status){
+		$this->paidCalls++; if(!isset($this->orders[(int)$id])||$this->orders[(int)$id]['status']!=='pending'){return false;}
+		$this->orders[(int)$id]['status']='paid'; $this->orders[(int)$id]['providerPaymentId']=$paymentId; $this->orders[(int)$id]['providerStatus']=$status; $this->orders[(int)$id]['paidAt']=time(); return true;
+	}
 	public function setOrderStatus($id, $status){
 		$this->statusCalls[] = array((int)$id, $status);
 		if(isset($this->orders[(int)$id])){ $this->orders[(int)$id]['status'] = $status; }
+		return true;
+	}
+	public function setServiceStatus($id, $status){
+		if(!isset($this->orders[(int)$id])){ return false; }
+		$this->orders[(int)$id]['serviceStatus'] = $status;
+		$this->orders[(int)$id]['serviceFulfilledAt'] = $status === 'fulfilled' ? time() : 0;
+		return true;
+	}
+	public function addSubscription($row){
+		$id = count($this->subscriptions) + 1;
+		$this->subscriptions[$id] = array_merge($row, array('subscriptionId'=>$id,'serviceStatus'=>'pending','serviceFulfilledAt'=>0,'createdAt'=>time(),'updatedAt'=>time()));
+		return $id;
+	}
+	public function getSubscription($id){ return $this->subscriptions[(int)$id] ?? null; }
+	public function getSubscriptionByPaypalId($paypalId){
+		foreach($this->subscriptions as $row){ if($row['paypalSubscriptionId'] === $paypalId){ return $row; } }
+		return null;
+	}
+	public function getSubscriptions($limit = 100){ return array_slice(array_values($this->subscriptions), 0, $limit); }
+	public function updateSubscriptionStatus($id, $status, $next){
+		if(!isset($this->subscriptions[(int)$id])){ return false; }
+		$this->subscriptions[(int)$id]['status'] = $status;
+		$this->subscriptions[(int)$id]['nextBillingAt'] = $next;
+		return true;
+	}
+	public function setSubscriptionServiceStatus($id, $status){
+		if(!isset($this->subscriptions[(int)$id])){ return false; }
+		$this->subscriptions[(int)$id]['serviceStatus'] = $status;
+		$this->subscriptions[(int)$id]['serviceFulfilledAt'] = $status === 'fulfilled' ? time() : 0;
 		return true;
 	}
 	public function addDownloadGrant($orderId, $productId, $token, $max, $expires){
@@ -240,6 +318,9 @@ class StorePaypalMock{
 	public $captureCents = null;
 	public $captureCurrency = 'CAD';
 	public $orderId = 'PAYPAL-TEST-1';
+	public $subscriptionId = 'I-SUBSCRIPTION-1';
+	public $subscriptionPlanId = 'P-1234567890';
+	public $subscriptionStatus = 'ACTIVE';
 	public function __invoke($request){
 		$this->requests[] = $request;
 		if(strpos($request['url'], '/v1/oauth2/token') !== false){
@@ -255,6 +336,13 @@ class StorePaypalMock{
 				))))),
 			)));
 		}
+		if(strpos($request['url'], '/v1/billing/subscriptions/') !== false){
+			return array('status'=>200, 'body'=>json_encode(array(
+				'id'=>$this->subscriptionId, 'plan_id'=>$this->subscriptionPlanId, 'status'=>$this->subscriptionStatus,
+				'subscriber'=>array('email_address'=>'payer@example.test'),
+				'billing_info'=>array('next_billing_time'=>'2030-01-02T00:00:00Z'),
+			)));
+		}
 		return array('status'=>201, 'body'=>json_encode(array('id'=>$this->orderId)));
 	}
 	public function createBody(){
@@ -265,11 +353,77 @@ class StorePaypalMock{
 	}
 }
 
+class StoreCryptoMock{
+	public $requests = array();
+	public $paymentId = '987654321';
+	public $status = 'waiting';
+	public $payAmount = '0.00012345';
+	public $payCurrency = 'btc';
+	public $priceAmount = '5.00';
+	public $priceCurrency = 'cad';
+	public $orderId = '';
+	public function __invoke($request){
+		$this->requests[] = $request;
+		if($request['method'] === 'POST'){
+			$body = json_decode($request['body'], true);
+			$this->orderId = $body['order_id'];
+			$this->priceAmount = (string)$body['price_amount'];
+			$this->priceCurrency = (string)$body['price_currency'];
+			$this->payCurrency = (string)$body['pay_currency'];
+		}
+		return array('status'=>200, 'body'=>'{'.
+			'"payment_id":"'.$this->paymentId.'",'.
+			'"payment_status":"'.$this->status.'",'.
+			'"price_amount":"'.$this->priceAmount.'",'.
+			'"price_currency":"'.$this->priceCurrency.'",'.
+			'"pay_amount":'.$this->payAmount.','. //unquoted on purpose: precision must survive the raw JSON path
+			'"pay_currency":"'.$this->payCurrency.'",'.
+			'"pay_address":"bc1qexampleaddress",'.
+			'"network":"btc",'.
+			'"order_id":"'.$this->orderId.'",'.
+			'"expiration_estimate_date":"2030-01-02T00:00:00Z"}');
+	}
+	public function createBody(){
+		foreach($this->requests as $request){ if($request['method'] === 'POST'){ return json_decode($request['body'], true); } }
+		return null;
+	}
+	public function createRaw(){
+		foreach($this->requests as $request){ if($request['method'] === 'POST'){ return $request['body']; } }
+		return '';
+	}
+}
+
+class StoreStripeMock{
+	public $requests=array(); public $status='requires_payment_method'; public $amount=500; public $reference='';
+	public function __invoke($request){
+		$this->requests[]=$request;
+		if($request['method']==='POST'){ parse_str($request['body'],$body); $this->amount=(int)$body['amount']; $this->reference=$body['metadata']['order_reference']; }
+		return array('status'=>200,'body'=>json_encode(array('id'=>'pi_testpayment12345','status'=>$this->status,'amount'=>$this->amount,
+			'amount_received'=>$this->status==='succeeded'?$this->amount:0,'currency'=>'cad','metadata'=>array('order_reference'=>$this->reference),
+			'client_secret'=>'pi_testpayment12345_secret_example')));
+	}
+}
+class StoreSquareMock{
+	public $requests=array(); public $status='COMPLETED'; public $amount=500; public $reference='';
+	public function __invoke($request){
+		$this->requests[]=$request;
+		if($request['method']==='POST'){ $body=json_decode($request['body'],true); $this->amount=(int)$body['amount_money']['amount']; $this->reference=$body['reference_id']; }
+		return array('status'=>200,'body'=>json_encode(array('payment'=>array('id'=>'SQUAREPAY12345','status'=>$this->status,
+			'amount_money'=>array('amount'=>$this->amount,'currency'=>'CAD'),'reference_id'=>$this->reference,'location_id'=>'LOC12345'))));
+	}
+}
+
 $db = new StoreDbFake();
 $mock = new StorePaypalMock();
+$cryptoMock = new StoreCryptoMock();
+$stripeMock = new StoreStripeMock();
+$squareMock = new StoreSquareMock();
 $_SESSION = array();
 $_SESSION['storeObj'] = (object)array('storedb' => $db, 'storeui' => new storeui());
 $GLOBALS['storePaypalTransport'] = $mock;
+$GLOBALS['storeCryptoTransport'] = $cryptoMock;
+$GLOBALS['storeStripeTransport'] = $stripeMock;
+$GLOBALS['storeSquareTransport'] = $squareMock;
 
 /* ---------------- money parsing ---------------- */
 
@@ -394,10 +548,85 @@ storeCheck(count($db->downloads) === 1, 'A replayed capture issued more download
 storeCheck(storeCaptureOrder('NOT-A-KNOWN-ORDER')['ok'] === false, 'Capture accepted an unknown order');
 storeCheck(storeCaptureOrder('../../etc/passwd')['ok'] === false, 'Capture accepted a malformed reference');
 
+/* ---------------- cryptocurrency checkout ---------------- */
+
+$_SESSION['storeCart'] = array(2 => 1);
+$cryptoStart = storeBeginCryptoCheckout(array('name'=>'Crypto Buyer','email'=>'crypto@example.test'), 'btc');
+storeCheck($cryptoStart['ok'] === true && $cryptoStart['final'] === false, 'Crypto checkout did not start: '.($cryptoStart['error'] ?? ''));
+$cryptoOrder = $db->getOrder(2);
+storeCheck($cryptoOrder['paymentProvider'] === 'crypto' && $cryptoOrder['status'] === 'pending', 'Crypto order was not recorded as pending');
+storeCheck($cryptoOrder['cryptoPaymentId'] === '987654321', 'Crypto provider id was not stored');
+storeCheck($cryptoOrder['cryptoAmount'] === '0.00012345', 'Crypto amount lost precision: '.$cryptoOrder['cryptoAmount']);
+$cryptoBody = $cryptoMock->createBody();
+storeCheck(preg_match('/"price_amount":5\.00(?:,|})/', $cryptoMock->createRaw()) === 1 && $cryptoBody['price_currency'] === 'cad', 'Crypto provider received the wrong fiat price');
+storeCheck($cryptoBody['pay_currency'] === 'btc' && $cryptoBody['order_id'] === $cryptoOrder['reference'], 'Crypto provider received the wrong asset or reference');
+storeCheck(strpos($cryptoStart['html'], 'bc1qexampleaddress') !== false, 'Crypto instructions omitted the deposit address');
+storeCheck(strpos($cryptoStart['html'], 'crypto-test-key') === false, 'Crypto API key leaked into checkout HTML');
+storeCheck(storeBeginCryptoCheckout(array('name'=>'X','email'=>'x@example.test'), 'doge')['ok'] === false, 'A currency outside the allow-list was accepted');
+
+$cryptoMock->status = 'partially_paid';
+$partial = storeRefreshCryptoPayment(2);
+storeCheck($partial['ok'] === true && $partial['final'] === false, 'Partially paid crypto order was treated as final');
+storeCheck($db->getOrder(2)['status'] === 'pending', 'Partial crypto payment fulfilled the order');
+
+$downloadsBeforeCrypto = count($db->downloads);
+$paidCallsBeforeCrypto = $db->paidCalls;
+$cryptoMock->status = 'confirmed';
+$cryptoMock->priceAmount = '4.99';
+$cryptoMismatch = storeRefreshCryptoPayment(2);
+storeCheck($cryptoMismatch['ok'] === false && $db->getOrder(2)['status'] === 'failed', 'A crypto payment with the wrong fiat amount was accepted');
+storeCheck($db->paidCalls === $paidCallsBeforeCrypto, 'Mismatched crypto payment tried to fulfil the order');
+$db->orders[2]['status'] = 'pending';
+$cryptoMock->priceAmount = '5.00';
+$cryptoPaid = storeRefreshCryptoPayment(2);
+storeCheck($cryptoPaid['ok'] === true && $cryptoPaid['final'] === true, 'Confirmed crypto payment was not completed');
+storeCheck($db->getOrder(2)['status'] === 'paid', 'Confirmed crypto payment did not pay the order');
+storeCheck(count($db->downloads) === $downloadsBeforeCrypto + 1, 'Confirmed crypto purchase did not issue its download');
+storeCheck(empty($_SESSION['storeCart']), 'Cart survived confirmed crypto payment');
+
+$cryptoReplay = storeRefreshCryptoPayment(2);
+storeCheck($cryptoReplay['ok'] === true && $cryptoReplay['final'] === true, 'Confirmed crypto replay did not return the receipt: '.json_encode($cryptoReplay));
+storeCheck($db->paidCalls === $paidCallsBeforeCrypto + 1, 'Crypto replay tried to pay the order twice');
+storeCheck(count($db->downloads) === $downloadsBeforeCrypto + 1, 'Crypto replay issued another download');
+
+/* ---------------- Stripe and Square checkout ---------------- */
+
+$_SESSION['storeCart']=array(2=>1);
+$stripeStart=storeBeginStripeCheckout(array('name'=>'Stripe Buyer','email'=>'stripe@example.test'));
+storeCheck($stripeStart['ok']===true && strpos($stripeStart['clientSecret'],'_secret_')!==false,'Stripe checkout did not create a PaymentIntent');
+$stripeOrder=$db->getOrder(3);
+storeCheck($stripeOrder['paymentProvider']==='stripe' && $stripeOrder['providerPaymentId']==='pi_testpayment12345','Stripe order/provider id not recorded');
+storeCheck(strpos($stripeStart['html'],'ghotiStoreStripeElement')!==false && strpos($stripeStart['html'],'sk_test_')===false,'Stripe payment form missing or secret leaked');
+$stripeMock->status='succeeded';
+$stripePaid=storeRefreshProcessorPayment(3);
+storeCheck($stripePaid['ok']===true && $stripePaid['final']===true && $db->getOrder(3)['status']==='paid','Verified Stripe payment did not fulfil the order');
+$stripeReplay=storeRefreshProcessorPayment(3);
+storeCheck($stripeReplay['ok']===true && $stripeReplay['final']===true,'Stripe payment replay did not return its receipt');
+
+$_SESSION['storeCart']=array(2=>1);
+$squarePaid=storeBeginSquareCheckout(array('name'=>'Square Buyer','email'=>'square@example.test'),'cnon:card-nonce-ok');
+$squareOrder=$db->getOrder(4);
+storeCheck($squarePaid['ok']===true && $squarePaid['final']===true,'Square payment did not complete: '.($squarePaid['error']??''));
+storeCheck($squareOrder['paymentProvider']==='square' && $squareOrder['providerPaymentId']==='SQUAREPAY12345' && $squareOrder['status']==='paid','Square payment was not verified and recorded');
+$squareRequest=json_decode($squareMock->requests[0]['body'],true);
+storeCheck($squareRequest['amount_money']['amount']===500 && $squareRequest['reference_id']===$squareOrder['reference'],'Square received the wrong server-computed order');
+
 /* ---------------- fulfilment and escaping ---------------- */
 
 //'paid' is not a status an admin may set; only a verified capture sets it.
 storeTestSignIn(true);
+$savedCryptoKey = $db->settings['cryptoApiKey'];
+$settingsResult = saveStoreSettings(array('paypalClientId'=>'test-client','paypalSecret'=>'','paypalEnv'=>'sandbox',
+	'cryptoEnabled'=>true,'cryptoApiKey'=>'','cryptoCurrencies'=>' BTC, eth, BTC ', 'currency'=>'CAD',
+	'shipping'=>'9.95','shippingNote'=>'','downloadHours'=>72,'downloadLimit'=>5));
+storeCheck($settingsResult === true, 'Crypto settings could not be saved: '.var_export($settingsResult, true));
+storeCheck($db->settings['cryptoApiKey'] === $savedCryptoKey, 'Blank crypto key erased the saved secret');
+storeCheck($db->settings['cryptoCurrencies'] === 'btc,eth', 'Crypto currency allow-list was not normalized');
+$db->settings['cryptoApiKey'] = '';
+$missingCryptoKey = saveStoreSettings(array('cryptoEnabled'=>true,'cryptoApiKey'=>'','cryptoCurrencies'=>'btc','currency'=>'CAD','shipping'=>'9.95','downloadHours'=>72,'downloadLimit'=>5));
+storeCheck(is_string($missingCryptoKey) && stripos($missingCryptoKey, 'API key') !== false, 'Crypto checkout was enabled without an API key');
+$db->settings['cryptoApiKey'] = $savedCryptoKey;
+$db->settings['cryptoCurrencies'] = 'btc,eth,ltc,usdc';
 $byHand = setStoreOrderStatus(1, 'paid');
 storeCheck(is_string($byHand) && stripos($byHand, 'by hand') !== false, 'Paid could be set by hand: '.var_export($byHand, true));
 storeCheck(setStoreOrderStatus(1, 'shipped') === true, 'A paid order could not be marked shipped');
@@ -537,6 +766,57 @@ storeCheck(storeRetryFulfilment(1) === 'Admin access required.', 'Retry served a
 storeCheck(storeRefreshFulfilment(1) === 'Admin access required.', 'Refresh served a signed-out caller');
 unset($GLOBALS['storeDropshipTransport']);
 storeTestSignIn(true);
+
+/* ---------------- services and subscriptions ---------------- */
+
+$_SESSION['storeCart'] = array();
+storeCheck(storeAddToCart(6, 1)['ok'] === false, 'A recurring service was added to the one-time cart');
+$_SESSION['storeCart'] = array(6 => 1);
+storeCheck(storeCartLines() === array(), 'A forged cart retained a recurring service');
+
+$_SESSION['storeCart'] = array(5 => 1);
+$serviceTotals = storeCartTotals();
+storeCheck($serviceTotals['hasService'] && !$serviceTotals['hasPhysical'] && $serviceTotals['shippingCents'] === 0, 'A service did not use service-only checkout totals');
+$missingSetup = storeBeginCheckout(array('name'=>'Service Buyer','email'=>'service@example.test','serviceDetails'=>array()));
+storeCheck($missingSetup['ok'] === false, 'A required service setup answer was omitted');
+$mock->orderId = 'PAYPAL-SERVICE-1';
+$serviceBegin = storeBeginCheckout(array('name'=>'Service Buyer','email'=>'service@example.test',
+	'serviceDetails'=>array('5'=>'example.test')));
+storeCheck($serviceBegin['ok'] === true, 'One-time service checkout did not start');
+$serviceOrder = $db->getOrderByPaypalId('PAYPAL-SERVICE-1');
+$serviceItems = $db->getOrderItems($serviceOrder['orderId']);
+storeCheck($serviceOrder['hasService'] && $serviceOrder['serviceStatus'] === 'pending', 'Service fulfilment state was not created');
+storeCheck($serviceItems[0]['serviceDetails'] === 'example.test' && $serviceItems[0]['serviceTerm'] === 'one-time setup', 'Service setup details were not snapshotted');
+$db->orders[$serviceOrder['orderId']]['status'] = 'paid';
+storeCheck(setStoreOrderServiceStatus($serviceOrder['orderId'], 'fulfilled') === true, 'A paid service could not be marked ready');
+storeCheck(is_string(setStoreOrderStatus($serviceOrder['orderId'], 'shipped')), 'A service-only order was marked shipped');
+
+storeCheck(storePaypalPlanId('P-1234567890') === 'P-1234567890' && storePaypalPlanId('not-a-plan') === '', 'PayPal plan id validation failed');
+$subscriptionPage = storeShowSubscription(6);
+storeCheck(strpos($subscriptionPage, 'data-plan-id="P-1234567890"') !== false, 'Subscription checkout omitted its PayPal plan');
+$confirmed = storeConfirmSubscription(6, 'I-SUBSCRIPTION-1', array('name'=>'Subscriber','email'=>'subscriber@example.test','serviceDetails'=>'host.example'));
+storeCheck($confirmed['ok'] === true && count($db->subscriptions) === 1, 'A verified subscription was not recorded');
+$subscriptionRequest = end($mock->requests);
+storeCheck($subscriptionRequest['method'] === 'GET' && !isset($subscriptionRequest['body']), 'Subscription verification was not a body-free PayPal GET');
+$subscription = $db->getSubscription(1);
+storeCheck($subscription['status'] === 'ACTIVE' && $subscription['serviceDetails'] === 'host.example', 'Subscription status or setup details were not stored');
+storeCheck(storeConfirmSubscription(6, 'I-SUBSCRIPTION-1', array('name'=>'Subscriber','email'=>'subscriber@example.test','serviceDetails'=>'host.example'))['ok'] === true && count($db->subscriptions) === 1, 'Subscription approval replay created a duplicate');
+$mock->subscriptionId = 'I-WRONG-PLAN';
+$mock->subscriptionPlanId = 'P-9999999999';
+$wrongPlan = storeConfirmSubscription(6, 'I-WRONG-PLAN', array('name'=>'Subscriber','email'=>'subscriber@example.test','serviceDetails'=>'host.example'));
+storeCheck($wrongPlan['ok'] === false && stripos($wrongPlan['error'], 'different plan') !== false, 'A subscription to another PayPal plan was accepted');
+$mock->subscriptionId = 'I-SUBSCRIPTION-1';
+$mock->subscriptionPlanId = 'P-1234567890';
+$mock->subscriptionStatus = 'SUSPENDED';
+storeCheck(refreshStoreSubscription(1) === true && $db->getSubscription(1)['status'] === 'SUSPENDED', 'Subscription status was not refreshed from PayPal');
+storeCheck(setStoreSubscriptionServiceStatus(1, 'fulfilled') === true && $db->getSubscription(1)['serviceStatus'] === 'fulfilled', 'Subscribed service could not be marked ready');
+
+$savedService = saveStoreProduct(array('name'=>'Managed mail','sku'=>'MAIL-SUB','price'=>'8.00','kind'=>'service',
+	'serviceTerm'=>'per month','servicePrompt'=>'Domain','serviceRequired'=>1,'billingType'=>'subscription','paypalPlanId'=>'P-ABCDEFGHIJKL','fulfilment'=>'self'));
+storeCheck($savedService === true, 'A valid subscription service product could not be saved');
+$badPlan = saveStoreProduct(array('name'=>'Bad plan','sku'=>'BAD-SUB','price'=>'8.00','kind'=>'service',
+	'serviceTerm'=>'per month','billingType'=>'subscription','paypalPlanId'=>'bad','fulfilment'=>'self'));
+storeCheck(is_string($badPlan) && stripos($badPlan, 'plan ID') !== false, 'A subscription service accepted an invalid PayPal plan id');
 
 /* ---------------- digital delivery paths ---------------- */
 

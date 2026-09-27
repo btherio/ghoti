@@ -1,18 +1,20 @@
 # Store
 
-An optional module that sells physical and digital goods and takes payment through
-PayPal. Off by default: enable it under **Site Settings → Optional modules**, then
-add PayPal credentials under **Admin Menu → Store**.
+An optional module that sells physical goods, downloads, and digital services and
+takes one-time payment through PayPal, Stripe, Square, or cryptocurrency via NOWPayments. Services
+can be one-time purchases or recurring PayPal subscriptions. Off by default:
+enable it under **Site Settings → Optional modules**, then configure a payment
+provider under **Admin Menu → Store**.
 
 ## Setting it up
 
 1. **Enable the module.** Site Settings → Optional modules → *Store*, save, reload.
-   The `store`, `store_products`, `store_orders`, `store_order_items` and
-   `store_downloads` tables are created on first use, the same way every other
+   The `store`, `store_products`, `store_orders`, `store_order_items`,
+   `store_downloads`, and `store_subscriptions` tables are created on first use, the same way every other
    module provisions itself.
 2. **Connect PayPal.** In the [PayPal Developer dashboard](https://developer.paypal.com/)
    create a REST app and copy its **client ID** and **secret** into
-   **Store → PayPal & shipping**. Leave the environment on **Sandbox**.
+   **Store → Payments & shipping**. Leave the environment on **Sandbox**.
 3. **Set the currency and shipping.** The currency is a three-letter code and must
    be one the PayPal account can accept. Shipping is a single flat rate, charged
    once per order that contains a physical item.
@@ -20,6 +22,71 @@ add PayPal credentials under **Admin Menu → Store**.
 5. **Switch to Live** only once a sandbox order has appeared under **Orders** with
    status *Paid*. Live and sandbox credentials are different pairs — switching the
    environment without replacing both will fail to take payment.
+
+### Stripe and Square card payments
+
+Both card integrations use the provider's browser component, so card numbers,
+expiry dates, and security codes never pass through this application.
+
+For Stripe:
+
+1. Create or open a Stripe account and copy a matching test publishable key
+   (`pk_test_…`) and secret key (`sk_test_…`).
+2. Save them under **Store → Payments & shipping → Stripe** and enable Stripe.
+3. Test a purchase before replacing both keys with their matching live pair.
+
+The server creates one [PaymentIntent](https://docs.stripe.com/api/payment_intents/create)
+from its own order total. Stripe Elements collects and authenticates the card.
+After confirmation, the server retrieves the PaymentIntent and requires status
+`succeeded`, the full amount received, the expected currency, and the saved order
+reference before fulfilling anything.
+
+For Square:
+
+1. Create a Square application and copy its application ID, location ID, and
+   access token from the same Sandbox environment.
+2. Save them under **Store → Payments & shipping → Square**, leave the environment
+   on **Sandbox**, and enable Square.
+3. Test a purchase before changing the environment and all credentials to Live.
+
+Square's [Web Payments SDK](https://developer.squareup.com/docs/web-payments/overview)
+tokenizes the card in the browser. The one-time token is sent to this server,
+which writes a pending order and calls [CreatePayment](https://developer.squareup.com/reference/square/payments/create-payment)
+with an idempotency key, the server-computed amount, currency, location, and order
+reference. Only a matching `COMPLETED` payment fulfils the order.
+
+Stripe and Square in this version cover one-time orders. Recurring service plans
+continue to use PayPal subscriptions. There is no public Stripe or Square webhook
+endpoint; an administrator can use **Refresh payment** on a pending order that has
+a provider payment ID.
+
+### Bitcoin and other cryptocurrency
+
+Crypto checkout uses [NOWPayments](https://nowpayments.io/), which creates a
+deposit address and quote for each order and exposes the authoritative payment
+status through its [Payment API](https://documenter.getpostman.com/view/7907941/S1a32n38).
+
+1. Create a NOWPayments account and API key.
+2. Under **Store → Payments & shipping → Bitcoin & cryptocurrency**, paste the
+   key and enable crypto checkout.
+3. Enter the currency codes you want to offer, separated by commas. For example,
+   `btc, eth, ltc, usdc`. Only list assets and networks enabled for your provider
+   account; network-specific assets may have codes such as `usdttrc20`.
+4. Place a small real order and verify that it moves from *Waiting* through
+   network confirmation to *Paid* before advertising the option.
+
+The API key stays server-side. Leaving its field blank when saving keeps the
+stored key. Like the PayPal secret, it is stored in the database and therefore
+also exists in backups. Crypto is offered only for one-time cart orders;
+recurring services continue to use PayPal subscriptions.
+
+The payment page shows the exact crypto amount, deposit address, network, and
+memo/tag when required. It checks status every 12 seconds while open. A pending
+crypto order can also be checked later with **Refresh payment** under **Orders**.
+This version has no public NOWPayments webhook endpoint, so keep the payment page
+open through confirmation or refresh it from the manager. An order is fulfilled
+only when the provider reports a confirmed, sending, or finished payment and its
+local reference, fiat amount, fiat currency, and crypto asset all match.
 
 ## Putting a shop on a page
 
@@ -39,7 +106,7 @@ page to create, and the storefront is public — visitors do not need an account
 | --- | --- |
 | SKU | Unique; appears on the order and in PayPal's line items |
 | Price | Entered as `12.50`; stored as integer cents |
-| Kind | *Physical* asks for a shipping address and charges shipping; *digital* delivers a download |
+| Kind | *Physical* asks for shipping; *digital* delivers a download; *service* is provisioned by an administrator |
 | Fulfilled by | *You*, or a supplier — see [Dropshipping](#dropshipping). A supplier-fulfilled item is still physical |
 | Category | What `[store:CATEGORY]` selects |
 | Image URL | Rendered in an `<img src>`, so it is scheme-checked like every other URL the CMS accepts |
@@ -48,6 +115,10 @@ page to create, and the storefront is public — visitors do not need an account
 | Original price | Optional higher price shown crossed out beside the selling price; blank clears it |
 | Product badge | Optional short label, such as “New arrival” or “Limited edition” |
 | Delivery note | Optional product-specific timing or delivery details |
+| Billing | Services only: a one-time cart purchase or a recurring PayPal subscription |
+| Service / billing term | Customer-facing wording such as `one-time setup`, `per month`, or `per year` |
+| Setup question | Optional question for a domain, preferred account name, migration notes, or other provisioning details; it can be required |
+| PayPal plan ID | Recurring services only: the `P-…` ID of an active plan in the matching PayPal sandbox or live environment |
 | Spring product URL | Shown when Spring / Teespring is selected; links directly to hosted checkout |
 | Show in the store | Unticking hides it without deleting it |
 
@@ -57,7 +128,7 @@ of the name, SKU, kind and price that was actually charged.
 ## Browsing and merchandising
 
 The responsive collection includes product search (name, description, or SKU),
-category chips, physical/digital/Spring filters, and sorting by featured, newest,
+category chips, physical/download/service/Spring filters, and sorting by featured, newest,
 price, or name. Controls are independent when multiple `[store:…]` shortcodes
 appear on one page. Product details expand in place; missing images get a styled
 placeholder. Colours inherit the selected Ghoti theme across catalogue, cart, checkout and
@@ -66,15 +137,51 @@ preferences are supported. The phone cart rearranges each item into a compact
 card instead of requiring horizontal scrolling.
 
 Products can be featured, carry a short badge and delivery note, and show a sale
-price beside an optional higher original price. The admin catalogue includes live,
-featured, and Spring counts, thumbnails, and search. **Duplicate** copies product
+price beside an optional higher original price. The admin catalogue includes live-product,
+service, and Spring counts, thumbnails, and search. **Duplicate** copies product
 fields into a hidden draft with a blank SKU, useful for related products or separate
 size/colour SKUs. Review the name, price, and supplier mapping before saving it.
 This does not introduce automatic variant or inventory synchronization.
 
-Existing installations gain `externalUrl`, `featured`, `compareAtCents`, `badge`,
-and `deliveryNote` through the normal additive module schema upgrade. No existing
-products change fulfilment route; defaults preserve their current behaviour.
+Existing installations gain the merchandising and service fields through the
+normal additive module schema upgrade. Existing products default to one-time
+billing and keep their current kind and fulfilment route.
+
+## Digital services and subscriptions
+
+Choose **Service** for offerings such as email hosting, managed web hosting,
+domain setup, maintenance, consulting, or migration work. Services never ask for
+a shipping address and cannot be routed to Spring or a dropshipping supplier.
+The customer's answer to the setup question is snapshotted with the purchase, so
+later edits to the product do not change the provisioning request.
+
+For a one-time service, choose **One-time purchase**. It behaves like any other
+local cart item: PayPal captures one payment, the service appears under **Orders**,
+and an administrator can mark its separate setup state **Ready** without marking
+the order shipped.
+
+For recurring billing:
+
+1. In the PayPal Developer dashboard, create a product and recurring billing
+   plan in the same sandbox or live account configured for this store. PayPal's
+   [Subscriptions integration guide](https://developer.paypal.com/platforms/subscriptions/integrate/)
+   covers the product-and-plan setup.
+2. Copy its plan ID (beginning `P-`) into the service product and choose
+   **Recurring PayPal subscription**.
+3. Keep the catalogue price and billing-term text in sync with the PayPal plan.
+   PayPal's approval window is authoritative and shows the actual amount,
+   interval, trial, and cancellation terms.
+4. New signups appear under **Store → Subscriptions**. Mark the service ready
+   after provisioning it. Use **Refresh** to retrieve its current PayPal status
+   and next billing date.
+
+A recurring service bypasses the cart because a PayPal subscription approval is
+for one plan, not an Orders API cart. After approval the server reads the
+subscription directly from PayPal, checks that its ID and plan match the product,
+and only accepts `ACTIVE` or `APPROVED` signups. Replayed approval callbacks reuse
+the uniquely stored record. Customers manage payment methods and cancellation in
+PayPal. This version does not expose a public webhook endpoint, so lifecycle
+changes are pulled with **Refresh** rather than pushed automatically.
 
 ## Promotions, shipping offers, and loyalty
 
@@ -103,7 +210,7 @@ Customers enter or clear a code in the cart. The better of a valid code or membe
 reward applies; they never stack with one another, but both can apply to sale
 prices. Minimum spend for a code uses the sale-priced merchandise subtotal before
 that code. Discounts leave at least one cent of merchandise payable because this
-checkout requires a PayPal payment. An invalid, disabled, or expired selected code
+checkout requires a payment. An invalid, disabled, or expired selected code
 must be changed or cleared before starting checkout.
 
 Rewards are attached to the authenticated Ghoti account, never an email typed into
@@ -112,15 +219,17 @@ be claimed later. Points are counted only from paid/shipped orders, separately
 for each currency; cancelled orders stop contributing. Orders placed before this
 feature have zero points. Changing the earning rate does not rewrite previously
 quoted orders. Disabling loyalty pauses earning and member discounts without
-erasing recorded points. PayPal refunds are still manual: use **Cancel order / record external refund** in the order detail to remove
-its points. This does not cancel supplier orders or revoke download grants.
+erasing recorded points. Provider refunds are still manual: use **Cancel order /
+record external refund** in the order detail to remove its points, then refund in
+PayPal or NOWPayments separately. This does not cancel supplier orders or revoke
+download grants.
 
 The PayPal request uses its documented [order amount breakdown](https://developer.paypal.com/sdk/orders/v2/definitions/order/)
 with a separate discount, leaving line-item prices intact.
 
 Amounts, discount labels, and earned points are snapshotted on each pending order
 and shown on receipts (including email) and admin order details. Changing a rule
-or removing a code does not reprice an existing pending PayPal order. Points become
+or removing a code does not reprice an existing pending provider order. Points become
 eligible only after verified payment; capture retries do not award them twice.
 Code usage is unlimited: there are no single-use or per-customer redemption caps.
 
@@ -130,12 +239,15 @@ products; **Saved favourites** filters the collection. Favourites stay in this
 browser's local storage (up to 500), with an in-memory fallback if storage is
 unavailable. They do not sync between devices or accounts.
 
-The normal additive schema upgrade adds `store.commerceConfig` and the order
-columns `discountCents`, `discountLabel`, and `loyaltyPoints`. No manual data
-migration is required. Promotions are admin-gated; cart code changes use the
-existing CSRF-protected cart RPC. No customer-provided prices or points are trusted.
+The normal additive schema upgrade adds `store.commerceConfig`, crypto provider
+settings, and the order columns needed for discounts, loyalty, and provider
+payment state. No manual data migration is required. Promotions are admin-gated;
+cart code changes use the existing CSRF-protected cart RPC. No customer-provided
+prices, points, or payment status are trusted.
 
 ## How payment works
+
+PayPal checkout follows this flow:
 
 ```
 browser                     this site                        PayPal
@@ -172,8 +284,25 @@ currency PayPal reports are compared against that row; a mismatch marks the orde
 update conditional on the order still being pending, means a replayed capture
 returns the original receipt instead of charging or delivering twice.
 
-`paid` is not a status an administrator can set by hand. Only a verified capture
-sets it.
+Crypto checkout follows the same trust boundary without accepting a browser
+claim: the site sends its server-computed fiat total and local reference to
+NOWPayments, saves the returned provider id and exact send instructions, then
+reads that payment back from the provider. `waiting`, `confirming`, and
+`partially_paid` remain pending. Only `confirmed`, `sending`, or `finished` can
+advance the local order, and only after amount, fiat currency, crypto asset, and
+order reference match the saved snapshot. The conditional pending-to-paid update
+makes refreshes and polling idempotent, so they cannot issue a second receipt or
+second set of download links.
+
+Stripe follows that same rule with a PaymentIntent: the browser receives only a
+publishable key and that order's client secret, Stripe Elements handles the card,
+and the server retrieves the intent before accepting `succeeded`. Square's Web
+Payments SDK returns a single-use token; the server records the order before
+calling Payments API and accepts only a matching `COMPLETED` result. Provider
+IDs and statuses are stored on the order so a delayed result can be refreshed.
+
+`paid` is not a status an administrator can set by hand. Only a verified PayPal
+capture, Stripe PaymentIntent, Square Payment, or crypto provider status sets it.
 
 ## Digital delivery
 
@@ -377,8 +506,10 @@ safe to leave or cancel.
 ## Validation
 
 - `python tests/store-responsive.py`: Chromium checks all nine themes at 390px
-  and 1366px across catalogue, cart, checkout, and promotions. Requires Chromium
-  on PATH and uses disposable fixtures.
+  and 1366px across catalogue, cart, checkout, subscription signup, promotions,
+  and store settings;
+  settings also run at a constrained 768px width to catch cramped admin grids.
+  Requires Chromium on PATH and uses disposable fixtures.
 - `php tests/store-promotions.php`: code dates/minimums, fixed/percentage amounts,
   shipping thresholds, loyalty eligibility, checkout snapshots, PayPal discount
   breakdown, paid-only points, replay safety, and admin authorization.

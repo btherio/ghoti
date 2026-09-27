@@ -39,6 +39,22 @@
 			check(document.querySelector('.ghotiStoreSummary').textContent.includes('WELCOME'), 'Checkout includes applied discount');
 			check(document.querySelector('.ghotiStoreBenefits').textContent.includes('Sign in'), 'Guest checkout explains rewards eligibility');
 			check(!document.getElementById('ghotiStoreCheckoutForm').checkValidity(), 'Empty required fields invalid');
+			check(document.getElementById('storeCryptoCurrency').querySelector('option[value="btc"]'), 'Checkout offers configured Bitcoin payment');
+			check(document.querySelector('[onclick^="storeBeginCryptoPayment"]'), 'Checkout renders the crypto payment action');
+			check(document.querySelector('[onclick^="storeBeginStripePayment"]'), 'Checkout renders the Stripe payment action');
+			check(document.getElementById('ghotiStoreSquareCard') && document.getElementById('ghotiStoreSquareButton'), 'Checkout renders the Square card mount');
+		}else if(document.getElementById('ghotiStoreSubscription')){
+			var subscription = document.getElementById('ghotiStoreSubscription');
+			check(subscription.dataset.productId === '6' && subscription.dataset.planId === 'P-1234567890', 'Subscription carries server-selected product and plan');
+			check(subscription.textContent.includes('per month'), 'Subscription billing term displayed');
+			check(!document.getElementById('ghotiStoreSubscriptionForm').checkValidity(), 'Empty subscription details invalid');
+			check(document.getElementById('storeSubscriptionDetails').required, 'Required setup answer rendered');
+		}else if(document.getElementById('ghotiStoreSettingsForm')){
+			check(document.getElementById('store-cryptoEnabled').checked, 'Saved crypto checkout state rendered');
+			check(document.getElementById('store-cryptoCurrencies').value.includes('btc'), 'Configured crypto allow-list rendered');
+			check(document.getElementById('store-cryptoApiKey').value === '', 'Crypto API key was not rendered back into the form');
+			check(document.getElementById('store-stripeEnabled').checked && document.getElementById('store-stripeSecretKey').value === '', 'Stripe settings or secret handling rendered incorrectly');
+			check(document.getElementById('store-squareEnabled').checked && document.getElementById('store-squareAccessToken').value === '', 'Square settings or token handling rendered incorrectly');
 		}
 		document.body.dataset.testResult = 'PASS: ' + checks + ' commerce browser assertions';
 	}catch(error){ document.body.dataset.testResult = 'FAIL: ' + error.message; }

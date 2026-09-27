@@ -33,6 +33,10 @@ reasonix.toml
 
 # Throttled operational alert counters; never commit runtime state.
 critical-alerts.json
+# Alert history for Analytics -> Alerts (ghoti.alerts.php). Holds log lines,
+# usernames and IPs, like ghoti.log - never commit it.
+critical-alerts.pending.json
+critical-alerts.history.json
 
 # Python bytecode caches (bitcoin-pong and anything else under lib/)
 __pycache__/

@@ -11,10 +11,9 @@
  *     server-side (storeCartLines / storeCartTotals below). A checkout that
  *     trusted a posted total would let anyone buy anything for a cent.
  *
- *  2. The order row is written BEFORE PayPal is asked to capture, and is only
- *     flipped to paid after the captured amount and currency are verified
- *     against it. A capture that succeeds while this process dies then leaves a
- *     pending row to reconcile, not a charged customer with no record.
+ *  2. The order row is written before PayPal capture or before crypto funds are
+ *     accepted as paid. It is flipped only after the provider's amount,
+ *     currency and reference are verified against it.
  *
  * The storefront is public; management is admin-gated. Money is integer cents
  * everywhere, formatted for display exactly once, in storeui::money().
@@ -71,6 +70,7 @@ function storeCartLines(){
 		if(!isset($products[$productId]) || !$products[$productId]['active']){ continue; }
 		$product = $products[$productId];
 		if(($product['fulfilment'] ?? 'self') === 'spring'){ continue; }
+		if(($product['billingType'] ?? 'one_time') === 'subscription'){ continue; }
 		$quantity = max(1, min(STORE_MAX_QTY, (int)$quantity));
 		$lines[] = array(
 			'productId' => $productId,
@@ -82,6 +82,9 @@ function storeCartLines(){
 			'quantity'  => $quantity,
 			'lineCents' => $product['priceCents'] * $quantity,
 			'saleSavingsCents' => max(0, (int)($product['compareAtCents'] ?? 0) - $product['priceCents']) * $quantity,
+			'serviceTerm' => (string)($product['serviceTerm'] ?? ''),
+			'servicePrompt' => (string)($product['servicePrompt'] ?? ''),
+			'serviceRequired' => !empty($product['serviceRequired']),
 		);
 	}
 	return $lines;
@@ -93,12 +96,14 @@ function storeCartTotals($lines = null){
 	$subtotal = 0;
 	$saleSavings = 0;
 	$hasPhysical = false;
+	$hasService = false;
 	$units = 0;
 	foreach($lines as $line){
 		$subtotal += $line['lineCents'];
 		$saleSavings += $line['saleSavingsCents'] ?? 0;
 		$units += $line['quantity'];
 		if($line['kind'] === 'physical'){ $hasPhysical = true; }
+		if($line['kind'] === 'service'){ $hasService = true; }
 	}
 	//Shipping is a flat rate per order, charged only when something has to be
 	//posted. An all-digital cart never pays it.
@@ -114,6 +119,7 @@ function storeCartTotals($lines = null){
 		'totalCents'    => $subtotal + $shipping,
 		'currency'      => $settings['currency'],
 		'hasPhysical'   => $hasPhysical,
+		'hasService'    => $hasService,
 		'units'         => $units,
 		'lines'         => count($lines),
 	), $promotion);
@@ -130,6 +136,22 @@ function storePaypalClient($settings){
 	$transport = isset($GLOBALS['storePaypalTransport']) && is_callable($GLOBALS['storePaypalTransport'])
 		? $GLOBALS['storePaypalTransport'] : null;
 	return new StorePaypalClient($settings, $transport);
+}
+
+function storeCryptoClient($settings){
+	$transport = isset($GLOBALS['storeCryptoTransport']) && is_callable($GLOBALS['storeCryptoTransport'])
+		? $GLOBALS['storeCryptoTransport'] : null;
+	return new StoreCryptoClient($settings, $transport);
+}
+
+function storeStripeClient($settings){
+	$transport = isset($GLOBALS['storeStripeTransport']) && is_callable($GLOBALS['storeStripeTransport']) ? $GLOBALS['storeStripeTransport'] : null;
+	return new StoreStripeClient($settings, $transport);
+}
+
+function storeSquareClient($settings){
+	$transport = isset($GLOBALS['storeSquareTransport']) && is_callable($GLOBALS['storeSquareTransport']) ? $GLOBALS['storeSquareTransport'] : null;
+	return new StoreSquareClient($settings, $transport);
 }
 
 //A short, human-quotable order reference. Ambiguous characters are left out so
@@ -186,6 +208,9 @@ function storeAddToCart($productId, $quantity = 1){
 	if(($product['fulfilment'] ?? 'self') === 'spring'){
 		return array('ok' => false, 'error' => 'Choose options and check out on Spring for this item.');
 	}
+	if(($product['billingType'] ?? 'one_time') === 'subscription'){
+		return array('ok' => false, 'error' => 'Use Subscribe on this service instead of adding it to the cart.');
+	}
 	$cart = storeCart();
 	if(!isset($cart[$productId]) && count($cart) >= STORE_MAX_LINES){
 		return array('ok' => false, 'error' => 'The cart is full. Check out or remove something first.');
@@ -225,72 +250,70 @@ function storeShowCheckout(){
 	}
 }
 
-/*
- * Step one of payment: validate the buyer's details, record a pending order
- * from server-computed totals, then ask PayPal to create an order for that
- * amount. The PayPal order id goes back to the button script; nothing about
- * the price does.
- */
+//Build the immutable order snapshot shared by PayPal and crypto checkout. It is
+//the only path from browser details to an order; totals always come from the
+//server-side cart and catalogue.
+function storeBuildCheckout($customer){
+	if(!is_array($customer)){ throw new InvalidArgumentException('Enter your details before paying.'); }
+	$settings = storeDb()->getSettings();
+	$lines = storeCartLines();
+	if(!$lines){ throw new InvalidArgumentException('Your cart is empty.'); }
+	$totals = storeCartTotals($lines);
+	if($totals['couponError'] !== ''){ throw new InvalidArgumentException($totals['couponError'].' Return to the cart to change or remove it.'); }
+	if($totals['totalCents'] <= 0){ throw new InvalidArgumentException('This order has no payable total.'); }
+
+	$v = ghoti_validate();
+	$order = array(
+		'reference' => storeReference(),
+		'userId' => isset($_SESSION['userId']) && ghoti_require_login() ? (int)$_SESSION['userId'] : null,
+		'email' => $v->email($customer['email'] ?? ''),
+		'customerName' => $v->text($customer['name'] ?? '', 120, true, 'name'),
+		'address1' => '', 'address2' => '', 'city' => '', 'region' => '', 'postcode' => '', 'country' => '',
+		'discountCents' => $totals['discountCents'], 'discountLabel' => $totals['discountLabel'],
+		'loyaltyPoints' => $totals['loyaltyPoints'], 'subtotalCents' => $totals['subtotalCents'],
+		'shippingCents' => $totals['shippingCents'], 'totalCents' => $totals['totalCents'],
+		'currency' => $totals['currency'], 'hasPhysical' => $totals['hasPhysical'], 'hasService' => $totals['hasService'],
+		'paypalOrderId' => '', 'paymentProvider' => '',
+		'note' => $v->text($customer['note'] ?? '', 500, false, 'order note'),
+	);
+	if($totals['hasPhysical']){
+		$order['address1'] = $v->text($customer['address1'] ?? '', 190, true, 'address');
+		$order['address2'] = $v->text($customer['address2'] ?? '', 190, false, 'address line 2');
+		$order['city'] = $v->text($customer['city'] ?? '', 120, true, 'city');
+		$order['region'] = $v->text($customer['region'] ?? '', 120, false, 'province or state');
+		$order['postcode'] = $v->text($customer['postcode'] ?? '', 32, true, 'postal code');
+		$country = strtoupper(trim((string)($customer['country'] ?? '')));
+		if(!preg_match('/^[A-Z]{2}$/', $country)){ throw new InvalidArgumentException('Enter a two-letter country code, such as CA or US.'); }
+		$order['country'] = $country;
+	}
+
+	$items = array();
+	foreach($lines as $line){
+		$serviceDetails = '';
+		if($line['kind'] === 'service'){
+			$posted = isset($customer['serviceDetails']) && is_array($customer['serviceDetails'])
+				? ($customer['serviceDetails'][(string)$line['productId']] ?? '') : '';
+			$serviceDetails = $v->multilineText($posted, 500, !empty($line['serviceRequired']), $line['servicePrompt'] !== '' ? $line['servicePrompt'] : 'service details');
+		}
+		$items[] = array('productId'=>$line['productId'], 'name'=>$line['name'], 'sku'=>$line['sku'],
+			'kind'=>$line['kind'], 'unitCents'=>$line['unitCents'], 'quantity'=>$line['quantity'],
+			'serviceTerm'=>$line['serviceTerm'], 'serviceDetails'=>$serviceDetails);
+	}
+	return array('settings'=>$settings, 'order'=>$order, 'items'=>$items);
+}
+
+/* Step one of PayPal payment. */
 function storeBeginCheckout($customer){
-	if(!is_array($customer)){ return array('ok' => false, 'error' => 'Enter your details before paying.'); }
 	try{
-		$settings = storeDb()->getSettings();
-		if(!StorePaypalClient::configured($settings)){
-			return array('ok' => false, 'error' => 'This store is not connected to PayPal yet.');
-		}
+		$checkout = storeBuildCheckout($customer);
+		$settings = $checkout['settings'];
+		$order = $checkout['order'];
+		$items = $checkout['items'];
+		if(!StorePaypalClient::configured($settings)){ return array('ok'=>false, 'error'=>'This store is not connected to PayPal yet.'); }
 
-		$lines = storeCartLines();
-		if(!$lines){ return array('ok' => false, 'error' => 'Your cart is empty.'); }
-		$totals = storeCartTotals($lines);
-		if($totals['couponError'] !== ''){ return array('ok' => false, 'error' => $totals['couponError'].' Return to the cart to change or remove it.'); }
-		if($totals['totalCents'] <= 0){
-			return array('ok' => false, 'error' => 'This order has no payable total.');
-		}
-
-		$v = ghoti_validate();
-		$order = array(
-			'reference'     => storeReference(),
-			'userId'        => isset($_SESSION['userId']) && ghoti_require_login() ? (int)$_SESSION['userId'] : null,
-			'email'         => $v->email(isset($customer['email']) ? $customer['email'] : ''),
-			'customerName'  => $v->text(isset($customer['name']) ? $customer['name'] : '', 120, true, "name"),
-			'address1'      => '', 'address2' => '', 'city' => '', 'region' => '', 'postcode' => '', 'country' => '',
-			'discountCents' => $totals['discountCents'],
-			'discountLabel' => $totals['discountLabel'],
-			'loyaltyPoints' => $totals['loyaltyPoints'],
-			'subtotalCents' => $totals['subtotalCents'],
-			'shippingCents' => $totals['shippingCents'],
-			'totalCents'    => $totals['totalCents'],
-			'currency'      => $totals['currency'],
-			'hasPhysical'   => $totals['hasPhysical'],
-			'paypalOrderId' => '',
-			'note'          => $v->text(isset($customer['note']) ? $customer['note'] : '', 500, false, "order note"),
-		);
-
-		//A shipping address is required only when something has to be posted.
-		if($totals['hasPhysical']){
-			$order['address1'] = $v->text(isset($customer['address1']) ? $customer['address1'] : '', 190, true, "address");
-			$order['address2'] = $v->text(isset($customer['address2']) ? $customer['address2'] : '', 190, false, "address line 2");
-			$order['city']     = $v->text(isset($customer['city']) ? $customer['city'] : '', 120, true, "city");
-			$order['region']   = $v->text(isset($customer['region']) ? $customer['region'] : '', 120, false, "province or state");
-			$order['postcode'] = $v->text(isset($customer['postcode']) ? $customer['postcode'] : '', 32, true, "postal code");
-			$country = strtoupper(trim((string)(isset($customer['country']) ? $customer['country'] : '')));
-			if(!preg_match('/^[A-Z]{2}$/', $country)){
-				return array('ok' => false, 'error' => 'Enter a two-letter country code, such as CA or US.');
-			}
-			$order['country'] = $country;
-		}
-
-		$items = array();
-		foreach($lines as $line){
-			$items[] = array(
-				'productId' => $line['productId'], 'name' => $line['name'], 'sku' => $line['sku'],
-				'kind' => $line['kind'], 'unitCents' => $line['unitCents'], 'quantity' => $line['quantity'],
-			);
-		}
-
-		$client = storePaypalClient($settings);
-		$paypalOrderId = $client->createOrder($order, $items);
+		$paypalOrderId = storePaypalClient($settings)->createOrder($order, $items);
 		$order['paypalOrderId'] = $paypalOrderId;
+		$order['paymentProvider'] = 'paypal';
 
 		$orderId = storeDb()->createOrder($order, $items);
 		if(!$orderId){
@@ -331,6 +354,9 @@ function storeCaptureOrder($paypalOrderId){
 			ghoti::logWarn("store.async.php:storeCaptureOrder", "Capture attempted for unknown PayPal order from ".ghoti_remote_addr());
 			return array('ok' => false, 'error' => 'That order could not be found.');
 		}
+		if(($order['paymentProvider'] ?? 'paypal') !== 'paypal'){
+			return array('ok' => false, 'error' => 'That is not a PayPal order.');
+		}
 		if($order['status'] !== 'pending'){
 			//Already captured: show the receipt again rather than charging twice.
 			return array('ok' => true, 'html' => storeUi()->renderReceipt($order, storeDb()->getOrderItems($order['orderId']), storeDb()->getOrderDownloads($order['orderId'])));
@@ -355,21 +381,7 @@ function storeCaptureOrder($paypalOrderId){
 			return array('ok' => true, 'html' => storeUi()->renderReceipt($fresh ?: $order, storeDb()->getOrderItems($order['orderId']), storeDb()->getOrderDownloads($order['orderId'])));
 		}
 
-		$items = storeDb()->getOrderItems($order['orderId']);
-		storeIssueDownloads($order['orderId'], $items, $settings);
-		//Queue only. The supplier call happens after this response, so a slow or
-		//unreachable supplier can never surface as a failed payment.
-		storeQueueFulfilments($order['orderId'], $items, $settings);
-		$order = storeDb()->getOrder($order['orderId']);
-		$downloads = storeDb()->getOrderDownloads($order['orderId']);
-
-		$_SESSION['storeCart'] = array();
-		unset($_SESSION['storeOrderId'], $_SESSION['storeCoupon']);
-		ghoti::logInfo("store.async.php:storeCaptureOrder", "Order ".$order['reference']." paid (".$order['totalCents']." ".$order['currency'].")");
-		storeSendOrderMail($order, $items, $downloads);
-
-		return array('ok' => true, 'html' => storeUi()->renderReceipt($order, $items, $downloads),
-			'submitQueued' => !empty($settings['dropshipEnabled']) && !empty($settings['dropshipAutoSubmit']));
+		return storeFinalizePaidOrder($order['orderId'], $settings, true, 'storeCaptureOrder');
 	}catch (StorePaypalException $e){
 		ghoti::logError("store.async.php:storeCaptureOrder", "PayPal: ".$e->getMessage());
 		return array('ok' => false, 'error' => $e->getMessage());
@@ -377,6 +389,217 @@ function storeCaptureOrder($paypalOrderId){
 		ghoti::logException("store.async.php:storeCaptureOrder", $e);
 		return array('ok' => false, 'error' => 'The payment could not be completed. Nothing further has been charged.');
 	}
+}
+
+//NOWPayments checkout supports Bitcoin and any other currency the merchant
+//allows. It creates a pending local order and returns payment instructions; a
+//later status read, never a browser claim, is what can mark the order paid.
+function storeBeginCryptoCheckout($customer, $payCurrency){
+	try{
+		$checkout = storeBuildCheckout($customer);
+		$settings = $checkout['settings'];
+		$order = $checkout['order'];
+		$items = $checkout['items'];
+		if(!StoreCryptoClient::configured($settings)){ return array('ok'=>false, 'error'=>'Cryptocurrency checkout is not configured yet.'); }
+		$payCurrency = strtolower(trim((string)$payCurrency));
+		if(!in_array($payCurrency, StoreCryptoClient::currencyList($settings['cryptoCurrencies']), true)){
+			return array('ok'=>false, 'error'=>'Choose one of the available cryptocurrencies.');
+		}
+
+		$payment = storeCryptoClient($settings)->createPayment($order, $payCurrency);
+		if($payment['payAmount'] === '' || $payment['address'] === ''){
+			return array('ok'=>false, 'error'=>'The crypto provider did not return complete payment instructions. Nothing has been recorded.');
+		}
+		if($payment['priceCents'] !== $order['totalCents']
+			|| strtoupper($payment['priceCurrency']) !== strtoupper($order['currency'])
+			|| !hash_equals($order['reference'], $payment['orderId'])
+			|| !hash_equals($payCurrency, $payment['payCurrency'])){
+			ghoti::logError('store.async.php:storeBeginCryptoCheckout', 'NOWPayments returned mismatched details for '.$order['reference']);
+			return array('ok'=>false, 'error'=>'The crypto provider returned different order details. Nothing has been recorded; please try again.');
+		}
+
+		$order['paymentProvider'] = 'crypto';
+		$order['cryptoPaymentId'] = $payment['paymentId'];
+		$order['cryptoStatus'] = $payment['status'];
+		$order['cryptoCurrency'] = $payment['payCurrency'];
+		$order['cryptoAmount'] = $payment['payAmount'];
+		$order['cryptoAddress'] = $payment['address'];
+		$order['cryptoExtraId'] = $payment['extraId'];
+		$order['cryptoNetwork'] = $payment['network'];
+		$order['cryptoExpiresAt'] = $payment['expiresAt'];
+		$order['cryptoUpdatedAt'] = time();
+		//paypalOrderId has a unique index from older schemas and cannot be empty
+		//for more than one crypto order. The provider-specific id remains separate.
+		$order['paypalOrderId'] = 'CRYPTO-'.substr(hash('sha256', $payment['paymentId']), 0, 56);
+		$orderId = storeDb()->createOrder($order, $items);
+		if(!$orderId){
+			ghoti::logError('store.async.php:storeBeginCryptoCheckout', 'Could not record crypto payment '.$payment['paymentId']);
+			return array('ok'=>false, 'error'=>'This payment could not be recorded. Do not send cryptocurrency to it; start again.');
+		}
+		$_SESSION['storeOrderId'] = $orderId;
+		$_SESSION['storeCryptoOrderId'] = $orderId;
+		$saved = storeDb()->getOrder($orderId);
+		ghoti::logInfo('store.async.php:storeBeginCryptoCheckout', 'Order '.$order['reference'].' awaiting '.$payCurrency.' payment');
+		return array('ok'=>true, 'orderId'=>$orderId, 'final'=>false, 'html'=>storeUi()->renderCryptoPayment($saved ?: array_merge($order, array('orderId'=>$orderId,'status'=>'pending'))));
+	}catch(StoreCryptoException $e){
+		ghoti::logError('store.async.php:storeBeginCryptoCheckout', 'NOWPayments: '.$e->getMessage());
+		return array('ok'=>false, 'error'=>$e->getMessage());
+	}catch(Exception $e){
+		return array('ok'=>false, 'error'=>$e->getMessage());
+	}catch(Throwable $e){
+		ghoti::logException('store.async.php:storeBeginCryptoCheckout', $e);
+		return array('ok'=>false, 'error'=>'Crypto checkout could not be started.');
+	}
+}
+
+function storeRefreshCryptoPayment($orderId){
+	try{ $orderId = ghoti_validate()->id($orderId, 'order id'); }
+	catch(Exception $e){ return array('ok'=>false, 'error'=>$e->getMessage()); }
+	$buyerOwns = isset($_SESSION['storeCryptoOrderId']) && (int)$_SESSION['storeCryptoOrderId'] === $orderId;
+	$isAdmin = ghoti_require_admin();
+	if(!$buyerOwns && !$isAdmin){ return array('ok'=>false, 'error'=>'That crypto payment is not available in this session.'); }
+
+	try{
+		$order = storeDb()->getOrder($orderId);
+		if(!$order || ($order['paymentProvider'] ?? '') !== 'crypto'){ return array('ok'=>false, 'error'=>'That crypto payment could not be found.'); }
+		if(in_array($order['status'], array('paid','shipped'), true)){
+			return array('ok'=>true, 'final'=>true, 'html'=>storeUi()->renderReceipt($order, storeDb()->getOrderItems($orderId), storeDb()->getOrderDownloads($orderId)));
+		}
+		if($order['status'] !== 'pending'){
+			return array('ok'=>true, 'final'=>true, 'html'=>storeUi()->renderCryptoPayment($order));
+		}
+
+		$settings = storeDb()->getSettings();
+		$payment = storeCryptoClient($settings)->getPayment($order['cryptoPaymentId']);
+		if(!hash_equals($order['cryptoPaymentId'], $payment['paymentId'])
+			|| !hash_equals($order['reference'], $payment['orderId'])
+			|| $payment['priceCents'] !== $order['totalCents']
+			|| strtoupper($payment['priceCurrency']) !== strtoupper($order['currency'])
+			|| !hash_equals($order['cryptoCurrency'], $payment['payCurrency'])){
+			ghoti::logError('store.async.php:storeRefreshCryptoPayment', 'Provider mismatch for '.$order['reference']);
+			storeDb()->setOrderStatus($orderId, 'failed');
+			return array('ok'=>false, 'error'=>'The provider returned details that do not match order '.$order['reference'].'. Contact the store before paying again.');
+		}
+		storeDb()->updateCryptoPayment($orderId, $payment);
+		if(in_array($payment['status'], array('confirmed','sending','finished'), true)){
+			if(!storeDb()->markCryptoOrderPaid($orderId, $payment['paymentId'])){
+				$fresh = storeDb()->getOrder($orderId);
+				if($fresh && in_array($fresh['status'], array('paid','shipped'), true)){
+					return array('ok'=>true, 'final'=>true, 'html'=>storeUi()->renderReceipt($fresh, storeDb()->getOrderItems($orderId), storeDb()->getOrderDownloads($orderId)));
+				}
+				return array('ok'=>false, 'error'=>'The confirmed payment could not be applied to the order. Contact the store with reference '.$order['reference'].'.');
+			}
+			return storeFinalizePaidOrder($orderId, $settings, $buyerOwns, 'storeRefreshCryptoPayment');
+		}
+		$fresh = storeDb()->getOrder($orderId) ?: array_merge($order, array(
+			'cryptoStatus'=>$payment['status'], 'cryptoAmount'=>$payment['payAmount'], 'cryptoAddress'=>$payment['address'],
+			'cryptoExtraId'=>$payment['extraId'], 'cryptoNetwork'=>$payment['network'], 'cryptoExpiresAt'=>$payment['expiresAt']));
+		return array('ok'=>true, 'final'=>in_array($payment['status'], array('failed','refunded','expired'), true), 'html'=>storeUi()->renderCryptoPayment($fresh));
+	}catch(StoreCryptoException $e){
+		ghoti::logError('store.async.php:storeRefreshCryptoPayment', 'NOWPayments: '.$e->getMessage());
+		return array('ok'=>false, 'error'=>$e->getMessage());
+	}catch(Throwable $e){
+		ghoti::logException('store.async.php:storeRefreshCryptoPayment', $e);
+		return array('ok'=>false, 'error'=>'The crypto payment status could not be checked.');
+	}
+}
+
+function storeBeginStripeCheckout($customer){
+	try{
+		$checkout=storeBuildCheckout($customer); $settings=$checkout['settings']; $order=$checkout['order']; $items=$checkout['items'];
+		if(!StoreStripeClient::configured($settings)){ return array('ok'=>false,'error'=>'Stripe checkout is not configured yet.'); }
+		$stripe=storeStripeClient($settings); $payment=$stripe->createIntent($order);
+		if($payment['amount'] !== $order['totalCents'] || $payment['currency'] !== strtoupper($order['currency']) || !hash_equals($order['reference'],$payment['reference'])){
+			return array('ok'=>false,'error'=>'Stripe returned different order details. Nothing has been charged.');
+		}
+		$order['paymentProvider']='stripe'; $order['providerPaymentId']=$payment['id']; $order['providerStatus']=$payment['status'];
+		$order['paypalOrderId']='STRIPE-'.substr(hash('sha256',$payment['id']),0,55);
+		$orderId=storeDb()->createOrder($order,$items);
+		if(!$orderId){ return array('ok'=>false,'error'=>'This Stripe payment could not be recorded. Nothing has been charged.'); }
+		$_SESSION['storeCardOrderId']=$orderId; $_SESSION['storeOrderId']=$orderId;
+		$saved=storeDb()->getOrder($orderId) ?: array_merge($order,array('orderId'=>$orderId,'status'=>'pending'));
+		return array('ok'=>true,'orderId'=>$orderId,'html'=>storeUi()->renderStripePayment($saved),
+			'publishableKey'=>$stripe->publishableKey(),'clientSecret'=>$payment['clientSecret']);
+	}catch(StoreCardException $e){ return array('ok'=>false,'error'=>$e->getMessage()); }
+	catch(Exception $e){ return array('ok'=>false,'error'=>$e->getMessage()); }
+	catch(Throwable $e){ ghoti::logException('store.async.php:storeBeginStripeCheckout',$e); return array('ok'=>false,'error'=>'Stripe checkout could not be started.'); }
+}
+
+function storeBeginSquareCheckout($customer,$sourceId){
+	$orderId=0; $reference='';
+	try{
+		$checkout=storeBuildCheckout($customer); $settings=$checkout['settings']; $order=$checkout['order']; $items=$checkout['items'];
+		$reference=$order['reference'];
+		if(!StoreSquareClient::configured($settings)){ return array('ok'=>false,'error'=>'Square checkout is not configured yet.'); }
+		$order['paymentProvider']='square'; $order['providerPaymentId']=''; $order['providerStatus']='creating';
+		$order['paypalOrderId']='SQUARE-'.substr(hash('sha256',$order['reference']),0,55);
+		$orderId=storeDb()->createOrder($order,$items);
+		if(!$orderId){ return array('ok'=>false,'error'=>'This Square payment could not be recorded. Nothing has been charged.'); }
+		$_SESSION['storeCardOrderId']=$orderId; $_SESSION['storeOrderId']=$orderId;
+		$payment=storeSquareClient($settings)->createPayment($order,$sourceId);
+		if($payment['amount'] !== $order['totalCents'] || $payment['currency'] !== strtoupper($order['currency'])
+			|| !hash_equals($order['reference'],$payment['reference']) || !hash_equals((string)$settings['squareLocationId'],$payment['locationId'])){
+			storeDb()->setOrderStatus($orderId,'failed');
+			return array('ok'=>false,'error'=>'Square returned payment details that do not match order '.$order['reference'].'.');
+		}
+		storeDb()->updateProviderPayment($orderId,$payment['id'],$payment['status']);
+		if($payment['status'] !== 'COMPLETED'){
+			return array('ok'=>false,'error'=>'Square did not complete the payment (status: '.$payment['status'].'). Reference '.$order['reference'].'.');
+		}
+		if(!storeDb()->markProviderOrderPaid($orderId,$payment['id'],$payment['status'])){ return array('ok'=>false,'error'=>'The completed Square payment could not be applied to the order.'); }
+		return storeFinalizePaidOrder($orderId,$settings,true,'storeBeginSquareCheckout');
+	}catch(StoreCardException $e){
+		if($orderId){ ghoti::logError('store.async.php:storeBeginSquareCheckout','Uncertain Square result for '.$reference.': '.$e->getMessage()); return array('ok'=>false,'error'=>'Square could not confirm the payment result. Do not pay again; contact the store with reference '.$reference.'.'); }
+		return array('ok'=>false,'error'=>$e->getMessage());
+	}
+	catch(Exception $e){ return array('ok'=>false,'error'=>$e->getMessage()); }
+	catch(Throwable $e){ ghoti::logException('store.async.php:storeBeginSquareCheckout',$e); return array('ok'=>false,'error'=>'Square checkout could not be completed.'); }
+}
+
+function storeRefreshProcessorPayment($orderId){
+	try{ $orderId=ghoti_validate()->id($orderId,'order id'); }catch(Exception $e){ return array('ok'=>false,'error'=>$e->getMessage()); }
+	$buyerOwns=isset($_SESSION['storeCardOrderId']) && (int)$_SESSION['storeCardOrderId']===$orderId;
+	if(!$buyerOwns && !ghoti_require_admin()){ return array('ok'=>false,'error'=>'That payment is not available in this session.'); }
+	try{
+		$order=storeDb()->getOrder($orderId);
+		if(!$order || !in_array($order['paymentProvider'] ?? '',array('stripe','square'),true)){ return array('ok'=>false,'error'=>'That processor payment could not be found.'); }
+		if(in_array($order['status'],array('paid','shipped'),true)){ return array('ok'=>true,'final'=>true,'html'=>storeUi()->renderReceipt($order,storeDb()->getOrderItems($orderId),storeDb()->getOrderDownloads($orderId))); }
+		if($order['status']!=='pending' || $order['providerPaymentId']===''){ return array('ok'=>false,'error'=>'That payment cannot be refreshed.'); }
+		$settings=storeDb()->getSettings();
+		if($order['paymentProvider']==='stripe'){
+			$p=storeStripeClient($settings)->getIntent($order['providerPaymentId']);
+			$matches=$p['amount']===$order['totalCents'] && $p['currency']===strtoupper($order['currency']) && hash_equals($order['reference'],$p['reference']);
+			$paid=$p['status']==='succeeded' && $p['amountReceived']===$order['totalCents'];
+		}else{
+			$p=storeSquareClient($settings)->getPayment($order['providerPaymentId']);
+			$matches=$p['amount']===$order['totalCents'] && $p['currency']===strtoupper($order['currency']) && hash_equals($order['reference'],$p['reference']) && hash_equals((string)$settings['squareLocationId'],$p['locationId']);
+			$paid=$p['status']==='COMPLETED';
+		}
+		if(!$matches){ storeDb()->setOrderStatus($orderId,'failed'); return array('ok'=>false,'error'=>'The provider payment does not match order '.$order['reference'].'.'); }
+		storeDb()->updateProviderPayment($orderId,$p['id'],$p['status']);
+		if(!$paid){ return array('ok'=>true,'final'=>false,'html'=>storeUi()->renderProcessorPending(storeDb()->getOrder($orderId) ?: $order)); }
+		if(!storeDb()->markProviderOrderPaid($orderId,$p['id'],$p['status'])){ return array('ok'=>false,'error'=>'The completed payment could not be applied to the order.'); }
+		return storeFinalizePaidOrder($orderId,$settings,$buyerOwns,'storeRefreshProcessorPayment');
+	}catch(StoreCardException $e){ return array('ok'=>false,'error'=>$e->getMessage()); }
+	catch(Throwable $e){ ghoti::logException('store.async.php:storeRefreshProcessorPayment',$e); return array('ok'=>false,'error'=>'The payment status could not be checked.'); }
+}
+
+function storeFinalizePaidOrder($orderId, $settings, $clearBuyerSession, $context){
+	$items = storeDb()->getOrderItems($orderId);
+	storeIssueDownloads($orderId, $items, $settings);
+	storeQueueFulfilments($orderId, $items, $settings);
+	$order = storeDb()->getOrder($orderId);
+	$downloads = storeDb()->getOrderDownloads($orderId);
+	if($clearBuyerSession){
+		$_SESSION['storeCart'] = array();
+		//Keep storeCryptoOrderId for this session so a delayed/replayed status
+		//check can show the same receipt without making the order public.
+		unset($_SESSION['storeOrderId'], $_SESSION['storeCoupon']);
+	}
+	ghoti::logInfo('store.async.php:'.$context, 'Order '.$order['reference'].' paid ('.$order['totalCents'].' '.$order['currency'].')');
+	storeSendOrderMail($order, $items, $downloads);
+	return array('ok'=>true, 'final'=>true, 'html'=>storeUi()->renderReceipt($order, $items, $downloads),
+		'submitQueued'=>!empty($settings['dropshipEnabled']) && !empty($settings['dropshipAutoSubmit']));
 }
 
 //One download grant per purchased digital line (not per unit: buying two copies
@@ -423,6 +646,98 @@ function storePaypalConfig(){
 		'currency' => $settings['currency'],
 		'env'      => $settings['paypalEnv'],
 	);
+}
+
+//Recurring services deliberately bypass the cart: PayPal subscriptions are
+//created from one billing plan at a time and cannot be mixed into an Orders API
+//purchase. The product page supplies the plan; this endpoint supplies the form.
+function storeShowSubscription($productId){
+	try{ $productId = ghoti_validate()->id($productId, 'product id'); }
+	catch(Exception $e){ return '<p role="alert">'.htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8').'</p>'; }
+	$product = storeDb()->getProduct($productId);
+	if(!$product || !$product['active'] || $product['kind'] !== 'service' || ($product['billingType'] ?? '') !== 'subscription' || storePaypalPlanId($product['paypalPlanId'] ?? '') === ''){
+		return '<p role="alert">That subscription is no longer available.</p>';
+	}
+	return storeUi()->renderSubscriptionCheckout($product, storeDb()->getSettings());
+}
+
+function storeConfirmSubscription($productId, $paypalSubscriptionId, $customer){
+	if(!is_array($customer)){ return array('ok' => false, 'error' => 'Enter your details before subscribing.'); }
+	try{
+		$productId = ghoti_validate()->id($productId, 'product id');
+		$paypalSubscriptionId = trim((string)$paypalSubscriptionId);
+		if(!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $paypalSubscriptionId)){
+			return array('ok' => false, 'error' => 'That subscription reference is not valid.');
+		}
+		$existing = storeDb()->getSubscriptionByPaypalId($paypalSubscriptionId);
+		if($existing){
+			$html = isset($_SESSION['storeSubscriptionId']) && (int)$_SESSION['storeSubscriptionId'] === (int)$existing['subscriptionId']
+				? storeUi()->renderSubscriptionReceipt($existing)
+				: storeUi()->renderSubscriptionRecorded($existing['paypalSubscriptionId']);
+			return array('ok' => true, 'html' => $html);
+		}
+
+		$product = storeDb()->getProduct($productId);
+		if(!$product || !$product['active'] || $product['kind'] !== 'service' || ($product['billingType'] ?? '') !== 'subscription'){
+			return array('ok' => false, 'error' => 'That subscription is no longer available.');
+		}
+		$settings = storeDb()->getSettings();
+		if(!StorePaypalClient::configured($settings)){ return array('ok' => false, 'error' => 'This store is not connected to PayPal yet.'); }
+		$v = ghoti_validate();
+		$name = $v->text($customer['name'] ?? '', 120, true, 'name');
+		$email = $v->email($customer['email'] ?? '');
+		$details = $v->multilineText($customer['serviceDetails'] ?? '', 500, !empty($product['serviceRequired']), $product['servicePrompt'] !== '' ? $product['servicePrompt'] : 'service details');
+
+		$paypal = storePaypalClient($settings)->getSubscription($paypalSubscriptionId);
+		if(!hash_equals((string)$product['paypalPlanId'], (string)$paypal['planId'])){
+			ghoti::logWarn('store.async.php:storeConfirmSubscription', 'Plan mismatch for PayPal subscription '.$paypalSubscriptionId);
+			return array('ok' => false, 'error' => 'PayPal returned a different plan. The subscription was not recorded; contact us before trying again.');
+		}
+		if(!in_array($paypal['status'], array('ACTIVE', 'APPROVED'), true)){
+			return array('ok' => false, 'error' => 'PayPal has not approved this subscription (status: '.($paypal['status'] ?: 'unknown').').');
+		}
+		$row = array(
+			'paypalSubscriptionId' => $paypal['id'], 'paypalPlanId' => $paypal['planId'], 'productId' => $productId,
+			'userId' => isset($_SESSION['userId']) && ghoti_require_login() ? (int)$_SESSION['userId'] : null,
+			'sku' => $product['sku'], 'name' => $product['name'], 'priceCents' => $product['priceCents'],
+			'currency' => $settings['currency'], 'serviceTerm' => $product['serviceTerm'],
+			'customerName' => $name, 'email' => $email, 'serviceDetails' => $details,
+			'status' => $paypal['status'], 'nextBillingAt' => $paypal['nextBillingAt'],
+		);
+		$id = storeDb()->addSubscription($row);
+		if(!$id){
+			//A parallel approval callback may have inserted the unique PayPal id.
+			$existing = storeDb()->getSubscriptionByPaypalId($paypalSubscriptionId);
+			if($existing){ return array('ok' => true, 'html' => storeUi()->renderSubscriptionRecorded($existing['paypalSubscriptionId'])); }
+			return array('ok' => false, 'error' => 'The subscription was approved but could not be recorded. Contact us with reference '.$paypalSubscriptionId.'.');
+		}
+		$subscription = storeDb()->getSubscription($id);
+		$_SESSION['storeSubscriptionId'] = $id;
+		ghoti::logInfo('store.async.php:storeConfirmSubscription', 'Subscription '.$paypalSubscriptionId.' recorded for product '.$product['sku']);
+		storeSendSubscriptionMail($subscription);
+		return array('ok' => true, 'html' => storeUi()->renderSubscriptionReceipt($subscription));
+	}catch(StorePaypalException $e){
+		ghoti::logError('store.async.php:storeConfirmSubscription', 'PayPal: '.$e->getMessage());
+		return array('ok' => false, 'error' => $e->getMessage());
+	}catch(Exception $e){ return array('ok' => false, 'error' => $e->getMessage()); }
+	catch(Throwable $e){
+		ghoti::logException('store.async.php:storeConfirmSubscription', $e);
+		return array('ok' => false, 'error' => 'The subscription could not be confirmed.');
+	}
+}
+
+function storeSendSubscriptionMail($subscription){
+	if(!$subscription || !isset($_SESSION['mailObj'])){ return; }
+	try{
+		$body = "Subscription confirmed\n\nService: ".$subscription['name']."\nReference: ".$subscription['paypalSubscriptionId']."\nStatus: ".$subscription['status']."\n";
+		if($subscription['serviceTerm'] !== ''){ $body .= 'Billing: '.$subscription['serviceTerm']."\n"; }
+		if($subscription['serviceDetails'] !== ''){ $body .= 'Setup details: '.$subscription['serviceDetails']."\n"; }
+		$body .= "\nWe will contact you when your service is ready. Questions? Reply with the reference above.\n";
+		ghoti_mail_send_themed($_SESSION['mailObj'], $subscription['email'], $subscription['customerName'], 'Your subscription '.$subscription['paypalSubscriptionId'], $body, 'customer');
+		foreach(ghoti_admin_emails() as $address){
+			ghoti_mail_send_themed($_SESSION['mailObj'], $address, '', 'New subscription '.$subscription['paypalSubscriptionId'], $body, 'operator');
+		}
+	}catch(Throwable $e){ ghoti::logException('store.async.php:storeSendSubscriptionMail', $e); }
 }
 
 /* ---------------------------------------------------------------- *
@@ -683,7 +998,7 @@ function saveStoreDropshipSettings($settings){
 
 function showStoreManager($tab = 'products'){
 	if(!storeRequireAdmin()){ return "<h1>Store</h1><p>Admin access required.</p>"; }
-	$tab = in_array($tab, array('products','orders','settings','dropship','promotions'), true) ? $tab : 'products';
+	$tab = in_array($tab, array('products','orders','subscriptions','settings','dropship','promotions'), true) ? $tab : 'products';
 	try{
 		return storeUi()->renderManager($tab);
 	}catch (Throwable $e){
@@ -726,12 +1041,17 @@ function saveStoreProduct($product){
 			'compareAtCents' => $compareAt,
 			'badge' => $v->text($product['badge'] ?? '', 32, false, 'badge'),
 			'deliveryNote' => $v->text($product['deliveryNote'] ?? '', 160, false, 'delivery note'),
+			'serviceTerm' => $v->text($product['serviceTerm'] ?? '', 80, false, 'service term'),
+			'servicePrompt' => $v->text($product['servicePrompt'] ?? '', 160, false, 'service setup question'),
+			'serviceRequired' => !empty($product['serviceRequired']),
+			'billingType' => 'one_time',
+			'paypalPlanId' => '',
 			'externalUrl' => '',
 			'sku'         => $v->text(isset($product['sku']) ? $product['sku'] : '', 60, true, "SKU"),
 			'name'        => $v->text(isset($product['name']) ? $product['name'] : '', 120, true, "product name"),
 			'description' => $v->multilineText(isset($product['description']) ? $product['description'] : '', 2000, false, "description"),
 			'priceCents'  => $v->intInRange($priceCents, 0, 99999999, "price"),
-			'kind'        => (isset($product['kind']) && $product['kind'] === 'digital') ? 'digital' : 'physical',
+			'kind'        => in_array($product['kind'] ?? '', array('digital', 'service'), true) ? $product['kind'] : 'physical',
 			'category'    => $v->linkGroup(isset($product['category']) ? $product['category'] : 'default', true),
 			'imageUrl'    => '',
 			'downloadPath'=> '',
@@ -742,6 +1062,23 @@ function saveStoreProduct($product){
 			'dropProductId' => '',
 			'dropVariantId' => '',
 		);
+		if($clean['kind'] !== 'service'){
+			$clean['serviceTerm'] = '';
+			$clean['servicePrompt'] = '';
+			$clean['serviceRequired'] = false;
+		}elseif($clean['serviceRequired'] && $clean['servicePrompt'] === ''){
+			return 'Enter the setup question customers must answer, or make it optional.';
+		}
+		if($clean['kind'] === 'service' && ($product['billingType'] ?? '') === 'subscription'){
+			$clean['billingType'] = 'subscription';
+			$clean['paypalPlanId'] = storePaypalPlanId($product['paypalPlanId'] ?? '');
+			if($clean['paypalPlanId'] === ''){ return 'Enter the PayPal plan ID for this subscription (it starts with P-).'; }
+			if($clean['priceCents'] <= 0){ return 'Enter the recurring price shown in the PayPal plan.'; }
+			if($clean['serviceTerm'] === ''){ return 'Describe the recurring billing term, for example “per month”.'; }
+		}
+		if($clean['kind'] === 'service' && ($product['fulfilment'] ?? 'self') !== 'self'){
+			return 'A service is provisioned by you and cannot use Spring or a dropshipping supplier.';
+		}
 		//Rendered into an <img src>, so it goes through the same scheme check as
 		//every other URL the CMS accepts from an admin.
 		if(trim((string)(isset($product['imageUrl']) ? $product['imageUrl'] : '')) !== ''){
@@ -763,8 +1100,8 @@ function saveStoreProduct($product){
 		//Fulfilment is separate from kind: a dropshipped item is still physical,
 		//still charges shipping, and still needs an address.
 		if(isset($product['fulfilment']) && $product['fulfilment'] === 'dropship'){
-			if($clean['kind'] === 'digital'){
-				return "A digital download cannot be fulfilled by a supplier.";
+			if($clean['kind'] !== 'physical'){
+				return "Only a physical product can be fulfilled by a supplier.";
 			}
 			$provider = (string)(isset($product['dropProvider']) ? $product['dropProvider'] : '');
 			if(!StoreDropship::isProvider($provider)){
@@ -827,6 +1164,26 @@ function saveStoreSettings($settings){
 		//one back, so re-saving any other field must not wipe it.
 		$secret = (string)(isset($settings['paypalSecret']) ? $settings['paypalSecret'] : '');
 		if(trim($secret) === ''){ $secret = $current['paypalSecret']; }
+		$cryptoKey = trim((string)($settings['cryptoApiKey'] ?? ''));
+		if($cryptoKey === ''){ $cryptoKey = $current['cryptoApiKey'] ?? ''; }
+		$cryptoCurrencies = implode(',', StoreCryptoClient::currencyList($settings['cryptoCurrencies'] ?? ''));
+		$cryptoEnabled = !empty($settings['cryptoEnabled']);
+		if($cryptoEnabled && $cryptoKey === ''){ return 'Enter a NOWPayments API key before enabling crypto checkout.'; }
+		if($cryptoEnabled && $cryptoCurrencies === ''){ return 'Add at least one cryptocurrency code, such as btc.'; }
+		$stripeSecret = trim((string)($settings['stripeSecretKey'] ?? ''));
+		if($stripeSecret === ''){ $stripeSecret = $current['stripeSecretKey'] ?? ''; }
+		$squareToken = trim((string)($settings['squareAccessToken'] ?? ''));
+		if($squareToken === ''){ $squareToken = $current['squareAccessToken'] ?? ''; }
+		$stripe = array('stripeEnabled'=>!empty($settings['stripeEnabled']),
+			'stripePublishableKey'=>$v->text($settings['stripePublishableKey'] ?? '',255,false,'Stripe publishable key'),
+			'stripeSecretKey'=>$v->text($stripeSecret,255,false,'Stripe secret key'));
+		$square = array('squareEnabled'=>!empty($settings['squareEnabled']),
+			'squareApplicationId'=>$v->text($settings['squareApplicationId'] ?? '',255,false,'Square application ID'),
+			'squareLocationId'=>$v->text($settings['squareLocationId'] ?? '',100,false,'Square location ID'),
+			'squareAccessToken'=>$v->text($squareToken,255,false,'Square access token'),
+			'squareEnv'=>($settings['squareEnv'] ?? '') === 'live' ? 'live' : 'sandbox');
+		if($stripe['stripeEnabled'] && !StoreStripeClient::configured($stripe)){ return 'Enter valid Stripe publishable and secret keys before enabling Stripe.'; }
+		if($square['squareEnabled'] && !StoreSquareClient::configured($square)){ return 'Enter the Square application ID, location ID, and access token before enabling Square.'; }
 
 		$shippingCents = storePriceToCents(isset($settings['shipping']) ? $settings['shipping'] : '0');
 		if($shippingCents < 0){ return "Enter the shipping rate as a number, for example 9.95."; }
@@ -835,6 +1192,12 @@ function saveStoreSettings($settings){
 			'paypalClientId' => $v->text(isset($settings['paypalClientId']) ? $settings['paypalClientId'] : '', 255, false, "PayPal client ID"),
 			'paypalSecret'   => trim($secret),
 			'paypalEnv'      => (isset($settings['paypalEnv']) && $settings['paypalEnv'] === 'live') ? 'live' : 'sandbox',
+			'cryptoEnabled'  => $cryptoEnabled,
+			'cryptoApiKey'   => $v->text($cryptoKey, 255, false, 'NOWPayments API key'),
+			'cryptoCurrencies' => $v->text($cryptoCurrencies, 500, false, 'cryptocurrencies'),
+			'stripeEnabled'=>$stripe['stripeEnabled'], 'stripePublishableKey'=>$stripe['stripePublishableKey'], 'stripeSecretKey'=>$stripe['stripeSecretKey'],
+			'squareEnabled'=>$square['squareEnabled'], 'squareApplicationId'=>$square['squareApplicationId'], 'squareLocationId'=>$square['squareLocationId'],
+			'squareAccessToken'=>$square['squareAccessToken'], 'squareEnv'=>$square['squareEnv'],
 			'currency'       => $currency,
 			'shippingCents'  => $v->intInRange($shippingCents, 0, 99999999, "shipping"),
 			'shippingNote'   => $v->text(isset($settings['shippingNote']) ? $settings['shippingNote'] : '', 255, false, "shipping note"),
@@ -883,8 +1246,48 @@ function setStoreOrderStatus($orderId, $status){
 	if($status === 'shipped' && $order['status'] !== 'paid'){
 		return "Only a paid order can be marked shipped.";
 	}
+	if($status === 'shipped' && !$order['hasPhysical']){ return 'Only an order with physical goods can be marked shipped.'; }
 	if(!storeDb()->setOrderStatus($orderId, $status)){ return "The order could not be updated."; }
 	ghoti::logInfo("store.async.php:setStoreOrderStatus", "Order ".$order['reference']." set to $status by UID:".($_SESSION['userId'] ?? '?'));
+	return true;
+}
+
+function setStoreOrderServiceStatus($orderId, $status){
+	if(!storeRequireAdmin()){ return 'Admin access required.'; }
+	try{ $orderId = ghoti_validate()->id($orderId, 'order id'); }
+	catch(Exception $e){ return $e->getMessage(); }
+	if(!in_array($status, array('pending', 'fulfilled'), true)){ return 'That service status is not valid.'; }
+	$order = storeDb()->getOrder($orderId);
+	if(!$order || !$order['hasService']){ return 'That service order could not be found.'; }
+	if(!in_array($order['status'], array('paid', 'shipped'), true)){ return 'Only a paid service can be fulfilled.'; }
+	if(!storeDb()->setServiceStatus($orderId, $status)){ return 'The service status could not be updated.'; }
+	ghoti::logInfo('store.async.php:setStoreOrderServiceStatus', 'Order '.$order['reference'].' service set to '.$status.' by UID:'.($_SESSION['userId'] ?? '?'));
+	return true;
+}
+
+function refreshStoreSubscription($subscriptionId){
+	if(!storeRequireAdmin()){ return 'Admin access required.'; }
+	try{ $subscriptionId = ghoti_validate()->id($subscriptionId, 'subscription id'); }
+	catch(Exception $e){ return $e->getMessage(); }
+	$subscription = storeDb()->getSubscription($subscriptionId);
+	if(!$subscription){ return 'That subscription could not be found.'; }
+	try{
+		$paypal = storePaypalClient(storeDb()->getSettings())->getSubscription($subscription['paypalSubscriptionId']);
+		if(!hash_equals($subscription['paypalPlanId'], $paypal['planId'])){ return 'PayPal returned a different plan for this subscription.'; }
+		if(!storeDb()->updateSubscriptionStatus($subscriptionId, $paypal['status'], $paypal['nextBillingAt'])){ return 'The subscription status could not be saved.'; }
+		return true;
+	}catch(StorePaypalException $e){ return $e->getMessage(); }
+}
+
+function setStoreSubscriptionServiceStatus($subscriptionId, $status){
+	if(!storeRequireAdmin()){ return 'Admin access required.'; }
+	try{ $subscriptionId = ghoti_validate()->id($subscriptionId, 'subscription id'); }
+	catch(Exception $e){ return $e->getMessage(); }
+	if(!in_array($status, array('pending', 'fulfilled'), true)){ return 'That service status is not valid.'; }
+	$subscription = storeDb()->getSubscription($subscriptionId);
+	if(!$subscription){ return 'That subscription could not be found.'; }
+	if(!storeDb()->setSubscriptionServiceStatus($subscriptionId, $status)){ return 'The service status could not be updated.'; }
+	ghoti::logInfo('store.async.php:setStoreSubscriptionServiceStatus', 'Subscription '.$subscription['paypalSubscriptionId'].' setup set to '.$status.' by UID:'.($_SESSION['userId'] ?? '?'));
 	return true;
 }
 
@@ -918,6 +1321,11 @@ function storeSpringUrl($value){
 		if($host === $domain || str_ends_with($host, '.'.$domain)){ return $value; }
 	}
 	return '';
+}
+
+function storePaypalPlanId($value){
+	$value = trim((string)$value);
+	return preg_match('/^P-[A-Za-z0-9-]{8,62}$/', $value) ? $value : '';
 }
 
 // Supplier identifiers are opaque, bounded strings.
@@ -969,14 +1377,24 @@ ghoti_async_register(
 	"storeShowCheckout",
 	"storeBeginCheckout",
 	"storeCaptureOrder",
+	"storeBeginCryptoCheckout",
+	"storeRefreshCryptoPayment",
+	"storeBeginStripeCheckout",
+	"storeBeginSquareCheckout",
+	"storeRefreshProcessorPayment",
 	"storePaypalConfig",
+	"storeShowSubscription",
+	"storeConfirmSubscription",
 	"showStoreManager",
 	"saveStoreProduct",
 	"deleteStoreProduct",
 	"saveStoreSettings",
 	"saveStorePromotions",
 	"showStoreOrder",
-	"setStoreOrderStatus"
+	"setStoreOrderStatus",
+	"setStoreOrderServiceStatus",
+	"refreshStoreSubscription",
+	"setStoreSubscriptionServiceStatus"
 );
 
 /* ---------------------------------------------------------------- *
@@ -1047,7 +1465,7 @@ class storeui{
 			return $o.'<div class="ghotiStoreEmpty"><h2>A little something is on its way.</h2><p>Check back soon for new additions to the collection.</p></div></section>';
 		}
 		$o .= '<div class="ghotiStoreTools"><label class="ghotiStoreSearch"><span>Search the collection</span><input type="search" data-store-search placeholder="Search products, descriptions, or SKU…" oninput="storeFilterCatalog(this);" /></label>';
-		$o .= '<label><span>Product type</span><select data-store-kind onchange="storeFilterCatalog(this);"><option value="all">All products</option><option value="physical">Physical goods</option><option value="digital">Digital downloads</option><option value="spring">Spring merch</option><option value="sale">On sale</option><option value="saved">Saved favourites</option></select></label>';
+		$o .= '<label><span>Product type</span><select data-store-kind onchange="storeFilterCatalog(this);"><option value="all">All products</option><option value="physical">Physical goods</option><option value="digital">Digital downloads</option><option value="service">Digital services</option><option value="spring">Spring merch</option><option value="sale">On sale</option><option value="saved">Saved favourites</option></select></label>';
 		$o .= '<label><span>Sort by</span><select data-store-sort onchange="storeFilterCatalog(this);"><option value="featured">Featured</option><option value="newest">Newest first</option><option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option><option value="name">Name: A–Z</option></select></label></div>';
 		$o .= '<div class="ghotiStoreCollectionBar"><div class="ghotiStoreChips" role="group" aria-label="Categories"><button type="button" data-store-category="all" aria-pressed="true" onclick="storeSelectCategory(this);">All items</button>';
 		foreach(array_keys($categories) as $name){
@@ -1057,6 +1475,7 @@ class storeui{
 		foreach($products as $index => $product){
 			$id = (int)$product['productId'];
 			$spring = ($product['fulfilment'] ?? 'self') === 'spring';
+			$subscription = $product['kind'] === 'service' && ($product['billingType'] ?? '') === 'subscription';
 			$externalUrl = $spring ? storeSpringUrl($product['externalUrl'] ?? '') : '';
 			$featured = !empty($product['featured']);
 			$compareAt = (int)($product['compareAtCents'] ?? 0);
@@ -1067,29 +1486,33 @@ class storeui{
 			if($product['imageUrl'] !== ''){
 				$o .= '<img src="'.$this->esc($product['imageUrl']).'" alt="'.$this->esc($product['name']).'" loading="lazy" decoding="async" />';
 			}else{
-				$o .= '<span class="ghotiStorePlaceholder" aria-hidden="true">'.($product['kind'] === 'digital' ? '↓' : '◇').'</span>';
+				$o .= '<span class="ghotiStorePlaceholder" aria-hidden="true">'.($product['kind'] === 'digital' ? '↓' : ($product['kind'] === 'service' ? '◎' : '◇')).'</span>';
 			}
 			if($badge !== '' || $featured){ $o .= '<span class="ghotiStoreRibbon">'.$this->esc($badge !== '' ? $badge : 'Featured').'</span>'; }
-			$o .= '</div><div class="ghotiStoreCardBody"><div class="ghotiStoreMeta"><span>'.$this->esc(ucfirst($product['category'])).'</span><span>'.($spring ? 'Spring' : ($product['kind'] === 'digital' ? 'Digital download' : 'Physical goods')).'</span></div>';
+			$typeLabel = $spring ? 'Spring' : ($product['kind'] === 'digital' ? 'Digital download' : ($product['kind'] === 'service' ? ($subscription ? 'Subscription service' : 'Digital service') : 'Physical goods'));
+			$o .= '</div><div class="ghotiStoreCardBody"><div class="ghotiStoreMeta"><span>'.$this->esc(ucfirst($product['category'])).'</span><span>'.$typeLabel.'</span></div>';
 			$o .= '<h2>'.$this->esc($product['name']).'</h2><button type="button" class="ghotiStoreSave" data-store-save="'.$id.'" aria-pressed="false" aria-label="Save '.$this->esc($product['name']).'" onclick="storeToggleSaved(this);">♡ Save favourite</button>';
 			if($product['description'] !== ''){
 				$o .= '<details class="ghotiStoreDescription"><summary>Product details</summary><p class="ghotiStoreBlurb">'.nl2br($this->esc($product['description'])).'</p></details>';
 			}
 			$o .= '<div class="ghotiStorePricing">';
 			if($compareAt > $product['priceCents']){ $o .= '<del aria-label="Original price">'.$this->money($compareAt, $totals['currency']).'</del>'; }
-			$o .= '<span class="ghotiStorePrice">'.($spring ? '<small>From </small>' : '').$this->money($product['priceCents'], $totals['currency']).'</span></div>';
+			$o .= '<span class="ghotiStorePrice">'.($spring ? '<small>From </small>' : '').$this->money($product['priceCents'], $totals['currency']).(!empty($product['serviceTerm']) ? ' <small>'.$this->esc($product['serviceTerm']).'</small>' : '').'</span></div>';
 			if(!empty($product['deliveryNote'])){ $o .= '<p class="ghotiStoreDelivery">'.$this->esc($product['deliveryNote']).'</p>'; }
 			$o .= '<div class="ghotiStoreBuy">';
 			if($spring){
 				$o .= $externalUrl !== '' ? '<a class="ghotiButton ghotiStoreExternal" href="'.$this->esc($externalUrl).'" target="_blank" rel="noopener noreferrer">Buy on Spring <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>' : '<span class="ghotiStoreMissing">Currently unavailable</span>';
+			}elseif($subscription){
+				$o .= '<button type="button" class="ghotiButton" onclick="storeShowSubscription('.$id.');">Subscribe</button>';
 			}else{
 				$o .= '<label class="ghotiStoreQty"><span class="sr-only">Quantity of '.$this->esc($product['name']).'</span><input type="number" id="'.$prefix.'-qty-'.$id.'" value="1" min="1" max="'.STORE_MAX_QTY.'" step="1" /></label>';
 				$o .= '<button type="button" class="ghotiButton" onclick="storeAddToCart('.$id.', this);">Add to cart</button>';
 			}
-			$o .= '</div><p class="ghotiStorePurchaseNote">'.($spring ? 'Options, final price, payment &amp; fulfilment on Spring.' : ($product['kind'] === 'digital' ? 'Download link delivered after payment.' : 'Shipping calculated in your cart.')).'</p></div></article>';
+			$purchaseNote = $spring ? 'Options, final price, payment &amp; fulfilment on Spring.' : ($product['kind'] === 'digital' ? 'Download link delivered after payment.' : ($product['kind'] === 'service' ? ($subscription ? 'Recurring billing managed securely by PayPal.' : 'We will contact you to provision the service after payment.') : 'Shipping calculated in your cart.'));
+			$o .= '</div><p class="ghotiStorePurchaseNote">'.$purchaseNote.'</p></div></article>';
 		}
 		$o .= '</div><div class="ghotiStoreNoResults ghotiStoreEmpty" hidden><h2>No products found.</h2><p>Try another search or reset your filters.</p><button class="ghotiButton ghotiButtonSecondary" type="button" onclick="storeResetFilters(this);">Reset filters</button></div>';
-		$o .= '<footer class="ghotiStoreTrust"><span>Local checkout powered by PayPal</span><span>Spring items check out separately</span><span>Card details stay with your payment provider</span></footer></section>';
+		$o .= '<footer class="ghotiStoreTrust"><span>Provider-verified local checkout</span><span>Spring items check out separately</span><span>Payment credentials stay with your provider</span></footer></section>';
 		return $o;
 	}
 
@@ -1107,7 +1530,8 @@ class storeui{
 		foreach($lines as $line){
 			$id = (int)$line['productId'];
 			$o .= "<tr>";
-			$o .= "<td>".$this->esc($line['name'])."".($line['kind'] === 'digital' ? " <span class=\"ghotiStoreTag\">Download</span>" : "")."</td>";
+			$tag = $line['kind'] === 'digital' ? 'Download' : ($line['kind'] === 'service' ? 'Service' : '');
+			$o .= "<td>".$this->esc($line['name']).($tag !== '' ? " <span class=\"ghotiStoreTag\">".$tag."</span>" : "").(!empty($line['serviceTerm']) ? '<br /><small>'.$this->esc($line['serviceTerm']).'</small>' : '')."</td>";
 			$o .= "<td>".$this->money($line['unitCents'], $totals['currency'])."</td>";
 			$o .= "<td><input type=\"number\" class=\"ghotiStoreQtyInput\" value=\"".(int)$line['quantity']."\" min=\"1\" max=\"".STORE_MAX_QTY."\" step=\"1\" onchange=\"storeSetCartQuantity($id, this.value);\" aria-label=\"Quantity of ".$this->esc($line['name'])."\" /></td>";
 			$o .= "<td>".$this->money($line['lineCents'], $totals['currency'])."</td>";
@@ -1140,7 +1564,7 @@ class storeui{
 
 		$o .= "<div class=\"ghotiStoreSummary\"><h2>Order summary</h2><ul>\n";
 		foreach($lines as $line){
-			$o .= "<li><span>".(int)$line['quantity']." &times; ".$this->esc($line['name'])."</span><span>".$this->money($line['lineCents'], $totals['currency'])."</span></li>\n";
+			$o .= "<li><span>".(int)$line['quantity']." &times; ".$this->esc($line['name']).(!empty($line['serviceTerm']) ? ' <small>'.$this->esc($line['serviceTerm']).'</small>' : '')."</span><span>".$this->money($line['lineCents'], $totals['currency'])."</span></li>\n";
 		}
 		$o .= $this->renderDiscount($totals, true);
 		if($totals['hasPhysical']){
@@ -1155,6 +1579,15 @@ class storeui{
 		$o .= "<label class=\"ghotiField\"><span>Your name</span><input type=\"text\" id=\"storeName\" maxlength=\"120\" autocomplete=\"name\" required=\"required\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>E-mail <i>(for the receipt)</i></span><input type=\"email\" id=\"storeEmail\" maxlength=\"190\" autocomplete=\"email\" required=\"required\" /></label>\n";
 		$o .= "</div>\n";
+		if($totals['hasService']){
+			$o .= '<fieldset class="ghotiStoreFieldset"><legend>Service setup</legend>';
+			foreach($lines as $line){
+				if($line['kind'] !== 'service'){ continue; }
+				$prompt = $line['servicePrompt'] !== '' ? $line['servicePrompt'] : 'Anything we should know before setting up '.$line['name'].'?';
+				$o .= '<label class="ghotiField ghotiFieldWide"><span>'.$this->esc($prompt).(!empty($line['serviceRequired']) ? '' : ' <i>(optional)</i>').'</span><textarea data-store-service="'.(int)$line['productId'].'" rows="3" maxlength="500"'.(!empty($line['serviceRequired']) ? ' required="required"' : '').'></textarea></label>';
+			}
+			$o .= '<p class="ghotiHelpText">These details are sent with your order so we can provision your service.</p></fieldset>';
+		}
 
 		if($totals['hasPhysical']){
 			$o .= "<fieldset class=\"ghotiStoreFieldset\"><legend>Shipping address</legend>\n<div class=\"ghotiFormGrid\">\n";
@@ -1169,11 +1602,105 @@ class storeui{
 		$o .= "<label class=\"ghotiField ghotiFieldWide\"><span>Order note <i>(optional)</i></span><textarea id=\"storeNote\" rows=\"3\" maxlength=\"500\"></textarea></label>\n";
 		$o .= "</form>\n";
 
+		$paypalReady = StorePaypalClient::configured($settings);
+		$cryptoReady = StoreCryptoClient::configured($settings);
+		$stripeReady = StoreStripeClient::configured($settings);
+		$squareReady = StoreSquareClient::configured($settings);
+		$o .= '<section class="ghotiStorePaymentMethods"><h2>Payment method</h2>';
 		$o .= "<div id=\"ghotiStorePayStatus\" class=\"ghotiStoreStatus\" role=\"status\" aria-live=\"polite\"></div>\n";
-		$o .= "<div id=\"ghotiStorePaypal\" class=\"ghotiStorePaypal\"></div>\n";
-		$o .= "<p class=\"ghotiStoreHelpText\">You pay through PayPal. Your card details never reach this site; the order is only recorded once PayPal confirms the payment.</p>\n";
+		if($paypalReady){
+			$o .= '<div class="ghotiStorePaymentOption"><h3>PayPal or card</h3><div id="ghotiStorePaypal" class="ghotiStorePaypal"></div><p class="ghotiStoreHelpText">Card details stay with PayPal.</p></div>';
+		}
+		if($stripeReady){
+			$o .= '<div class="ghotiStorePaymentOption"><h3>Card with Stripe</h3><button type="button" class="ghotiButton" onclick="storeBeginStripePayment(this);">Continue with Stripe</button><p class="ghotiStoreHelpText">Stripe Elements securely collects and authenticates your card.</p></div>';
+		}
+		if($squareReady){
+			$o .= '<div class="ghotiStorePaymentOption" id="ghotiStoreSquare" data-app-id="'.$this->esc($settings['squareApplicationId']).'" data-location-id="'.$this->esc($settings['squareLocationId']).'" data-env="'.$this->esc($settings['squareEnv']).'" data-amount="'.$this->esc(StorePaypalClient::amount($totals['totalCents'])).'" data-currency="'.$this->esc($totals['currency']).'"><h3>Card with Square</h3><div id="ghotiStoreSquareCard"></div><button type="button" id="ghotiStoreSquareButton" class="ghotiButton" onclick="storePayWithSquare(this);" disabled="disabled">Pay with Square</button><p class="ghotiStoreHelpText">Square securely tokenizes the card before this site creates the payment.</p></div>';
+		}
+		if($cryptoReady){
+			$o .= '<div class="ghotiStorePaymentOption"><h3>Cryptocurrency</h3><label class="ghotiField"><span>Pay with</span><select id="storeCryptoCurrency">';
+			foreach(StoreCryptoClient::currencyList($settings['cryptoCurrencies']) as $currency){
+				$o .= '<option value="'.$this->esc($currency).'">'.$this->esc(strtoupper($currency)).'</option>';
+			}
+			$o .= '</select></label><button type="button" class="ghotiButton" onclick="storeBeginCryptoPayment(this);">Create crypto payment</button>';
+			$o .= '<p class="ghotiStoreHelpText">A deposit address and exact amount are created by NOWPayments. The order is fulfilled only after the provider confirms it.</p></div>';
+		}
+		if(!$paypalReady && !$cryptoReady && !$stripeReady && !$squareReady){ $o .= '<p class="ghotiStoreStatus is-error">No payment method is configured. Contact the store before placing this order.</p>'; }
+		$o .= '</section>';
 		$o .= "</div>\n";
+			return $o;
+		}
+
+	public function renderCryptoPayment($order){
+		$status = strtolower((string)($order['cryptoStatus'] ?? 'waiting'));
+		$terminal = in_array($status, array('failed','refunded','expired'), true) || ($order['status'] ?? '') !== 'pending';
+		$labels = array('waiting'=>'Waiting for payment', 'confirming'=>'Confirming on the network', 'confirmed'=>'Payment confirmed',
+			'sending'=>'Sending to merchant', 'finished'=>'Payment complete', 'partially_paid'=>'Partially paid',
+			'failed'=>'Payment failed', 'refunded'=>'Payment refunded', 'expired'=>'Payment expired');
+		$label = $labels[$status] ?? ucwords(str_replace('_', ' ', $status));
+		$o = '<div id="ghotiStoreCryptoPayment" class="ghotiStore ghotiStoreCryptoPayment" data-order-id="'.(int)$order['orderId'].'" data-final="'.($terminal ? '1' : '0').'">';
+		$o .= '<div class="ghotiStoreBar"><div><p class="ghotiStoreEyebrow">CRYPTO PAYMENT</p><h1 class="ghotiStoreTitle">Send payment for '.$this->esc($order['reference']).'</h1></div><button type="button" class="ghotiButton ghotiButtonCompact ghotiButtonSecondary" onclick="storeShowCart();">Back to cart</button></div>';
+		$o .= '<p class="ghotiStoreLead">Send the exact amount using the selected currency and network. This page checks the provider for confirmations automatically.</p>';
+		$o .= '<dl class="ghotiStoreCryptoDetails">';
+		$o .= '<div><dt>Amount</dt><dd><code id="storeCryptoAmount">'.$this->esc($order['cryptoAmount']).'</code> <strong>'.$this->esc(strtoupper($order['cryptoCurrency'])).'</strong><button type="button" class="ghotiTextButton" onclick="storeCopyCrypto(&quot;storeCryptoAmount&quot;, this);">Copy</button></dd></div>';
+		if($order['cryptoNetwork'] !== ''){ $o .= '<div><dt>Network</dt><dd>'.$this->esc($order['cryptoNetwork']).'</dd></div>'; }
+		$o .= '<div><dt>Deposit address</dt><dd><code id="storeCryptoAddress">'.$this->esc($order['cryptoAddress']).'</code><button type="button" class="ghotiTextButton" onclick="storeCopyCrypto(&quot;storeCryptoAddress&quot;, this);">Copy</button></dd></div>';
+		if($order['cryptoExtraId'] !== ''){ $o .= '<div><dt>Memo / tag</dt><dd><code id="storeCryptoExtra">'.$this->esc($order['cryptoExtraId']).'</code><button type="button" class="ghotiTextButton" onclick="storeCopyCrypto(&quot;storeCryptoExtra&quot;, this);">Copy</button></dd></div>'; }
+		$o .= '<div><dt>Provider reference</dt><dd><code>'.$this->esc($order['cryptoPaymentId']).'</code></dd></div>';
+		if((int)$order['cryptoExpiresAt'] > 0){ $o .= '<div><dt>Quote expires</dt><dd>'.$this->esc(date('M j, Y H:i T', (int)$order['cryptoExpiresAt'])).'</dd></div>'; }
+		$o .= '</dl>';
+		$o .= '<p class="ghotiStoreCryptoState ghotiStoreBadge-'.$this->esc($status).'"><strong>'.$this->esc($label).'</strong>';
+		if($status === 'partially_paid'){ $o .= ' — the received amount is short. Do not send a different currency; refresh after completing the exact payment.'; }
+		elseif($terminal){ $o .= ' — do not send funds to this payment address.'; }
+		else{ $o .= ' — network confirmation can take a few minutes.'; }
+		$o .= '</p><div id="ghotiStorePayStatus" class="ghotiStoreStatus" role="status" aria-live="polite"></div>';
+		if(!$terminal){ $o .= '<button type="button" class="ghotiButton" onclick="storeRefreshCryptoPayment('.(int)$order['orderId'].', this);">Check payment now</button>'; }
+		$o .= '<p class="ghotiStoreHelpText">Only send '.$this->esc(strtoupper($order['cryptoCurrency'])).($order['cryptoNetwork'] !== '' ? ' on '.$this->esc($order['cryptoNetwork']) : '').'. Cryptocurrency transfers cannot be reversed.</p></div>';
 		return $o;
+	}
+
+	public function renderStripePayment($order){
+		return '<div id="ghotiStoreStripePayment" class="ghotiStore" data-order-id="'.(int)$order['orderId'].'"><div class="ghotiStoreBar"><h1 class="ghotiStoreTitle">Pay order '.$this->esc($order['reference']).' with Stripe</h1><button type="button" class="ghotiButton ghotiButtonSecondary" onclick="storeShowCart();">Back to cart</button></div><p class="ghotiStoreLead">Enter your card in Stripe&rsquo;s secure payment form.</p><div class="ghotiStorePaymentOption"><div id="ghotiStoreStripeElement"></div><button type="button" id="ghotiStoreStripeButton" class="ghotiButton">Pay '.$this->money($order['totalCents'],$order['currency']).'</button></div><div id="ghotiStorePayStatus" class="ghotiStoreStatus" role="status" aria-live="polite"></div></div>';
+	}
+
+	public function renderProcessorPending($order){
+		$provider=ucfirst((string)$order['paymentProvider']);
+		return '<div class="ghotiStore" data-order-id="'.(int)$order['orderId'].'"><h1 class="ghotiStoreTitle">'.$this->esc($provider).' payment pending</h1><p class="ghotiStoreLead">Order '.$this->esc($order['reference']).' has provider status <strong>'.$this->esc($order['providerStatus'] ?: 'pending').'</strong>.</p><button type="button" class="ghotiButton" onclick="storeRefreshProcessorPayment('.(int)$order['orderId'].',this);">Check payment now</button><div id="ghotiStorePayStatus" class="ghotiStoreStatus" role="status" aria-live="polite"></div></div>';
+	}
+
+	public function renderSubscriptionCheckout($product, $settings){
+		$o = '<div id="ghotiStoreSubscription" class="ghotiStore" data-product-id="'.(int)$product['productId'].'" data-plan-id="'.$this->esc($product['paypalPlanId']).'">';
+		$o .= '<div class="ghotiStoreBar"><h1 class="ghotiStoreTitle">Subscribe to '.$this->esc($product['name']).'</h1><button type="button" class="ghotiButton ghotiButtonCompact ghotiButtonSecondary" onclick="showStore();">Back to the store</button></div>';
+		$o .= '<div class="ghotiStoreSummary"><h2>Subscription summary</h2><ul><li><span>'.$this->esc($product['name']).'</span><span>'.$this->money($product['priceCents'], $settings['currency']).'</span></li>';
+		if($product['serviceTerm'] !== ''){ $o .= '<li><span>Billing term</span><span>'.$this->esc($product['serviceTerm']).'</span></li>'; }
+		$o .= '</ul><p class="ghotiHelpText">PayPal shows the authoritative recurring amount, billing interval, trial period, and cancellation terms before you approve.</p></div>';
+		$o .= '<form id="ghotiStoreSubscriptionForm" class="ghotiForm" onsubmit="return false;"><div class="ghotiFormGrid">';
+		$o .= '<label class="ghotiField"><span>Your name</span><input type="text" id="storeSubscriptionName" maxlength="120" autocomplete="name" required="required" /></label>';
+		$o .= '<label class="ghotiField"><span>E-mail <i>(for confirmation)</i></span><input type="email" id="storeSubscriptionEmail" maxlength="190" autocomplete="email" required="required" /></label></div>';
+		$prompt = $product['servicePrompt'] !== '' ? $product['servicePrompt'] : 'Anything we should know before setting up this service?';
+		$o .= '<label class="ghotiField ghotiFieldWide"><span>'.$this->esc($prompt).(!empty($product['serviceRequired']) ? '' : ' <i>(optional)</i>').'</span><textarea id="storeSubscriptionDetails" rows="3" maxlength="500"'.(!empty($product['serviceRequired']) ? ' required="required"' : '').'></textarea></label></form>';
+		$o .= '<div id="ghotiStorePayStatus" class="ghotiStoreStatus" role="status" aria-live="polite"></div><div id="ghotiStoreSubscriptionPaypal" class="ghotiStorePaypal"></div>';
+		$o .= '<p class="ghotiStoreHelpText">Your recurring payment is managed by PayPal. Card details never reach this site.</p></div>';
+		return $o;
+	}
+
+	public function renderSubscriptionReceipt($subscription){
+		$o = '<div class="ghotiStore"><h1 class="ghotiStoreTitle">Subscription confirmed</h1>';
+		$o .= '<p class="ghotiStoreLead">Thank you, '.$this->esc($subscription['customerName']).'. We will contact you to provision <strong>'.$this->esc($subscription['name']).'</strong>.</p>';
+		$o .= '<dl class="ghotiStoreDetailGrid"><div><dt>PayPal reference</dt><dd><code>'.$this->esc($subscription['paypalSubscriptionId']).'</code></dd></div>';
+		$o .= '<div><dt>Status</dt><dd>'.$this->esc(ucwords(strtolower(str_replace('_', ' ', $subscription['status'])))).'</dd></div>';
+		if($subscription['serviceTerm'] !== ''){ $o .= '<div><dt>Billing</dt><dd>'.$this->esc($subscription['serviceTerm']).'</dd></div>'; }
+		if($subscription['nextBillingAt'] > 0){ $o .= '<div><dt>Next PayPal billing</dt><dd>'.$this->esc(date('M j, Y', $subscription['nextBillingAt'])).'</dd></div>'; }
+		if($subscription['serviceDetails'] !== ''){ $o .= '<div><dt>Setup details</dt><dd>'.nl2br($this->esc($subscription['serviceDetails'])).'</dd></div>'; }
+		$o .= '</dl><p class="ghotiStoreHelpText">A confirmation is being sent to '.$this->esc($subscription['email']).'. Manage payment or cancellation from your PayPal account.</p>';
+		$o .= '<div class="ghotiStoreActions"><button type="button" class="ghotiButton ghotiButtonSecondary" onclick="showStore();">Back to the store</button></div></div>';
+		return $o;
+	}
+
+	public function renderSubscriptionRecorded($paypalSubscriptionId){
+		return '<div class="ghotiStore"><h1 class="ghotiStoreTitle">Subscription already confirmed</h1>'
+			.'<p class="ghotiStoreLead">PayPal subscription <strong>'.$this->esc($paypalSubscriptionId).'</strong> is already recorded. Check your confirmation e-mail or contact us with this reference.</p>'
+			.'<div class="ghotiStoreActions"><button type="button" class="ghotiButton ghotiButtonSecondary" onclick="showStore();">Back to the store</button></div></div>';
 	}
 
 	public function renderReceipt($order, $items, $downloads){
@@ -1183,7 +1710,9 @@ class storeui{
 
 		$o .= "<table class=\"ghotiStoreTable\"><thead><tr><th>Item</th><th>Qty</th><th>Line</th></tr></thead><tbody>\n";
 		foreach($items as $item){
-			$o .= "<tr><td>".$this->esc($item['name'])."</td><td>".(int)$item['quantity']."</td><td>".$this->money($item['unitCents'] * $item['quantity'], $order['currency'])."</td></tr>\n";
+			$detail = !empty($item['serviceTerm']) ? '<br /><small>'.$this->esc($item['serviceTerm']).'</small>' : '';
+			if(!empty($item['serviceDetails'])){ $detail .= '<br /><small>Setup: '.nl2br($this->esc($item['serviceDetails'])).'</small>'; }
+			$o .= "<tr><td>".$this->esc($item['name']).$detail."</td><td>".(int)$item['quantity']."</td><td>".$this->money($item['unitCents'] * $item['quantity'], $order['currency'])."</td></tr>\n";
 		}
 		$o .= "</tbody></table>\n";
 		$o .= "<dl class=\"ghotiStoreTotals\">\n";
@@ -1207,6 +1736,9 @@ class storeui{
 		if($order['hasPhysical']){
 			$o .= "<p class=\"ghotiStoreHelpText\">We will post your order to ".$this->esc(trim($order['address1'].', '.$order['city'].' '.$order['postcode'].' '.$order['country']))."</p>\n";
 		}
+		if(!empty($order['hasService'])){
+			$o .= '<p class="ghotiStoreHelpText">We have your setup details and will contact you when your service is ready.</p>';
+		}
 		$o .= "<div class=\"ghotiStoreActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"showStore();\">Back to the store</button></div>\n";
 		$o .= "</div>\n";
 		return $o;
@@ -1220,7 +1752,10 @@ class storeui{
 		$lines[] = 'Placed: '.gmdate('Y-m-d H:i', (int)$order['createdAt']).' UTC';
 		$lines[] = '';
 		foreach($items as $item){
-			$lines[] = $item['quantity'].' x '.$item['name'].'  '.$order['currency'].' '.StorePaypalClient::amount($item['unitCents'] * $item['quantity']);
+			$line = $item['quantity'].' x '.$item['name'].'  '.$order['currency'].' '.StorePaypalClient::amount($item['unitCents'] * $item['quantity']);
+			if(!empty($item['serviceTerm'])){ $line .= ' ('.$item['serviceTerm'].')'; }
+			$lines[] = $line;
+			if(!empty($item['serviceDetails'])){ $lines[] = '  Setup: '.$item['serviceDetails']; }
 		}
 		$lines[] = '';
 		if(!empty($order['discountCents'])){ $lines[] = 'Discount ('.$order['discountLabel'].'): -'.$order['currency'].' '.StorePaypalClient::amount($order['discountCents']); }
@@ -1242,6 +1777,10 @@ class storeui{
 				$lines[] = '  '.$grant['name'].': '.storeAbsoluteUrl('mod/store/store.download.php?token='.$grant['token']);
 			}
 		}
+		if(!empty($order['hasService'])){
+			$lines[] = '';
+			$lines[] = 'We will contact you when your service is ready.';
+		}
 		$lines[] = '';
 		$lines[] = 'Questions? Reply to this message quoting '.$order['reference'].'.';
 		//CR/LF from customer input would let a note forge mail headers; the mail
@@ -1254,10 +1793,10 @@ class storeui{
 	public function renderManager($tab){
 		$settings = storeDb()->getSettings();
 		$o  = "<section id=\"ghotiStoreManager\" class=\"ghotiAdminPanel\">\n";
-		$o .= "<div class=\"ghotiCrudHeader\"><div><h1>Store</h1><p class=\"ghotiHelpText\">Catalogue, orders, and the PayPal connection. Put a shop on any page with <code>[store:all]</code>.</p></div></div>\n";
+		$o .= "<div class=\"ghotiCrudHeader\"><div><h1>Store</h1><p class=\"ghotiHelpText\">Catalogue, orders, subscriptions, and payment providers. Put a shop on any page with <code>[store:all]</code>.</p></div></div>\n";
 
 		$o .= "<div class=\"ghotiStoreTabs\" aria-label=\"Store management\">\n";
-		foreach(array('products' => 'Products', 'orders' => 'Orders', 'promotions' => 'Promotions &amp; loyalty', 'settings' => 'PayPal &amp; shipping', 'dropship' => 'Dropshipping') as $key => $label){
+		foreach(array('products' => 'Products', 'orders' => 'Orders', 'subscriptions' => 'Subscriptions', 'promotions' => 'Promotions &amp; loyalty', 'settings' => 'Payments &amp; shipping', 'dropship' => 'Dropshipping') as $key => $label){
 			$active = $tab === $key;
 			$o .= "<button type=\"button\" aria-pressed=\"".($active ? 'true' : 'false')."\" class=\"ghotiStoreTab".($active ? " is-active" : "")."\" onclick=\"showStoreManager('".$key."');\">".$label."</button>\n";
 		}
@@ -1266,6 +1805,7 @@ class storeui{
 		if($tab === 'products'){ $o .= $this->renderProductAdmin($settings); }
 		elseif($tab === 'promotions'){ $o .= $this->renderPromotionsAdmin($settings); }
 		elseif($tab === 'orders'){ $o .= $this->renderOrderAdmin(); }
+		elseif($tab === 'subscriptions'){ $o .= $this->renderSubscriptionAdmin(); }
 		elseif($tab === 'dropship'){ $o .= $this->renderDropshipAdmin($settings); }
 		else { $o .= $this->renderSettingsAdmin($settings); }
 
@@ -1273,11 +1813,15 @@ class storeui{
 			array('heading' => 'Put the shop on a page',
 				'list' => array('Edit any page and add <code class="ghotiDocCode">[store:all]</code> for everything, or <code class="ghotiDocCode">[store:prints]</code> for one category.', 'The cart, checkout and receipt all render in place; no extra pages are needed.')),
 			array('heading' => 'Connect PayPal',
-				'list' => array('Create REST API credentials in the PayPal Developer dashboard and paste the client ID and secret under <b>PayPal &amp; shipping</b>.', 'Leave the environment on <b>Sandbox</b> and buy something from yourself with a sandbox account first. Switch to <b>Live</b> only once that works.', 'The secret is stored in the database and is never sent to the browser. Re-saving with the secret box empty keeps the stored one.')),
-			array('heading' => 'Physical and digital items',
-				'list' => array('A <b>physical</b> item makes checkout ask for a shipping address and adds the flat shipping rate once per order.', 'A <b>digital</b> item needs a file that already exists under <code>files/store/</code>; buyers get an expiring, download-limited link on the receipt and in their e-mail.')),
+				'list' => array('Create REST API credentials in the PayPal Developer dashboard and paste the client ID and secret under <b>Payments &amp; shipping</b>.', 'Leave the environment on <b>Sandbox</b> and buy something from yourself with a sandbox account first. Switch to <b>Live</b> only once that works.', 'The secret is stored in the database and is never sent to the browser. Re-saving with the secret box empty keeps the stored one.')),
+			array('heading' => 'Connect Stripe or Square',
+				'list' => array('For Stripe, save the matching publishable and secret key pair. Stripe Elements collects the card and the server verifies the PaymentIntent.', 'For Square, save the application ID, location ID, access token, and matching Sandbox or Live environment. Square Web Payments tokenizes the card before the server calls Payments API.', 'Card numbers and security codes are handled inside the provider SDKs and never pass through this site.')),
+			array('heading' => 'Accept Bitcoin and other crypto',
+				'list' => array('Create a NOWPayments API key, save it under <b>Payments &amp; shipping</b>, and enable crypto checkout.', 'List the currency codes you accept, such as <code>btc, eth, ltc, usdc</code>. The provider creates the address and exact amount for each order.', 'The store checks provider status repeatedly and only fulfils a payment after its order reference, fiat amount, currency, and crypto asset all match.')),
+			array('heading' => 'Products and services',
+				'list' => array('A <b>physical</b> item makes checkout ask for a shipping address and adds the flat shipping rate once per order.', 'A <b>digital</b> item needs a file under <code>files/store/</code>; buyers get an expiring link.', 'A <b>service</b> can be a one-time purchase or a recurring PayPal subscription. Add a setup question when you need a domain, account name, or migration details.')),
 			array('heading' => 'Fulfilment',
-				'list' => array('Orders appear under <b>Orders</b> as soon as payment is confirmed by PayPal; every administrator is e-mailed.', 'Mark a paid order <b>Shipped</b> once it is posted. <b>Paid</b> can never be set by hand - only a verified PayPal capture sets it.', 'A <b>pending</b> row is a checkout nobody finished. It is safe to leave; nothing was charged.'))
+				'list' => array('Orders appear under <b>Orders</b> as soon as payment is confirmed by the selected provider; every administrator is e-mailed.', 'Mark a paid order <b>Shipped</b> once it is posted. <b>Paid</b> can never be set by hand - only a verified provider response sets it.', 'A <b>pending</b> row is a checkout that has not been confirmed. Crypto orders have a refresh action for delayed network confirmation.'))
 		));
 		$o .= "</section>\n";
 		return $o;
@@ -1288,8 +1832,9 @@ class storeui{
 		$live = count(array_filter($products, function($product){ return !empty($product['active']); }));
 		$featured = count(array_filter($products, function($product){ return !empty($product['featured']); }));
 		$spring = count(array_filter($products, function($product){ return ($product['fulfilment'] ?? '') === 'spring'; }));
+		$services = count(array_filter($products, function($product){ return ($product['kind'] ?? '') === 'service'; }));
 		$o = '<div class="ghotiStoreStats">';
-		foreach(array('Products' => count($products), 'Live in store' => $live, 'Featured' => $featured, 'Spring listings' => $spring) as $label => $value){
+		foreach(array('Products' => count($products), 'Live in store' => $live, 'Services' => $services, 'Spring listings' => $spring) as $label => $value){
 			$o .= '<div><span>'.$label.'</span><strong>'.$value.'</strong></div>';
 		}
 		$o .= '</div>';
@@ -1297,7 +1842,7 @@ class storeui{
 		$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"storeEditProduct(0);\">Add product</button></div>\n";
 		$o .= "<div id=\"ghotiStoreProductForm\" class=\"ghotiStoreProductForm\" hidden=\"hidden\"></div>\n";
 
-		if(!$products){ $o .= '<p class="ghotiEmptyState">Start your collection with a physical product, digital download, or Spring listing.</p>'; }
+		if(!$products){ $o .= '<p class="ghotiEmptyState">Start your collection with a physical product, digital download, service, or Spring listing.</p>'; }
 		$o .= '<div class="ghotiStoreAdminSearch"><label>Find a product<input type="search" placeholder="Search name, SKU, category, or provider…" oninput="storeFilterProducts(this);" /></label><span id="storeAdminResults" role="status">'.count($products).' products</span></div>';
 		$o .= "<div class=\"ghotiStoreAdminTableWrap\"><table class=\"ghotiStoreTable\"><thead><tr><th>Product</th><th>SKU</th><th>Kind</th><th>Fulfilled by</th><th>Category</th><th>Price</th><th>Live</th><th></th></tr></thead><tbody>\n";
 		foreach($products as $product){
@@ -1307,7 +1852,7 @@ class storeui{
 			if($product['imageUrl'] !== ''){ $o .= '<img src="'.$this->esc($product['imageUrl']).'" alt="" loading="lazy" />'; }
 			$o .= "<button type=\"button\" class=\"ghotiTextButton\" onclick=\"storeEditProduct($id);\">".$this->esc($product['name'])."</button></div></td>";
 			$o .= "<td>".$this->esc($product['sku'])."</td>";
-			$o .= "<td>".($product['kind'] === 'digital' ? 'Digital' : 'Physical')."</td>";
+			$o .= "<td>".($product['kind'] === 'digital' ? 'Digital' : ($product['kind'] === 'service' ? (($product['billingType'] ?? '') === 'subscription' ? 'Subscription' : 'Service') : 'Physical'))."</td>";
 			$o .= "<td>".(($product['fulfilment'] ?? '') === 'spring' ? 'Spring (hosted checkout)' : (($product['fulfilment'] ?? '') === 'dropship' ? $this->esc(StoreDropship::label($product['dropProvider'])) : 'You'))."</td>";
 			$o .= "<td>".$this->esc($product['category'])."</td>";
 			$o .= "<td>".$this->money($product['priceCents'], $settings['currency'])."</td>";
@@ -1350,15 +1895,49 @@ class storeui{
 			$o .= "<td>".$this->money($order['totalCents'], $order['currency'])."</td>";
 			$o .= "<td><span class=\"ghotiStoreBadge ghotiStoreBadge-".$this->esc($order['status'])."\">".$this->esc(ucfirst($order['status']))."</span></td>";
 			$o .= "<td>";
-			if($order['status'] === 'paid'){
+			if($order['status'] === 'paid' && $order['hasPhysical']){
 				$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"storeSetOrderStatus($id,'shipped');\">Mark shipped</button>";
-			}elseif($order['status'] === 'pending'){
+			}
+			if($order['status'] === 'paid' && $order['hasService'] && $order['serviceStatus'] !== 'fulfilled'){
+				$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"storeSetOrderServiceStatus($id,'fulfilled');\">Mark service ready</button>";
+			}
+			if($order['status'] === 'pending'){
+				if(($order['paymentProvider'] ?? '') === 'crypto'){
+					$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"storeRefreshCryptoOrder($id);\">Refresh payment</button>";
+				}
+				if(in_array($order['paymentProvider'] ?? '',array('stripe','square'),true) && $order['providerPaymentId'] !== ''){
+					$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"storeRefreshProcessorOrder($id);\">Refresh payment</button>";
+				}
 				$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"storeSetOrderStatus($id,'cancelled');\">Cancel</button>";
 			}
 			$o .= "</td></tr>\n";
 		}
 		$o .= "</tbody></table></div>\n";
 		return $o;
+	}
+
+	private function renderSubscriptionAdmin(){
+		$subscriptions = storeDb()->getSubscriptions(100);
+		$active = count(array_filter($subscriptions, function($row){ return in_array($row['status'], array('ACTIVE', 'APPROVED'), true); }));
+		$pending = count(array_filter($subscriptions, function($row){ return $row['serviceStatus'] !== 'fulfilled'; }));
+		$o = '<div class="ghotiStoreStats"><div><span>Subscriptions</span><strong>'.count($subscriptions).'</strong></div><div><span>Active / approved</span><strong>'.$active.'</strong></div><div><span>Awaiting setup</span><strong>'.$pending.'</strong></div></div>';
+		$o .= '<div class="ghotiStoreAdminHead"><h2>Subscriptions</h2><span class="ghotiHelpText">PayPal is authoritative for billing; refresh a row after a customer changes or cancels it.</span></div>';
+		if(!$subscriptions){ return $o.'<p class="ghotiEmptyState">No subscriptions yet.</p>'; }
+		$o .= '<div class="ghotiStoreAdminTableWrap"><table class="ghotiStoreTable"><thead><tr><th>Service</th><th>Customer</th><th>PayPal reference</th><th>Billing</th><th>Status</th><th>Setup</th><th></th></tr></thead><tbody>';
+		foreach($subscriptions as $row){
+			$id = (int)$row['subscriptionId'];
+			$o .= '<tr><td><strong>'.$this->esc($row['name']).'</strong><br /><small>'.$this->esc($row['sku']).'</small></td>';
+			$o .= '<td>'.$this->esc($row['customerName']).'<br /><small>'.$this->esc($row['email']).'</small>'.($row['serviceDetails'] !== '' ? '<br /><small>'.$this->esc($row['serviceDetails']).'</small>' : '').'</td>';
+			$o .= '<td><code>'.$this->esc($row['paypalSubscriptionId']).'</code></td><td>'.$this->esc($row['serviceTerm']).($row['nextBillingAt'] > 0 ? '<br /><small>Next: '.$this->esc(date('M j, Y', $row['nextBillingAt'])).'</small>' : '').'</td>';
+			$statusClass = strtolower($row['status']);
+			$statusLabel = ucwords(strtolower(str_replace('_', ' ', $row['status'])));
+			$o .= '<td><span class="ghotiStoreBadge ghotiStoreBadge-'.$this->esc($statusClass).'">'.$this->esc($statusLabel).'</span></td>';
+			$o .= '<td>'.$this->esc(ucfirst($row['serviceStatus'])).'</td><td><div class="ghotiStoreRowActions"><button type="button" class="ghotiButton ghotiButtonCompact ghotiButtonSecondary" onclick="storeRefreshSubscription('.$id.');">Refresh</button>';
+			if($row['serviceStatus'] !== 'fulfilled'){ $o .= '<button type="button" class="ghotiButton ghotiButtonCompact" onclick="storeSetSubscriptionServiceStatus('.$id.',\'fulfilled\');">Mark ready</button>'; }
+			else { $o .= '<button type="button" class="ghotiButton ghotiButtonCompact ghotiButtonSecondary" onclick="storeSetSubscriptionServiceStatus('.$id.',\'pending\');">Reopen setup</button>'; }
+			$o .= '</div></td></tr>';
+		}
+		return $o.'</tbody></table></div>';
 	}
 
 	private function renderPromotionsAdmin($settings){
@@ -1422,24 +2001,43 @@ class storeui{
 
 	private function renderSettingsAdmin($settings){
 		$hasSecret = $settings['paypalSecret'] !== '';
-		$o  = "<div class=\"ghotiStoreAdminHead\"><h2>PayPal &amp; shipping</h2></div>\n";
+		$hasCryptoKey = ($settings['cryptoApiKey'] ?? '') !== '';
+		$hasStripeSecret = ($settings['stripeSecretKey'] ?? '') !== '';
+		$hasSquareToken = ($settings['squareAccessToken'] ?? '') !== '';
+		$o  = "<div class=\"ghotiStoreAdminHead\"><h2>Payments &amp; shipping</h2></div>\n";
 		$o .= "<form id=\"ghotiStoreSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"storeSaveSettings(); return false;\">\n";
+		$o .= '<fieldset class="ghotiStoreFieldset"><legend>PayPal</legend>';
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= "<label class=\"ghotiField\"><span>PayPal client ID</span><input type=\"text\" id=\"store-clientId\" maxlength=\"255\" value=\"".$this->esc($settings['paypalClientId'])."\" autocomplete=\"off\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>PayPal secret".($hasSecret ? " <i>(saved &mdash; leave blank to keep)</i>" : "")."</span><input type=\"password\" id=\"store-secret\" maxlength=\"255\" value=\"\" autocomplete=\"new-password\" placeholder=\"".($hasSecret ? "••••••••" : "")."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>Environment</span><select id=\"store-env\">";
 		$o .= "<option value=\"sandbox\"".($settings['paypalEnv'] === 'sandbox' ? " selected=\"selected\"" : "").">Sandbox (test money)</option>";
 		$o .= "<option value=\"live\"".($settings['paypalEnv'] === 'live' ? " selected=\"selected\"" : "").">Live (real money)</option>";
-		$o .= "</select></label>\n";
+		$o .= "</select></label>\n</div></fieldset>\n";
+		$o .= '<fieldset class="ghotiStoreFieldset"><legend>Stripe</legend><label class="ghotiInlineChoice"><input type="checkbox" id="store-stripeEnabled"'.(!empty($settings['stripeEnabled'])?' checked="checked"':'').' /> Offer card checkout through Stripe</label><div class="ghotiFormGrid">';
+		$o .= '<label class="ghotiField"><span>Publishable key</span><input type="text" id="store-stripePublishableKey" maxlength="255" autocomplete="off" value="'.$this->esc($settings['stripePublishableKey'] ?? '').'" placeholder="pk_test_…" /></label>';
+		$o .= '<label class="ghotiField"><span>Secret key'.($hasStripeSecret?' <i>(saved &mdash; leave blank to keep)</i>':'').'</span><input type="password" id="store-stripeSecretKey" maxlength="255" autocomplete="new-password" placeholder="'.($hasStripeSecret?'••••••••':'sk_test_…').'" /></label></div><p class="ghotiHelpText">Stripe Elements collects the card. The server creates and verifies a PaymentIntent; secret keys never reach the browser.</p></fieldset>';
+		$o .= '<fieldset class="ghotiStoreFieldset"><legend>Square</legend><label class="ghotiInlineChoice"><input type="checkbox" id="store-squareEnabled"'.(!empty($settings['squareEnabled'])?' checked="checked"':'').' /> Offer card checkout through Square</label><div class="ghotiFormGrid">';
+		$o .= '<label class="ghotiField"><span>Application ID</span><input type="text" id="store-squareApplicationId" maxlength="255" autocomplete="off" value="'.$this->esc($settings['squareApplicationId'] ?? '').'" /></label>';
+		$o .= '<label class="ghotiField"><span>Location ID</span><input type="text" id="store-squareLocationId" maxlength="100" autocomplete="off" value="'.$this->esc($settings['squareLocationId'] ?? '').'" /></label>';
+		$o .= '<label class="ghotiField"><span>Access token'.($hasSquareToken?' <i>(saved &mdash; leave blank to keep)</i>':'').'</span><input type="password" id="store-squareAccessToken" maxlength="255" autocomplete="new-password" placeholder="'.($hasSquareToken?'••••••••':'').'" /></label>';
+		$o .= '<label class="ghotiField"><span>Environment</span><select id="store-squareEnv"><option value="sandbox"'.(($settings['squareEnv'] ?? 'sandbox')==='sandbox'?' selected="selected"':'').'>Sandbox</option><option value="live"'.(($settings['squareEnv'] ?? '')==='live'?' selected="selected"':'').'>Live</option></select></label></div><p class="ghotiHelpText">The application and location must belong to the same Square environment as the access token.</p></fieldset>';
+		$o .= '<fieldset class="ghotiStoreFieldset"><legend>Bitcoin &amp; cryptocurrency</legend>';
+		$o .= '<label class="ghotiInlineChoice"><input type="checkbox" id="store-cryptoEnabled"'.(!empty($settings['cryptoEnabled']) ? ' checked="checked"' : '').' /> Offer cryptocurrency checkout through NOWPayments</label>';
+		$o .= '<div class="ghotiFormGrid">';
+		$o .= '<label class="ghotiField"><span>NOWPayments API key'.($hasCryptoKey ? ' <i>(saved &mdash; leave blank to keep)</i>' : '').'</span><input type="password" id="store-cryptoApiKey" maxlength="255" value="" autocomplete="new-password" placeholder="'.($hasCryptoKey ? '••••••••' : '').'" /></label>';
+		$o .= '<label class="ghotiField"><span>Accepted currencies <i>(codes separated by commas)</i></span><input type="text" id="store-cryptoCurrencies" maxlength="500" value="'.$this->esc($settings['cryptoCurrencies'] ?? 'btc,eth,ltc,usdc').'" placeholder="btc, eth, ltc, usdc" /></label>';
+		$o .= '</div><p class="ghotiHelpText">Use currency codes enabled in your NOWPayments account. Bitcoin is <code>btc</code>; network-specific assets may use codes such as <code>usdttrc20</code>. Crypto is available for one-time orders; recurring services continue to use PayPal.</p></fieldset>';
+		$o .= '<fieldset class="ghotiStoreFieldset"><legend>Store currency &amp; delivery</legend><div class="ghotiFormGrid">';
 		$o .= "<label class=\"ghotiField\"><span>Currency <i>(3 letters)</i></span><input type=\"text\" id=\"store-currency\" maxlength=\"3\" value=\"".$this->esc($settings['currency'])."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>Flat shipping <i>(per order with a physical item)</i></span><input type=\"text\" id=\"store-shipping\" maxlength=\"12\" value=\"".$this->esc(StorePaypalClient::amount($settings['shippingCents']))."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>Shipping note <i>(optional)</i></span><input type=\"text\" id=\"store-shippingNote\" maxlength=\"255\" value=\"".$this->esc($settings['shippingNote'])."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>Download window <i>(hours)</i></span><input type=\"number\" id=\"store-downloadHours\" min=\"1\" max=\"8760\" step=\"1\" value=\"".(int)$settings['downloadHours']."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>Downloads per item</span><input type=\"number\" id=\"store-downloadLimit\" min=\"1\" max=\"100\" step=\"1\" value=\"".(int)$settings['downloadLimit']."\" /></label>\n";
-		$o .= "</div>\n";
+		$o .= "</div></fieldset>\n";
 		$o .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Save store settings</button></div>\n";
 		$o .= "</form>\n";
-		$o .= "<p class=\"ghotiHelpText\">The secret authenticates this site to PayPal and is stored in the database, so it is in your backups &mdash; treat them accordingly. Sandbox and live credentials are different pairs; switching environment without swapping both will fail to take payment.</p>\n";
+		$o .= "<p class=\"ghotiHelpText\">Payment secrets authenticate this site to its providers and are stored in the database, so they are in your backups &mdash; treat them accordingly. Keep each provider&rsquo;s test/sandbox and live credentials together, and enable only the methods you intend to show.</p>\n";
 		return $o;
 	}
 
@@ -1556,8 +2154,22 @@ class storeui{
 		if($order['paidAt'] > 0){ $o .= "<div><dt>Paid</dt><dd>".$this->esc(date('M j, Y H:i T', (int)$order['paidAt']))."</dd></div>\n"; }
 		if($order['shippedAt'] > 0){ $o .= "<div><dt>Shipped</dt><dd>".$this->esc(date('M j, Y H:i T', (int)$order['shippedAt']))."</dd></div>\n"; }
 		$o .= "<div><dt>Customer</dt><dd>".$this->esc($order['customerName'])."<br />".$this->esc($order['email'])."</dd></div>\n";
+		$paymentLabels=array('paypal'=>'PayPal','crypto'=>'Cryptocurrency via NOWPayments','stripe'=>'Stripe','square'=>'Square');
+		$o .= '<div><dt>Payment</dt><dd>'.$this->esc($paymentLabels[$order['paymentProvider'] ?? 'paypal'] ?? ucfirst($order['paymentProvider'])).'</dd></div>';
 		if($order['payerEmail'] !== ''){ $o .= "<div><dt>PayPal payer</dt><dd>".$this->esc($order['payerEmail'])."</dd></div>\n"; }
 		if($order['paypalCaptureId'] !== ''){ $o .= "<div><dt>Capture</dt><dd><code>".$this->esc($order['paypalCaptureId'])."</code></dd></div>\n"; }
+		if(($order['paymentProvider'] ?? '') === 'crypto'){
+			$o .= '<div><dt>Crypto status</dt><dd>'.$this->esc(ucwords(str_replace('_', ' ', $order['cryptoStatus']))).'</dd></div>';
+			$o .= '<div><dt>Crypto payment</dt><dd><code>'.$this->esc($order['cryptoPaymentId']).'</code></dd></div>';
+			$o .= '<div><dt>Requested</dt><dd>'.$this->esc($order['cryptoAmount']).' '.$this->esc(strtoupper($order['cryptoCurrency'])).($order['cryptoNetwork'] !== '' ? '<br /><small>'.$this->esc($order['cryptoNetwork']).'</small>' : '').'</dd></div>';
+		}
+		if(in_array($order['paymentProvider'] ?? '',array('stripe','square'),true)){
+			$o .= '<div><dt>Provider status</dt><dd>'.$this->esc($order['providerStatus']).'</dd></div>';
+			if($order['providerPaymentId']!==''){ $o .= '<div><dt>Provider payment</dt><dd><code>'.$this->esc($order['providerPaymentId']).'</code></dd></div>'; }
+		}
+		if($order['hasService']){
+			$o .= '<div><dt>Service setup</dt><dd>'.$this->esc(ucfirst($order['serviceStatus'] ?: 'pending')).($order['serviceFulfilledAt'] > 0 ? '<br /><small>'.$this->esc(date('M j, Y H:i T', $order['serviceFulfilledAt'])).'</small>' : '').'</dd></div>';
+		}
 		if($order['hasPhysical']){
 			$address = array_filter(array($order['address1'], $order['address2'], trim($order['city'].' '.$order['region'].' '.$order['postcode']), $order['country']));
 			$o .= "<div><dt>Ship to</dt><dd>".$this->esc(implode(', ', $address))."</dd></div>\n";
@@ -1567,15 +2179,22 @@ class storeui{
 
 		$o .= "<table class=\"ghotiStoreTable\"><thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Unit</th><th>Line</th></tr></thead><tbody>\n";
 		foreach($items as $item){
-			$o .= "<tr><td>".$this->esc($item['name'])."</td><td>".$this->esc($item['sku'])."</td><td>".(int)$item['quantity']."</td>";
+			$detail = !empty($item['serviceTerm']) ? '<br /><small>'.$this->esc($item['serviceTerm']).'</small>' : '';
+			if(!empty($item['serviceDetails'])){ $detail .= '<br /><small>Setup: '.nl2br($this->esc($item['serviceDetails'])).'</small>'; }
+			$o .= "<tr><td>".$this->esc($item['name']).$detail."</td><td>".$this->esc($item['sku'])."</td><td>".(int)$item['quantity']."</td>";
 			$o .= "<td>".$this->money($item['unitCents'], $order['currency'])."</td><td>".$this->money($item['unitCents'] * $item['quantity'], $order['currency'])."</td></tr>\n";
 		}
 		$o .= "</tbody></table>\n";
 		$o .= "<p class=\"ghotiStoreOrderTotal\">Total ".$this->money($order['totalCents'], $order['currency'])."</p>\n";
 
 		$o .= '<dl class="ghotiStoreTotals">'.$this->renderDiscount($order).'<div><dt>Member points</dt><dd>'.(int)($order['loyaltyPoints'] ?? 0).'</dd></div></dl>';
+		if($order['hasService'] && in_array($order['status'], array('paid','shipped'), true)){
+			$nextStatus = $order['serviceStatus'] === 'fulfilled' ? 'pending' : 'fulfilled';
+			$o .= '<button type="button" class="ghotiButton" onclick="storeSetOrderServiceStatus('.(int)$order['orderId'].', \''.$nextStatus.'\');">'.($nextStatus === 'fulfilled' ? 'Mark service ready' : 'Reopen service setup').'</button>';
+		}
 		if(in_array($order['status'], array('paid','shipped'), true)){
-			$o .= '<button type="button" class="ghotiButton ghotiButtonSecondary ghotiButtonDanger" onclick="storeSetOrderStatus('.(int)$order['orderId'].', \'cancelled\');">Cancel order / record external refund</button><p class="ghotiHelpText">This removes earned loyalty points. Refund the payment in PayPal separately; supplier orders and download grants are not revoked automatically.</p>';
+			$refundProvider=$paymentLabels[$order['paymentProvider'] ?? 'paypal'] ?? 'the payment provider';
+			$o .= '<button type="button" class="ghotiButton ghotiButtonSecondary ghotiButtonDanger" onclick="storeSetOrderStatus('.(int)$order['orderId'].', \'cancelled\');">Cancel order / record external refund</button><p class="ghotiHelpText">This removes earned loyalty points. Refund the payment with '.$this->esc($refundProvider).' separately; supplier orders and download grants are not revoked automatically.</p>';
 		}
 		$fulfilments = storeDb()->getOrderFulfilments($order['orderId']);
 		if($fulfilments){
