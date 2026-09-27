@@ -826,8 +826,8 @@ class ghotiui{
 	}
 
 	function printCloseButton($popupName){
-		$this->output = html::divStart(null,"popup-close")."<a class=\"ghotiMenu\" href=\"#\" onclick=\"cancelPopup('$popupName');\">";
-		$this->output .="<img src=\"gfx/popup-close.png\" alt=\"close\" /></a>".html::divEnd();
+		$this->output = "<div class=\"popup-close\">\n<a class=\"ghotiMenu\" href=\"#\" onclick=\"cancelPopup('$popupName');\">";
+		$this->output .="<img src=\"gfx/popup-close.png\" alt=\"close\" /></a></div>\n";
 		return $this->output;
 	}
 
@@ -836,8 +836,8 @@ class ghotiui{
 		$safeContent = htmlspecialchars(stripslashes((string)$content), ENT_NOQUOTES, 'UTF-8');
 		$publicSelected = $group === 'private' ? '' : ' selected="selected"';
 		$privateSelected = $group === 'private' ? ' selected="selected"' : '';
-		$this->output .= html::divStart("managePagePanel")."<form class=\"ghotiPageEditorForm\" action=\"#\" onsubmit=\"savePage(); return false;\">";
-		$this->output .= html::divStart("managePageForm","ghotiPageEditor");
+		$this->output .= "<div id=\"managePagePanel\">\n<form class=\"ghotiPageEditorForm\" action=\"#\" onsubmit=\"savePage(); return false;\">";
+		$this->output .= "<div id=\"managePageForm\" class=\"ghotiPageEditor\">\n";
 		$this->output .= "<header class=\"ghotiEditorHeader\"><div><span class=\"ghotiEditorEyebrow\">Page studio</span><h2>Shape your story</h2><p>Compose visually, inspect the HTML, and preview the finished page.</p></div>";
 		$this->output .= "<div class=\"ghotiEditorHeaderFields\"><label><span>Page title</span><input id=\"pageTitleEdit\" maxlength=\"24\" type=\"text\" value=\"".$safeTitle."\" required=\"required\" /></label>";
 		$this->output .= "<label><span>Audience</span><select id=\"pageVisibilityEdit\"><option value=\"public\"".$publicSelected.">Everyone</option><option value=\"private\"".$privateSelected.">Signed-in users</option></select></label></div></header>";
@@ -855,9 +855,9 @@ class ghotiui{
 		$this->output .= "<footer class=\"ghotiEditorFooter\"><div class=\"ghotiEditorStatus\"><span class=\"ghotiEditorSafeBadge\">Protected HTML</span><span id=\"ghotiEditorCount\">0 words · 0 characters</span><span id=\"ghotiEditorMessage\" role=\"status\" aria-live=\"polite\"></span></div>";
 		$this->output .= "<div class=\"ghotiEditorActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonDanger ghotiButtonSecondary\" onclick=\"deletePage($id);\">Delete</button><button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"cancelPageEditor();\">Cancel</button><button type=\"submit\" class=\"ghotiButton ghotiEditorSave\" id=\"pageSaveButton\"><img src=\"gfx/save.png\" alt=\"\" />Save &amp; publish</button></div></footer>";
 
-		$this->output .= html::divEnd()."</form>".html::divStart(null,"ghotiPageActions ghotiEditActions")."<a href=\"#\" id=\"pageEditButton\" class=\"ghotiIconButton ghotiEditButton ghotiMenu\" title=\"Edit page\" aria-label=\"Edit page\" onclick=\"printPageEditor();\"><img src=\"gfx/edit.png\" alt=\"\" /></a>\n";
+		$this->output .= "</div>\n</form><div class=\"ghotiPageActions ghotiEditActions\">\n<a href=\"#\" id=\"pageEditButton\" class=\"ghotiIconButton ghotiEditButton ghotiMenu\" title=\"Edit page\" aria-label=\"Edit page\" onclick=\"printPageEditor();\"><img src=\"gfx/edit.png\" alt=\"\" /></a>\n";
 		$this->output .= "<input type=\"hidden\" id=\"pageIdEdit\" value=\"$id\" /></div>";
-		$this->output .= "".html::divEnd();
+		$this->output .= "</div>\n";
 		return $this->output;
 	}
 
