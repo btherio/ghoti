@@ -557,3 +557,38 @@ function boardsModeratorDialog(userId){
 		showPopup();
 	});
 }
+
+/* ---------------------------------------------------------------- *
+ *  Your account -> Notifications (any signed-in user)
+ * ---------------------------------------------------------------- */
+
+function boardsShowNotifyPrefs(){
+	x_boardsGetNotifyPrefs(function(result){
+		if(!boardsOk(result)){ return pageFeedBack(boardsError(result, "Could not load your notification settings.")); }
+		var prefs = result.data;
+		var notes = [];
+		if(!prefs.hasEmail){ notes.push("Your account has no valid e-mail address, so nothing can be sent until one is added."); }
+		if(!prefs.mailOn){ notes.push("This site is not sending e-mail at the moment; your choice is kept for when it does."); }
+		$("#popup-content").html(
+			"<form id=\"boardsNotifyForm\" class=\"ghotiForm\" action=\"#\">" +
+				"<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"boardsNotifyReplies\"" + (prefs.replies ? " checked" : "") + " /> " +
+				"E-mail me when someone replies in a board thread or comment section I have posted in</label>" +
+				notes.map(function(note){ return "<p class=\"ghotiHelpText\">" + ghotiEscapeHtml(note) + "</p>"; }).join("") +
+				"<p class=\"ghotiHelpText\">Off unless you turn it on. Changes save as you tick.</p>" +
+			"</form><span id=\"boardsNotifyStatus\" role=\"status\" aria-live=\"polite\"></span>"
+		);
+		$("#popupTitle").html("Notifications");
+		var box = document.getElementById("boardsNotifyReplies");
+		box.addEventListener("change", function(){
+			x_boardsSaveNotifyPrefs(box.checked ? 1 : 0, function(reply){
+				if(!boardsOk(reply)){
+					box.checked = !box.checked; // show what the server still has
+					$("#boardsNotifyStatus").text(boardsError(reply, "Not saved."));
+					return;
+				}
+				$("#boardsNotifyStatus").text(box.checked ? "Saved - reply notifications are on." : "Saved - reply notifications are off.");
+			});
+		});
+		showPopup();
+	});
+}

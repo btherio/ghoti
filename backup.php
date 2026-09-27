@@ -68,7 +68,7 @@ try{
             $delivery = ghoti_backup_email_export($kind, $mailer, $recipients);
             ghoti::logInfo('backup.php:email', $kind.' backup by uid '.(int)$_SESSION['userId'].'; sent='.$delivery['sent'].'; failed='.$delivery['failed']);
             $message = 'Backup sent to '.$delivery['sent'].' administrator'.($delivery['sent'] === 1 ? '' : 's').'.';
-            if($delivery['failed']){ $message .= ' Delivery failed for '.$delivery['failed'].'. Check Mail Settings and administrator addresses, then retry. Downloads remain disabled.'; }
+            if($delivery['failed']){ $message .= ' Delivery failed for '.$delivery['failed'].'. Check Site Settings → Mail and administrator addresses, then retry. Downloads remain disabled.'; }
             ghoti_backup_response($delivery['failed'] ? 502 : 200, $message);
         }
     }

@@ -163,8 +163,9 @@ function loginEstablished(id){
 /* ---------------------------------------------------------------- *
  *  Two-factor sign-in codes
  *
- *  login() answers {twoFactor:"required"} instead of a user id when the
- *  password was right but a code is still needed. Nothing is signed in at that
+ *  login() answers {twoFactor:"required", method:"email"|"app"} instead of a
+ *  user id when the password was right but a code is still needed - from the
+ *  e-mail, or from the account's authenticator app. Nothing is signed in at that
  *  point - only verifyTwoFactor() can do that.
  * ---------------------------------------------------------------- */
 
@@ -172,11 +173,16 @@ function loginTwoFactorPending(result){
 	return !!(result && typeof result === 'object' && result.twoFactor === 'required');
 }
 
-function loginShowTwoFactorForm(){
-	$("#popupTitle").html("Check your email");
+var loginTwoFactorMethod = "email";
+function loginShowTwoFactorForm(method){
+	loginTwoFactorMethod = method === "app" ? "app" : "email";
+	var app = loginTwoFactorMethod === "app";
+	$("#popupTitle").html(app ? "Enter your authenticator code" : "Check your email");
 	$("#popup-content").html(
 		"<form id=\"twoFactorForm\" class=\"ghotiForm\" action=\"#\" novalidate>"+
-			"<p class=\"ghotiHelpText\">Your password was accepted. We sent a six-digit sign-in code to the address on your account. It is good for ten minutes.</p>"+
+			"<p class=\"ghotiHelpText\">" + (app
+				? "Your password was accepted. Open your authenticator app and enter the six-digit code it shows for this site."
+				: "Your password was accepted. We sent a six-digit sign-in code to the address on your account. It is good for ten minutes.") + "</p>"+
 			"<label class=\"ghotiField\"><span>Sign-in code</span>"+
 				"<input type=\"text\" id=\"twoFactorCode\" inputmode=\"numeric\" autocomplete=\"one-time-code\" "+
 				"maxlength=\"6\" pattern=\"[0-9]*\" autocapitalize=\"off\" spellcheck=\"false\" required /></label>"+
@@ -213,14 +219,16 @@ function submitTwoFactor(){
 	var field = document.getElementById("twoFactorCode");
 	if(!field){ return; }
 	var code = field.value.replace(/\D/g, "");
-	if(code.length !== 6){ return setTwoFactorError("Enter the six-digit code from your email."); }
+	if(code.length !== 6){ return setTwoFactorError(loginTwoFactorMethod === "app" ? "Enter the six-digit code from your authenticator app." : "Enter the six-digit code from your email."); }
 	x_verifyTwoFactor(code, verifyTwoFactor_cb);
 }
 
 function verifyTwoFactor_cb(result){
 	if(result > 0){ return loginEstablished(result); }
 	if(result === 0 || result === "0"){
-		setTwoFactorError("That code is not right. Check your email and try again.");
+		setTwoFactorError(loginTwoFactorMethod === "app"
+			? "That code is not right. Wait for the next code in your app and try again."
+			: "That code is not right. Check your email and try again.");
 		var field = document.getElementById("twoFactorCode");
 		if(field){ field.value = ""; field.focus(); }
 		return;
@@ -237,7 +245,7 @@ function cancelTwoFactor(){
 
 function login_cb(id){
 	if(loginTwoFactorPending(id)){
-		loginShowTwoFactorForm();
+		loginShowTwoFactorForm(id.method);
 	}else if(id > 0){
 		loginEstablished(id);
 	}else if(id == 0){
@@ -419,4 +427,85 @@ function getLogin_cb(result){
 	if(result == true){ //if this returns true, login was set in $_GET
 		popupLogin();   //and we should popup a login prompt
 	}
+}
+
+/* ---------------------------------------------------------------- *
+ *  Your account -> Sign-in security (authenticator app)
+ *
+ *  The QR code is drawn here, in the browser, from lib/vendor/qrcode.js - the
+ *  secret inside it must never be sent to an image service to be rendered.
+ * ---------------------------------------------------------------- */
+
+function printSignInSecurity(){
+	x_printSignInSecurity(function(content){
+		$("#popupTitle").html("Sign-in security");
+		$("#popup-content").html(content);
+		showPopup();
+	});
+}
+function loginLoadQrLibrary(done){
+	if(typeof qrcode === "function"){ return done(); }
+	var script = document.createElement("script");
+	script.src = "lib/vendor/qrcode.js";
+	script.onload = function(){ done(); };
+	script.onerror = function(){ done(new Error("The QR code library did not load.")); };
+	document.head.appendChild(script);
+}
+function totpStartEnroll(button){
+	var done = typeof ghotiBusyBegin === "function" ? ghotiBusyBegin(button) : function(){};
+	x_totpBeginEnroll(function(result){
+		done();
+		if(!result || !result.success){ return popupFeedBack((result && result.error) || "Could not start setup."); }
+		var box = document.getElementById("totpEnroll");
+		if(!box){ return; }
+		box.hidden = false;
+		document.getElementById("totpSecret").textContent = result.secret.replace(/(.{4})/g, "$1 ").trim();
+		document.getElementById("totpStartButton").hidden = true;
+		loginLoadQrLibrary(function(error){
+			var target = document.getElementById("totpQr");
+			if(!target){ return; }
+			if(error){ target.textContent = "The QR code could not be drawn - type the key below into your app instead."; return; }
+			var qr = qrcode(0, "M");
+			qr.addData(result.uri);
+			qr.make();
+			target.innerHTML = qr.createSvgTag({cellSize: 5, margin: 4, scalable: true});
+			var svg = target.querySelector("svg");
+			if(svg){ svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "QR code for your authenticator app"); }
+		});
+		document.getElementById("totpCode").focus();
+	});
+}
+function totpConfirmEnroll(){
+	var code = $("#totpCode").val().replace(/\D/g, "");
+	var password = $("#totpPassword").val();
+	if(code.length !== 6){ return $("#totpFeedback").text("Enter the six-digit code your app shows now."); }
+	if(!password){ return $("#totpFeedback").text("Enter your current password."); }
+	x_totpConfirmEnroll(code, password, function(result){
+		if(result === true){
+			pageFeedBack("Authenticator app set up. You will be asked for its code when you sign in.");
+			printSignInSecurity();
+			return;
+		}
+		$("#totpFeedback").text(result || "Could not finish setup.");
+	});
+}
+function totpRemove(){
+	var password = $("#totpRemovePassword").val();
+	if(!password){ return $("#totpFeedback").text("Enter your current password."); }
+	if(!confirm("Stop using your authenticator app? Sign-in codes will be e-mailed instead.")){ return; }
+	x_totpRemove(password, function(result){
+		if(result === true){
+			pageFeedBack("Authenticator app removed. Sign-in codes will be e-mailed.");
+			printSignInSecurity();
+			return;
+		}
+		$("#totpFeedback").text(result || "Could not remove the authenticator.");
+	});
+}
+function adminResetTotp(userId, userName){
+	if(!confirm("Reset the authenticator app for " + userName + "? They will get e-mailed sign-in codes until they set one up again. Use this when a phone is lost.")){ return; }
+	x_adminResetTotp(userId, function(result){
+		if(result === true){ pageFeedBack("Authenticator reset for " + userName + "."); printManageUserForm(); }
+		else { pageFeedBack(result || "Could not reset the authenticator."); }
+	});
 }

@@ -2,7 +2,7 @@
 /*
  * mail.async.php - mail module async layer.
  *
- * Combines endpoints (admin-only "Mail Settings" panel: view/save/test) and
+ * Combines endpoints (admin-only Site Settings -> Mail tab: save/test) and
  * the UI renderer (class mailui) into one file, in the same pattern as
  * banners.async.php / login.async.php. Every privileged endpoint enforces
  * ghoti_require_admin() server-side - the admin menu only shows these to
@@ -26,11 +26,20 @@ function mailRequireAdmin(){
 	return true;
 }
 
-//Renders the admin "Mail Settings" panel (Admin Menu -> Mail Settings).
-function printMailSettingsForm(){
-	if(!mailRequireAdmin()){ return "<h1>Mail Settings</h1><p>Admin access required.</p>"; }
-	$settings = $_SESSION["mailObj"]->maildb->getSettings();
-	return $_SESSION["mailObj"]->mailui->printMailSettingsForm($settings);
+/*
+ * The Mail tab of Site Settings. It used to be its own admin screen; it now
+ * renders as one panel inside the Site Settings form, so this returns the
+ * fields only - no <form> of its own, since a form cannot nest in another.
+ *
+ * Called from ghotiui::printSiteSettingsForm(), which has already checked for
+ * an administrator; the check is repeated because this is reachable from any
+ * PHP that includes the module, and the panel shows SMTP credentials.
+ */
+function mailSettingsPanel(){
+	if(!ghoti_require_admin()){ return "<p>Admin access required.</p>"; }
+	$mail = $_SESSION["mailObj"] ?? null;
+	$settings = $mail instanceof mail ? $mail->maildb->getSettings() : maildb::defaultSettings();
+	return (new mailui())->printMailSettingsFields($settings);
 }
 
 //Persists admin-submitted SMTP settings. $settings is the decoded object the
@@ -100,8 +109,9 @@ function saveMailSettings($settings){
 }
 
 //Sends a short test message to every administrator account, using the
-//settings that are CURRENTLY SAVED (not the possibly-unsaved form contents),
-//so admins should press Save first.
+//settings that are CURRENTLY SAVED (not the possibly-unsaved form contents).
+//The Mail tab's test button saves the tab first when it has changed, so in
+//practice those are the same thing.
 //
 //The recipient is not typed in: the addresses that matter are the ones the
 //app actually mails - critical alerts, emailed backups and password resets all
@@ -127,7 +137,7 @@ function mailDeliverTestMessage($mailer, array $recipients){
 	}
 	$siteTitle = ghoti::$siteTitle;
 	$subject = "Test message from ".$siteTitle;
-	$body = "This is a test message sent from the Mail Settings panel of ".$siteTitle.".\n\n"
+	$body = "This is a test message sent from the Mail tab of Site Settings on ".$siteTitle.".\n\n"
 		."If you received this, outbound mail is configured correctly.\n\n"
 		."It was sent to every administrator account on this site.\n\n"
 		."Sent: ".date('r')."\n";
@@ -157,7 +167,6 @@ function mailDeliverTestMessage($mailer, array $recipients){
 }
 
 ghoti_async_register(
-	"printMailSettingsForm",
 	"saveMailSettings",
 	"sendTestMail"
 );
@@ -169,12 +178,16 @@ ghoti_async_register(
 class mailui{
 	public $output;
 
-	public function printMailSettingsForm($settings){
+	//The Mail tab's fields. The ids (mail-*) are read by collectMailSettings()
+	//in mail.js; Save is the Site Settings button, which saves this tab too
+	//when anything in it has changed.
+	public function printMailSettingsFields($settings){
 		$esc = function($v){ return htmlspecialchars((string)$v, ENT_QUOTES); };
 		$chk = function($b){ return $b ? " checked=\"checked\"" : ""; };
 		$selEnc = function($value, $current){ return $value === $current ? " selected=\"selected\"" : ""; };
 
-		$o  = "<div id=\"ghotiMailSettings\" class=\"ghotiAdminPanel\">\n<h1>Mail Settings</h1>\n";
+		$o  = "<fieldset id=\"ghotiMailSettings\" class=\"siteSettingsSection siteSettingsSectionWide\"><legend>Mail</legend>\n";
+		$o .= "<p class=\"siteSettingsSectionIntro\">The SMTP server this site sends through: password resets, sign-in codes, alerts, backups, and board reply notices.</p>\n";
 		$docs = ghoti_docs_panel("How to use mail settings", "SMTP host, port, encryption, credentials", array(
 			array('heading' => 'Local Arch Linux mail server (recommended)',
 				'list' => array('Host <code>127.0.0.1</code>, port <b>25</b>, encryption <b>None</b>, and no username/password work for a local Postfix/Exim relay that trusts connections from localhost.', 'Confirm the server is listening: <code>ss -tlnp | grep :25</code> and that it relays for your domain.')),
@@ -188,9 +201,8 @@ class mailui{
 			array('heading' => 'From address',
 				'list' => array('Must be an address your mail server is allowed to send as, or delivery will be rejected/spam-filtered by the receiving side (SPF/DMARC).')),
 			array('heading' => 'Enable + test',
-				'list' => array('Mail sending stays off until <b>Enabled</b> is checked and settings are saved.', 'Use <b>Send test message</b> after saving: it mails every administrator account, which is exactly who alerts, emailed backups and password resets go to.'))
+				'list' => array('Mail sending stays off until <b>Enabled</b> is checked and Site Settings are saved.', '<b>Send test message</b> saves any changes on this tab first, then it mails every administrator account, which is exactly who alerts, emailed backups and password resets go to.'))
 		));
-		$o .= "<form id=\"mailSettingsForm\" class=\"ghotiForm\" action=\"#\" onsubmit=\"saveMailSettings(); return false;\">\n";
 		$o .= "<div class=\"ghotiFormGrid\">\n";
 		$o .= "<label class=\"ghotiField\"><span>SMTP host</span><input type=\"text\" id=\"mail-smtpHost\" size=\"30\" maxlength=\"255\" value=\"".$esc($settings['smtpHost'])."\" /></label>\n";
 		$o .= "<label class=\"ghotiField\"><span>SMTP port</span><input type=\"number\" id=\"mail-smtpPort\" min=\"1\" max=\"65535\" value=\"".$esc($settings['smtpPort'])."\" /></label>\n";
@@ -208,8 +220,6 @@ class mailui{
 		$o .= "</div>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"mail-tlsVerify\"".$chk($settings['tlsVerify'])." /> Verify certificate &mdash; leave on; use the CA file / name fields above for a self-signed server</label>\n";
 		$o .= "<label class=\"ghotiInlineChoice\"><input type=\"checkbox\" id=\"mail-enabled\"".$chk($settings['enabled'])." /> Enabled &mdash; allow this site to send mail</label>\n";
-		$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" class=\"ghotiButton\" onclick=\"saveMailSettings();\">Save Settings</button></div>\n";
-		$o .= "</form>\n";
 		//No address field: the test goes to the administrator accounts, which
 		//are the addresses this site actually mails. Show who that is, so the
 		//admin knows which inboxes to check before pressing the button.
@@ -228,7 +238,7 @@ class mailui{
 			: 'No successful test has been recorded. Backups remain downloadable until a test message succeeds.').'</p>';
 		$o .= "<span id=\"mailSettingsFeedback\" role=\"status\" aria-live=\"polite\"></span>\n";
 		$o .= $docs;
-		$o .= "</div>\n";
+		$o .= "</fieldset>\n";
 		return $o;
 	}
 }

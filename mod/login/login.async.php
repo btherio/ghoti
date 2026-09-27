@@ -206,7 +206,12 @@ function loginCaptchaVerify($purpose,$answer){
 }
 
 /* ================================================================== *
- *  Two-factor authentication (emailed sign-in codes)
+ *  Two-factor authentication (emailed codes, or an authenticator app)
+ *
+ *  Each account uses one of two second factors. By default the code is
+ *  e-mailed. An account that has enrolled an authenticator app under Your
+ *  account -> Sign-in security (a row in user_totp) is asked for the app's
+ *  code instead and is sent no e-mail at all.
  *
  *  Applies to ADMINISTRATORS only, and only while ghoti::$enableTwoFactor is
  *  on - which Site Settings refuses to switch on until a test message has
@@ -227,8 +232,9 @@ const LOGIN_2FA_MAX_TRIES = 5;
 //The marker login() returns instead of a user id. Deliberately not an int (the
 //client tests `id > 0`) and not a bare string (that path prints the value as an
 //error message), so neither existing branch can mistake it for something else.
-function login_2fa_pending_marker(){
-	return array('twoFactor' => 'required');
+//'method' tells the browser which prompt to show: 'email' or 'app'.
+function login_2fa_pending_marker($method = 'email'){
+	return array('twoFactor' => 'required', 'method' => $method === 'app' ? 'app' : 'email');
 }
 
 function login_2fa_is_pending($result){
@@ -270,6 +276,28 @@ function login_2fa_clear(){
  */
 function login_2fa_begin($userId, $username, $fingerprint){
 	$db = $_SESSION["loginObj"]->logindb;
+	//An enrolled authenticator app replaces the e-mail entirely. A read error
+	//refuses rather than falling back to e-mail: an attacker who can make that
+	//read fail must not be able to pick the weaker factor.
+	$totp = $db->getTotp($userId);
+	if($totp === false){
+		ghoti::logError("login.async.php:login_2fa_begin", "could not read authenticator enrollment for uid $userId; sign-in refused");
+		return "Sign-in is temporarily unavailable. Try again in a moment.";
+	}
+	if($totp !== null){
+		session_regenerate_id(true);
+		$_SESSION['pending2fa'] = array(
+			'userId'      => (int)$userId,
+			'username'    => (string)$username,
+			'method'      => 'app',
+			'expiresAt'   => time() + LOGIN_2FA_TTL,
+			'attempts'    => 0,
+			'fingerprint' => $fingerprint,
+		);
+		ghoti::logInfo("login.async.php:login_2fa_begin", "authenticator code requested for uid $userId from ".loginRemoteAddr());
+		return true;
+	}
+
 	$email = $db->getUserEmailById($userId);
 	if(!is_string($email) || trim($email) === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)){
 		ghoti::logWarn("login.async.php:login_2fa_begin", "admin uid $userId has no usable e-mail address; sign-in refused");
@@ -288,7 +316,9 @@ function login_2fa_begin($userId, $username, $fingerprint){
 		."Type it into the page you are signing in from. The code is good for ten minutes and can only be used once.\n\n"
 		."If you did not just try to sign in, someone else has your password. Change it as soon as you can.\n\n"
 		."Requested from: ".loginRemoteAddr()."\n";
-	$sent = ghoti_mail_send_themed($mailer, $email, $username, "Your ".$siteTitle." sign-in code", $body, 'member');
+	//The code leads the subject so it can be read from a notification or the
+	//inbox list without opening the message.
+	$sent = ghoti_mail_send_themed($mailer, $email, $username, $code." is your ".$siteTitle." sign-in code", $body, 'member');
 	if($sent !== true){
 		ghoti::logError("login.async.php:login_2fa_begin", "could not send sign-in code to uid $userId: ".(is_string($sent) ? $sent : 'unknown error'));
 		return "Your sign-in code could not be sent. Try again in a moment, or contact the site operator.";
@@ -300,6 +330,7 @@ function login_2fa_begin($userId, $username, $fingerprint){
 	$_SESSION['pending2fa'] = array(
 		'userId'      => (int)$userId,
 		'username'    => (string)$username,
+		'method'      => 'email',
 		'codeHash'    => login_2fa_hash($code),
 		'expiresAt'   => time() + LOGIN_2FA_TTL,
 		'attempts'    => 0,
@@ -307,6 +338,29 @@ function login_2fa_begin($userId, $username, $fingerprint){
 	);
 	ghoti::logInfo("login.async.php:login_2fa_begin", "sign-in code issued for uid $userId from ".loginRemoteAddr());
 	return true;
+}
+
+/* Does $code satisfy this challenge? For an app challenge the matched time
+ * step is spent here, so the same code cannot sign in twice. */
+function login_2fa_code_matches($pending, $code){
+	if(($pending['method'] ?? 'email') !== 'app'){
+		return hash_equals((string)($pending['codeHash'] ?? ''), login_2fa_hash($code));
+	}
+	$db = $_SESSION["loginObj"]->logindb;
+	$totp = $db->getTotp((int)$pending['userId']);
+	if(!is_array($totp)){ return false; } //removed meanwhile, or unreadable: fail closed
+	$step = ghoti_totp_verify($totp['secret'], $code, null, $totp['lastStep']);
+	return $step !== false && $db->spendTotpStep((int)$pending['userId'], $step) === true;
+}
+
+/* True when every administrator has an authenticator app enrolled - the
+ * other way two-factor can be switched on without anyone being locked out,
+ * since no administrator would then need e-mail to sign in. */
+function login_2fa_all_admins_enrolled(){
+	$db = $_SESSION["loginObj"]->logindb ?? null;
+	if(!is_object($db) || !method_exists($db, 'adminsWithoutTotp')){ return false; }
+	$missing = $db->adminsWithoutTotp();
+	return is_array($missing) && count($missing) === 0;
 }
 
 /*
@@ -339,7 +393,7 @@ function verifyTwoFactor($code){
 	$code = preg_replace('/\D+/', '', (string)$code); //people paste "042 931"
 	if($code === ''){ return 0; }
 
-	if(!hash_equals((string)$pending['codeHash'], login_2fa_hash($code))){
+	if(!login_2fa_code_matches($pending, $code)){
 		$_SESSION['pending2fa']['attempts'] = (int)$pending['attempts'] + 1;
 		//A six-digit code is a small space, so a wrong one counts against the
 		//same throttle a wrong password does - otherwise it could be guessed at
@@ -371,6 +425,117 @@ function verifyTwoFactor($code){
 	$_SESSION['login_last_attempt'] = 0;
 	ghoti::logInfo("login.async.php:verifyTwoFactor", "sign-in completed for uid $userId from ".loginRemoteAddr());
 	return $userId;
+}
+
+/* ================================================================== *
+ *  Your account -> Sign-in security: enrolling an authenticator app
+ *
+ *  Enrolling is two steps so a mistyped scan cannot lock anyone out: the new
+ *  secret waits on the session until the app has produced one correct code
+ *  for it, and only then replaces e-mail as this account's second factor.
+ *  Both enrolling and removing need the account password again, so a session
+ *  left open on a shared computer cannot quietly change how the account signs
+ *  in.
+ * ================================================================== */
+
+const LOGIN_TOTP_ENROLL_TTL = 900; //fifteen minutes to scan and confirm
+
+//Re-check the signed-in account's password, feeding the same throttle a
+//failed sign-in does. Returns true or a message.
+function login_confirm_password($password){
+	$password = (string)$password;
+	if($password === '' || strlen($password) > validate::MAX_PASSWORD){ return "Enter your current password."; }
+	$db = $_SESSION["loginObj"]->logindb;
+	$userId = ghoti_current_user_id();
+	$username = (string)$db->getUserNameById($userId);
+	$throttle = login_throttle_store();
+	foreach(login_throttle_keys($username) as $key){
+		if($throttle->isBlocked($key)){ return "Too many attempts. Wait a few minutes and try again."; }
+	}
+	if((int)$db->authenticate($username, $password) === $userId && $userId > 0){ return true; }
+	foreach(login_throttle_keys($username) as $key){ $throttle->recordFailure($key); }
+	ghoti_security_record_failed_login($throttle);
+	ghoti::logWarn("login.async.php:login_confirm_password", "wrong password re-entered by uid $userId from ".loginRemoteAddr());
+	return "That password is not correct.";
+}
+
+//The Sign-in security dialog.
+function printSignInSecurity(){
+	if(!ghoti_require_login()){ return "<p>You must be signed in.</p>"; }
+	$userId = ghoti_current_user_id();
+	$totp = $_SESSION["loginObj"]->logindb->getTotp($userId);
+	if($totp === false){ return "<p>Your sign-in settings could not be loaded. Try again in a moment.</p>"; }
+	return $_SESSION["loginObj"]->loginui->printSignInSecurity($totp !== null, login_2fa_required_for($userId));
+}
+
+//Step one: a fresh secret, held on the session. Returns the secret and the
+//otpauth:// URI the page turns into a QR code.
+function totpBeginEnroll(){
+	if(!ghoti_require_login()){ return array('success' => false, 'error' => "You must be signed in."); }
+	$userId = ghoti_current_user_id();
+	$secret = ghoti_totp_new_secret();
+	$_SESSION['totpEnroll'] = array('userId' => $userId, 'secret' => $secret, 'expiresAt' => time() + LOGIN_TOTP_ENROLL_TTL);
+	$account = (string)$_SESSION["loginObj"]->logindb->getUserNameById($userId);
+	return array('success' => true, 'secret' => $secret, 'uri' => ghoti_totp_uri($secret, $account, ghoti::$siteTitle));
+}
+
+//Step two: one correct code from the app, plus the password. Returns true or
+//a message.
+function totpConfirmEnroll($code, $password){
+	if(!ghoti_require_login()){ return "You must be signed in."; }
+	$userId = ghoti_current_user_id();
+	$pending = $_SESSION['totpEnroll'] ?? null;
+	if(!is_array($pending) || (int)$pending['userId'] !== $userId || time() > (int)$pending['expiresAt']){
+		unset($_SESSION['totpEnroll']);
+		return "This setup has expired. Start again to get a new QR code.";
+	}
+	$checked = login_confirm_password($password);
+	if($checked !== true){ return $checked; }
+	$step = ghoti_totp_verify($pending['secret'], $code);
+	if($step === false){
+		return "That code does not match. Check the time on your phone is set automatically, and enter the code the app shows now.";
+	}
+	if(!$_SESSION["loginObj"]->logindb->saveTotp($userId, $pending['secret'], $step)){
+		return "The authenticator could not be saved. Try again in a moment.";
+	}
+	unset($_SESSION['totpEnroll']);
+	ghoti::logInfo("login.async.php:totpConfirmEnroll", "uid $userId enrolled an authenticator app from ".loginRemoteAddr());
+	return true;
+}
+
+/* Back to e-mailed codes. Refused while this account must pass two-factor and
+ * mail has not been proven - that would leave it no way to sign in. */
+function totpRemove($password){
+	if(!ghoti_require_login()){ return "You must be signed in."; }
+	$userId = ghoti_current_user_id();
+	if(login_2fa_required_for($userId) && !ghoti_mail_verified()){
+		return "Outbound mail has not been tested, so e-mailed codes cannot replace your app yet. Test mail under Site Settings -> Mail first.";
+	}
+	$checked = login_confirm_password($password);
+	if($checked !== true){ return $checked; }
+	if(!$_SESSION["loginObj"]->logindb->deleteTotp($userId)){ return "The authenticator could not be removed. Try again in a moment."; }
+	ghoti::logInfo("login.async.php:totpRemove", "uid $userId removed their authenticator app from ".loginRemoteAddr());
+	return true;
+}
+
+//Manage Users: clear another account's authenticator (a lost phone). That
+//account falls back to e-mailed codes.
+function adminResetTotp($userId){
+	if(!ghoti_require_admin()){ return "Admin access required."; }
+	try{
+		$userId = ghoti_validate()->id($userId, "user id");
+	}catch(Exception $e){
+		return "Invalid user.";
+	}
+	//Same rule as totpRemove(): an account that must pass two-factor cannot be
+	//moved to e-mailed codes that have never been shown to arrive. Switching
+	//two-factor off in Site Settings is the way through in that case.
+	if(login_2fa_required_for($userId) && !ghoti_mail_verified()){
+		return "Outbound mail has not been tested, so this account could not receive e-mailed codes and would be locked out. Test mail under Site Settings -> Mail first, or switch two-factor off.";
+	}
+	if(!$_SESSION["loginObj"]->logindb->deleteTotp($userId)){ return "The authenticator could not be reset. Check the log."; }
+	ghoti::logWarn("login.async.php:adminResetTotp", "authenticator app for uid $userId reset by admin uid ".ghoti_current_user_id()." from ".loginRemoteAddr());
+	return true;
 }
 
 //Abandoning the form should not leave a live challenge behind.
@@ -461,7 +626,7 @@ function login($username,$password){
 				return $started; //a string: the client prints it as the reason
 			}
 			ghoti::logInfo("login.async.php:login", "Password accepted for '$username' (uid $id); awaiting sign-in code");
-			return login_2fa_pending_marker();
+			return login_2fa_pending_marker($_SESSION['pending2fa']['method'] ?? 'email');
 		}
 
 		session_regenerate_id(true);
@@ -826,7 +991,8 @@ function printManageUserForm(){
 	//through function_exists() so this screen is unchanged when it is off.
 	$postCounts = function_exists('boards_user_post_counts') ? boards_user_post_counts() : array();
 	$moderates  = function_exists('boards_user_moderation_summary') ? boards_user_moderation_summary() : array();
-	return $_SESSION["loginObj"]->loginui->printManageUserForm($userList, $postCounts, $moderates);
+	$totpEnrolled = $_SESSION["loginObj"]->logindb->totpEnrolledMap();
+	return $_SESSION["loginObj"]->loginui->printManageUserForm($userList, $postCounts, $moderates, $totpEnrolled);
 }
 
 function printLoginForm(){
@@ -893,6 +1059,11 @@ ghoti_async_register(
 	"toggleAdmin",
 	"verifyTwoFactor",
 	"cancelTwoFactor",
+	"printSignInSecurity",
+	"totpBeginEnroll",
+	"totpConfirmEnroll",
+	"totpRemove",
+	"adminResetTotp",
 	"verifyRegistration",
 	"cancelRegistration"
 );
@@ -908,6 +1079,12 @@ class loginui{
 		$this->output .= "<ul>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"logout();\">&nbsp;Log Out</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"printChangePasswordForm();\">&nbsp;Change Password</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"printSignInSecurity();\">&nbsp;Sign-in security</a></li>\n";
+		//Only while boards are on: the setting is about board replies, and the
+		//dialog's script (boards.js) is not loaded otherwise.
+		if(ghoti::$enableBoards){
+			$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('boardsShowNotifyPrefs');\">&nbsp;Notifications</a></li>\n";
+		}
 		$this->output .= "</ul>\n";
 		return $this->output;
 	}
@@ -921,7 +1098,6 @@ class loginui{
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('galleryManager');\">Galleries</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showMailSettings');\">Mail Settings</a></li>\n";
 		if(ghoti::$enableBoards){
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showBoardManager');\">Boards</a></li>\n";
 		}
@@ -983,12 +1159,44 @@ class loginui{
 		return $this->output;
 	}
 
+	/* The Sign-in security dialog. $enrolled: this account uses an app now.
+	 * $required: two-factor currently applies to this account. */
+	public function printSignInSecurity($enrolled, $required){
+		$pw = function($id){
+			return "<label class=\"ghotiField\"><span>Current password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" id=\"".$id."\" autocomplete=\"current-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>";
+		};
+		$o = "<div id=\"ghotiSignInSecurity\" class=\"ghotiForm\">";
+		$o .= "<p class=\"ghotiHelpText\">".($required
+			? "This site asks for a six-digit code after your password when you sign in."
+			: "This site does not currently ask your account for a sign-in code. You can still set up an app now, and it will be used if codes are switched on.")."</p>";
+		if($enrolled){
+			$o .= "<p><b>You are using an authenticator app.</b> Sign-in codes come from the app, not by e-mail.</p>";
+			$o .= "<form action=\"#\" onsubmit=\"totpRemove(); return false;\">".$pw('totpRemovePassword');
+			$o .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton ghotiButtonSecondary\">Stop using the app (switch to e-mailed codes)</button></div></form>";
+		}else{
+			$o .= "<p><b>Codes are e-mailed to you.</b> An authenticator app such as Google Authenticator, Microsoft Authenticator, Authy or 1Password works without e-mail and keeps working if mail is down.</p>";
+			$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" id=\"totpStartButton\" class=\"ghotiButton\" onclick=\"totpStartEnroll(this);\">Set up an authenticator app</button></div>";
+			$o .= "<form id=\"totpEnroll\" action=\"#\" onsubmit=\"totpConfirmEnroll(); return false;\" hidden>";
+			$o .= "<p class=\"ghotiHelpText\">1. In your app, add an account and scan this code.</p>";
+			$o .= "<div id=\"totpQr\" style=\"width:200px;max-width:100%;background:#fff;padding:4px\"></div>";
+			$o .= "<p class=\"ghotiHelpText\">Can&rsquo;t scan? Enter this key instead: <code id=\"totpSecret\" style=\"user-select:all\"></code></p>";
+			$o .= "<p class=\"ghotiHelpText\">2. Enter the code the app shows now, and your password, to confirm.</p>";
+			$o .= "<label class=\"ghotiField\"><span>Code from the app</span><input type=\"text\" id=\"totpCode\" inputmode=\"numeric\" autocomplete=\"one-time-code\" maxlength=\"7\" spellcheck=\"false\" /></label>";
+			$o .= $pw('totpPassword');
+			$o .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Confirm and switch to the app</button></div></form>";
+		}
+		$o .= "<p id=\"totpFeedback\" class=\"ghotiFormError\" role=\"status\" aria-live=\"polite\"></p>";
+		$o .= "</div>";
+		return $o;
+	}
+
 	/*
 	 * $postCounts is array(userId => posts) and $moderates array(userId =>
 	 * array(board name, ...)); both are empty when the boards module is off,
 	 * which hides the board details on each user card.
 	 */
-	function printManageUserForm($userList, $postCounts = array(), $moderates = array()){
+	//$totpEnrolled is array(userId => true) for accounts using an authenticator app.
+	function printManageUserForm($userList, $postCounts = array(), $moderates = array(), $totpEnrolled = array()){
 		$showBoards = class_exists('ghoti') && ghoti::$enableBoards;
 		$this->output = "<section id=\"ghotiManageUsers\" class=\"ghotiAdminPanel\"><div class=\"ghotiCrudHeader\"><h1>Manage Users</h1></div>\n";
 		$docs = ghoti_docs_panel("How to manage users", "roles, edits, removal, email", array(
@@ -1000,6 +1208,8 @@ class loginui{
 				'list' => array('Press <b>email</b> beside a user to select them in the composer below the list.', 'For group email, choose <b>All users</b>, <b>Administrators only</b>, or <b>Selected users</b> below the list. Save address changes before composing.')),
 			array('heading' => 'Boards',
 				'list' => array('<b>Posts</b> counts everything the account has written across every board.', 'Press <b>Moderates</b> to choose which boards the account moderates. A moderator can edit or remove any post on their board, and lock, pin or delete its topics.', 'Administrators moderate every board without being listed.')),
+			array('heading' => 'Authenticator apps',
+				'list' => array('An account marked <b>Authenticator app</b> signs in with codes from an app instead of e-mailed codes.', 'If its phone is lost, press <b>Reset app</b>: the account gets e-mailed codes until it sets up an app again under <b>Your account &rarr; Sign-in security</b>.')),
 			array('heading' => 'Delete an account',
 				'list' => array('<b>Delete</b> removes the account and everything it posted. This cannot be undone.'))
 		));
@@ -1032,6 +1242,11 @@ class loginui{
 				$this->output .= "<div class=\"ghotiUserPosts\"><span class=\"ghotiUserDetailLabel\">Posts</span><strong>".$posts."</strong></div>\n";
 				$this->output .= "<div class=\"ghotiUserBoards\"><span class=\"ghotiUserDetailLabel\">Boards</span><span class=\"ghotiModeratesList\">".htmlspecialchars($moderatesLabel, ENT_QUOTES)."</span> ";
 				$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"ghotiModuleAction('boardsModeratorDialog',".$userId.");\">Moderates</button></div>\n";
+			}
+			if(!empty($totpEnrolled[$userId])){
+				$nameJs = htmlspecialchars(json_encode((string)$row[1]), ENT_QUOTES, 'UTF-8');
+				$this->output .= "<div class=\"ghotiUserTwoFactor\"><span class=\"ghotiUserDetailLabel\">Sign-in</span><span>Authenticator app</span> ";
+				$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"adminResetTotp(".$userId.", ".$nameJs.");\">Reset app</button></div>\n";
 			}
 			$this->output .= "</div>";
 			$this->output .= "<div class=\"ghotiFormActions ghotiUserActions\"><button type=\"button\" class=\"ghotiButton ghotiButtonCompact\" onclick=\"saveUser('".$nameField."','".$emailField."','".$userId."');\"><img src=\"gfx/save.png\" alt=\"\" />Save</button>\n";

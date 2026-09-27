@@ -21,3 +21,12 @@ RedirectMatch 404 "(?:^|/)\.(?!well-known(?:/|$))[^/]+(?:/|$)"
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# Search engines look for these at the site root; seo.php builds them from
+# Site Settings -> SEO and the public page list. Without mod_rewrite they are
+# still reachable at seo.php?file=robots and seo.php?file=sitemap.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^robots\.txt$ seo.php?file=robots [L]
+    RewriteRule ^sitemap\.xml$ seo.php?file=sitemap [L]
+</IfModule>

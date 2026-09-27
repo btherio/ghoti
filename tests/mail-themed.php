@@ -156,7 +156,7 @@ function assertThemed($message, $label, array $palette){
 	themeCheck(trim($message['subject']) !== '', "$label: no subject");
 }
 
-/* ---- 1. the Mail Settings test message ---- */
+/* ---- 1. the mail test message (Site Settings -> Mail) ---- */
 require_once 'mod/mail/mail.async.php';
 $rec = new ThemedRecorder();
 themeCheck(mailDeliverTestMessage($rec, array('admin@example.test')) === true, 'The test message did not send');
@@ -192,6 +192,7 @@ require_once 'mod/login/login.php';
 class ThemedLoginDb{
 	public function getUserEmailById($id){ return 'admin@example.test'; }
 	public function isAdmin($id){ return true; }
+	public function getTotp($id){ return null; } //e-mailed codes, not an app
 }
 $rec = new ThemedRecorder();
 $_SESSION = array('mailObj' => $rec);
@@ -201,6 +202,9 @@ themeCheck(login_2fa_begin(7, 'theadmin', 'fp') === true, 'The sign-in code did 
 assertThemed($rec->last(), 'two-factor sign-in code', $palette);
 themeCheck(preg_match('/\b\d{6}\b/', $rec->last()['body']) === 1, 'The code is missing from the plain-text part');
 themeCheck(preg_match('/\b\d{6}\b/', strip_tags($rec->last()['html'])) === 1, 'The code is missing from the HTML part');
+//The code leads the subject, so it can be read from a lock-screen notification.
+themeCheck(preg_match('/^(\d{6}) is your /', $rec->last()['subject'], $subjectCode) === 1, 'The code is not at the start of the subject: '.$rec->last()['subject']);
+themeCheck(strpos($rec->last()['body'], $subjectCode[1]) !== false, 'The subject code differs from the body code');
 
 /* ---- 4b. the registration confirmation code ---- */
 //A new sender, and the only one that mails an address a stranger typed. It goes

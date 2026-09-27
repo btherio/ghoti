@@ -376,7 +376,7 @@ safe to leave or cancel.
 
 ## Validation
 
-- `python tests/store-responsive.py`: Chromium checks all eight themes at 390px
+- `python tests/store-responsive.py`: Chromium checks all nine themes at 390px
   and 1366px across catalogue, cart, checkout, and promotions. Requires Chromium
   on PATH and uses disposable fixtures.
 - `php tests/store-promotions.php`: code dates/minimums, fixed/percentage amounts,

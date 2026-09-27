@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#160c24">
-  <title><?php echo htmlspecialchars(ghoti::$siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+  <title><?php echo ghoti_seo_title_html(); ?></title>
   <?php include_once "ghoti.header.php"; ?>
   <link rel="stylesheet" href="<?php echo $ghotiAsset('css/spore/spore.css'); ?>">
 </head>

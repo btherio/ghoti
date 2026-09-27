@@ -52,7 +52,7 @@ Importing existing vhosts rewrites server configuration. Review the import plan 
 
 ## 4. Optional certificate monitoring and email
 
-1. Configure working SMTP in **Mail Settings**.
+1. Configure working SMTP in **Site Settings → Mail**.
 2. In **Apache Vhosts → Settings**, configure the certificate contact and notification recipient, then enable notifications if desired. Notifications default to off.
 3. Run the watcher once in dry-run mode as the web-server account, using an absolute installation path:
 

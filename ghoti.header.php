@@ -20,6 +20,7 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
     return $ghotiAssetBase . $path . $version;
 };
 ?>
+<?php /* Search and sharing metadata - Site Settings -> SEO, see ghoti.seo.php. */ echo ghoti_seo_head_tags(ghoti_seo_page_context()); ?>
 
 <link rel="icon" type="image/x-icon" href="<?php echo $ghotiAsset('favicon.ico'); ?>" />
 <link rel="icon" type="image/png" sizes="32x32" href="<?php echo $ghotiAsset('gfx/ghoti-favicon.png'); ?>" />

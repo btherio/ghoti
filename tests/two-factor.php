@@ -53,6 +53,8 @@ class TfLoginDb{
 	public function getUserEmailById($id){ return isset($this->emails[$id]) ? $this->emails[$id] : null; }
 	public function getUserNameById($id){ return $id === 7 ? 'theadmin' : 'themember'; }
 	public function isAdmin($id){ return !empty($this->admins[$id]); }
+	//Authenticator enrollment: none here; tests/two-factor-app.php covers it.
+	public function getTotp($id){ return null; }
 }
 class TfMailer{
 	public $sent = array();

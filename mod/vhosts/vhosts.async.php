@@ -367,7 +367,7 @@ function sendVhostsTestAlert(){
 		"Nothing is wrong - this message confirms that vhost and certificate alerts can reach you.")){
 		return "Test alert sent to ".$notifier->recipient()." - check the inbox.";
 	}
-	return "The test alert could not be sent. Check Mail Settings and the log.";
+	return "The test alert could not be sent. Check Site Settings → Mail and the log.";
 }
 
 function printVhostsSettingsForm(){
@@ -954,7 +954,7 @@ class vhostsui{
 	private function notifyDocs(){
 		return ghoti_docs_panel("About e-mail alerts", "what triggers one, and what catches certbot's own renewals", array(
 			array('heading' => 'Where they come from',
-				'list' => array('Alerts are sent through the <b>mail module</b> (Admin Menu &rarr; Mail Settings). If mail sending is off or misconfigured, alerts are logged and dropped &mdash; a certificate renewal is never failed just because the mail server is unreachable.',
+				'list' => array('Alerts are sent through the <b>mail module</b> (Admin Menu &rarr; Site Settings &rarr; Mail). If mail sending is off or misconfigured, alerts are logged and dropped &mdash; a certificate renewal is never failed just because the mail server is unreachable.',
 					'Use <b>Send test alert</b> to confirm the whole path end to end.')),
 			array('heading' => 'What triggers one',
 				'list' => array('A certificate is issued or renewed from this panel.',

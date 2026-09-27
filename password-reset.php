@@ -11,7 +11,7 @@ declare(strict_types=1);
  *   1. Visitor submits their email. If it matches exactly one account, a
  *      single-use, time-limited token is emailed to that address (via the
  *      `mail` module / your local Arch Linux mail server - see Admin Menu ->
- *      Mail Settings). The page shows the SAME message either way, so it
+ *      Site Settings -> Mail). The page shows the SAME message either way, so it
  *      cannot be used to test which addresses have accounts.
  *   2. Visitor follows the emailed link (this same script, with ?token=...)
  *      and sets a new password. The token is checked server-side

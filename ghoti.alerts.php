@@ -74,7 +74,7 @@ class GhotiAlertService {
                 ."\nThese are application signals and do not confirm an intrusion."
                 ."\nRaw log messages, passwords, account names, IP addresses and session tokens are not included."
                 ."\nAt most one delivery is attempted per category every 15 minutes, including after a failed delivery."
-                ."\nEvery administrator account receives this alert. Manage alerts in Site Settings; delivery uses Mail Settings.\n";
+                ."\nEvery administrator account receives this alert. Manage alerts in Site Settings; delivery uses Site Settings → Mail.\n";
             //One delivery per admin rather than one message addressed to all of
             //them: admins do not see each other's addresses, and a mailer that
             //does not parse recipient lists still works. A failure for one
@@ -83,7 +83,7 @@ class GhotiAlertService {
             foreach($to as $address){
                 $result = ($this->transport)($address, '[Ghoti alert] '.$labels[$category], $body);
                 if($result === true){ $delivered = true; }
-                else { error_log('Ghoti critical alert could not be delivered to an administrator; check Mail Settings.'); }
+                else { error_log('Ghoti critical alert could not be delivered to an administrator; check Site Settings → Mail.'); }
             }
             return $delivered;
         } catch(Throwable $e){

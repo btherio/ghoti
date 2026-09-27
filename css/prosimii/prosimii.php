@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?php echo htmlspecialchars(ghoti::$siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+  <title><?php echo ghoti_seo_title_html(); ?></title>
   <link href="lib/fonts/prosimii.css" rel="stylesheet">
   <?php include_once "ghoti.header.php"; ?>
   <link rel="stylesheet" href="<?php echo $ghotiAsset('css/prosimii/prosimii-modern.css'); ?>">

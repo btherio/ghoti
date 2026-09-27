@@ -582,9 +582,23 @@ document.addEventListener('click', function(event){
 }, true);
 
 //ajax functions
+/* Menu links carry a real ?page=N href for crawlers; the click is cancelled
+ * and the page loaded in place, so the address bar is kept in step here to
+ * leave a URL that can be shared, bookmarked and reached with Back. */
 function getPage(id) {
 	x_getPageById(id,printPage);
+	if(window.history && history.pushState && /^[1-9][0-9]*$/.test(String(id))){
+		var url = '?page=' + id;
+		if(window.location.search !== url){ history.pushState({ghotiPage: String(id)}, '', url); }
+	}
 }
+window.addEventListener('popstate', function(event){
+	var id = event.state && event.state.ghotiPage;
+	if(!id){ id = new URLSearchParams(window.location.search).get('page'); }
+	if(id && /^[1-9][0-9]*$/.test(id)){ x_getPageById(id, printPage); }
+	else if(!window.location.search){ x_getDefaultPage(printPage); }
+	else { window.location.reload(); } //back to a server-rendered view (?view=privacy)
+});
 function getPageByTitle(title){
 //	x_getPageByTitle(title,printPage);
 }
@@ -943,6 +957,7 @@ function initSiteSettings(){
 		});
 	}
 	bindDependent('set-securityAutoBlacklist', 'security-auto-controls');
+	if(typeof initMailSettings === 'function'){ initMailSettings(); }
 }
 
 function clearAutoBlockedIp(ip){
@@ -977,9 +992,30 @@ function saveSiteSettings(){
 		securityIpBlacklist: $("#set-securityIpBlacklist").val(),
 		securityIpAllowlist: $("#set-securityIpAllowlist").val(),
 		sessionTimeoutMinutes: $("#set-sessionTimeoutMinutes").val(),
-		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0
+		enableDebug: $("#set-enableDebug").is(":checked") ? 1 : 0,
+		seoSiteUrl: $("#set-seoSiteUrl").val(),
+		seoHomeTitle: $("#set-seoHomeTitle").val(),
+		seoTitleFormat: $("#set-seoTitleFormat").val(),
+		seoDescription: $("#set-seoDescription").val(),
+		seoKeywords: $("#set-seoKeywords").val(),
+		seoShareImage: $("#set-seoShareImage").val(),
+		seoTwitterHandle: $("#set-seoTwitterHandle").val(),
+		seoAllowIndexing: $("#set-seoAllowIndexing").is(":checked") ? 1 : 0,
+		seoStructuredData: $("#set-seoStructuredData").is(":checked") ? 1 : 0,
+		seoGoogleVerification: $("#set-seoGoogleVerification").val(),
+		seoBingVerification: $("#set-seoBingVerification").val(),
+		seoRobotsExtra: $("#set-seoRobotsExtra").val()
 	};
-	x_saveSiteSettings(settings, saveSiteSettings_cb);
+	saveSiteSettingsAfterMail(settings);
+}
+/* The Mail tab is saved by the mail module, first, and only when it changed;
+ * a refusal there stops here with the Mail tab showing why. Kept out of
+ * saveSiteSettings() because tests/site-settings-contract.php reads that
+ * function's object literal as the list of site-setting keys. */
+function saveSiteSettingsAfterMail(settings){
+	var save = function(){ x_saveSiteSettings(settings, saveSiteSettings_cb); };
+	if(typeof mailSaveIfChanged === 'function'){ mailSaveIfChanged(save); }
+	else { save(); }
 }
 function saveSiteSettings_cb(result){
 	if(result === true){

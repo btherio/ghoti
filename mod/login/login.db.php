@@ -299,6 +299,7 @@ class logindb extends ghotidb{
 				Throw new Exception("Can't delete only admin.");
 			}else{
 				$this->query("delete from users where userId = ?;",array($userId));
+				$this->query("delete from user_totp where userId = ?;",array($userId));
 				//Board posts and moderator grants go with the account, so a new
 				//account issued the same userId does not inherit them.
 				if(isset($_SESSION['boardsObj'])){
@@ -408,6 +409,85 @@ class logindb extends ghotidb{
 			return null;
 		}
 		return (count($rows) === 1) ? (int)$rows[0][0] : null;
+	}
+
+	/* ---------------- authenticator app (user_totp) ---------------- */
+
+	//array('secret'=>..., 'lastStep'=>int) for an enrolled account, null when
+	//not enrolled, or false when it could not be read. Callers treat false as
+	//"cannot tell" and refuse, never as "not enrolled" - that would silently
+	//downgrade an app account to emailed codes.
+	public function getTotp($userId){
+		try{
+			$rows = $this->queryArray("select secret,lastStep from user_totp where userId = ? and confirmedAt > 0 limit 1", array((int)$userId));
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:getTotp", $e);
+			return false;
+		}
+		if(!isset($rows[0])){ return null; }
+		return array('secret' => (string)$rows[0][0], 'lastStep' => (int)$rows[0][1]);
+	}
+
+	public function saveTotp($userId, $secret, $step){
+		try{
+			$this->query("insert into user_totp(userId,secret,confirmedAt,lastStep) values(?,?,?,?)
+				on duplicate key update secret = values(secret), confirmedAt = values(confirmedAt), lastStep = values(lastStep)",
+				array((int)$userId, (string)$secret, time(), (int)$step));
+			return true;
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:saveTotp", $e);
+			return false;
+		}
+	}
+
+	/* Record the step just accepted. The "lastStep < ?" guard makes the update
+	 * itself the replay check: two requests racing with the same code cannot
+	 * both win, because only one of them changes the row. */
+	public function spendTotpStep($userId, $step){
+		try{
+			//Prepared directly: the affected-row count IS the answer, and the
+			//shared query() helper does not expose it.
+			$stmt = $this->db()->prepare("update user_totp set lastStep = ? where userId = ? and lastStep < ?");
+			$stmt->execute(array((int)$step, (int)$userId, (int)$step));
+			return $stmt->rowCount() === 1;
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:spendTotpStep", $e);
+			return false;
+		}
+	}
+
+	public function deleteTotp($userId){
+		try{
+			$this->query("delete from user_totp where userId = ?", array((int)$userId));
+			return true;
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:deleteTotp", $e);
+			return false;
+		}
+	}
+
+	//Admin user ids with no confirmed authenticator, or false on error.
+	public function adminsWithoutTotp(){
+		try{
+			$rows = $this->queryArray("select u.userId from users u left join user_totp t on t.userId = u.userId and t.confirmedAt > 0 where u.admin = 1 and t.userId is null");
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:adminsWithoutTotp", $e);
+			return false;
+		}
+		return array_map(function($row){ return (int)$row[0]; }, $rows);
+	}
+
+	//userId => true for every enrolled account, for Manage Users.
+	public function totpEnrolledMap(){
+		try{
+			$rows = $this->queryArray("select userId from user_totp where confirmedAt > 0");
+		}catch(Throwable $e){
+			ghoti::logException("login.db.php:totpEnrolledMap", $e);
+			return array();
+		}
+		$map = array();
+		foreach($rows as $row){ $map[(int)$row[0]] = true; }
+		return $map;
 	}
 
 	public function getUserEmailById($userId){

@@ -2,7 +2,7 @@
 /*
  * vhosts.notify.php - admin e-mail alerts for certificate and config events.
  *
- * Sends through the mail module (Admin Menu -> Mail Settings), so there is one
+ * Sends through the mail module (Admin Menu -> Site Settings -> Mail), so there is one
  * SMTP configuration for the whole app rather than a second one here.
  *
  * Dependencies are passed IN rather than read from $_SESSION, because half the

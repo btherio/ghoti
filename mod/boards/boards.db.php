@@ -387,6 +387,67 @@ class boardsdb extends ghotidb{
 		}
 	}
 
+	/* ---------------- reply notifications ---------------- */
+
+	//array('userName'=>..., 'email'=>...) for one account; blanks if not found.
+	public function getUserContact($userId){
+		try{
+			$rows = $this->queryArray("select userName,email from users where userId = ? limit 1",array((int)$userId));
+		}catch (Throwable $e){
+			ghoti::logException("boards.db.php:getUserContact", $e);
+			$rows = array();
+		}
+		return array(
+			'userName' => isset($rows[0]) ? (string)$rows[0][0] : '',
+			'email'    => isset($rows[0]) ? trim((string)$rows[0][1]) : '',
+		);
+	}
+
+	//Whether this account asked to be e-mailed about replies. No row is "no".
+	public function getNotifyReplies($userId){
+		try{
+			$rows = $this->queryArray("select replies from board_notify where userId = ? limit 1",array((int)$userId));
+		}catch (Throwable $e){
+			ghoti::logException("boards.db.php:getNotifyReplies", $e);
+			return null;
+		}
+		return isset($rows[0]) && (int)$rows[0][0] === 1;
+	}
+
+	public function setNotifyReplies($userId,$on){
+		try{
+			$this->query("insert into board_notify(userId,replies,updatedAt) values(?,?,?) on duplicate key update replies = values(replies), updatedAt = values(updatedAt)",
+				array((int)$userId,$on ? 1 : 0,time()));
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("boards.db.php:setNotifyReplies", $e);
+			return false;
+		}
+	}
+
+	/*
+	 * Who hears about a new post in $topicId: everyone else who has posted in
+	 * that thread and opted in, with the address on their account. The poster
+	 * is excluded here rather than by the caller so a reply to yourself can
+	 * never mail you. Returns array of array(userId,userName,email), or false.
+	 */
+	public function getReplySubscribers($topicId,$excludeUserId,$limit){
+		try{
+			return $this->queryArray(
+				"select distinct u.userId,u.userName,u.email
+				   from board_posts p
+				   join board_notify n on n.userId = p.userId and n.replies = 1
+				   join users u on u.userId = p.userId
+				  where p.topicId = ? and p.userId <> ?
+				  order by u.userId
+				  limit ".(int)$limit,
+				array((int)$topicId,(int)$excludeUserId));
+		}catch (Throwable $e){
+			ghoti::logException("boards.db.php:getReplySubscribers", $e);
+			return false;
+		}
+	}
+
 	//array(userId => postCount) for every account that has ever posted.
 	public function getPostCounts(){
 		try{
@@ -408,6 +469,7 @@ class boardsdb extends ghotidb{
 		try{
 			$this->query("delete from board_posts where userId = ?",array((int)$userId));
 			$this->query("delete from board_moderators where userId = ?",array((int)$userId));
+			$this->query("delete from board_notify where userId = ?",array((int)$userId));
 			return true;
 		}catch (Throwable $e){
 			ghoti::logException("boards.db.php:deleteUserContent", $e);

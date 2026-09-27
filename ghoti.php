@@ -47,6 +47,19 @@ class ghoti {
 	public static $enableBpong = False;           //optional pong module        [UI]
 	public static $enableCriticalAlerts = False;
 	public static $enableDebug = False;            //enable debug logging           [UI]
+	//Search and sharing (Site Settings -> SEO; see ghoti.seo.php).
+	public static $seoSiteUrl = "";               //https base URL; blank uses GHOTI_PUBLIC_URL [UI]
+	public static $seoHomeTitle = "";             //home page <title>; blank uses the site title [UI]
+	public static $seoTitleFormat = "{page} | {site}"; //other pages' <title>  [UI]
+	public static $seoDescription = "";           //meta description           [UI]
+	public static $seoKeywords = "";              //meta keywords              [UI]
+	public static $seoShareImage = "";            //og:image, a local image path [UI]
+	public static $seoTwitterHandle = "";         //twitter:site               [UI]
+	public static $seoAllowIndexing = True;       //off = noindex everywhere   [UI]
+	public static $seoStructuredData = True;      //JSON-LD WebSite/Organization [UI]
+	public static $seoGoogleVerification = "";    //Search Console token       [UI]
+	public static $seoBingVerification = "";      //Bing Webmaster token       [UI]
+	public static $seoRobotsExtra = "";           //extra robots.txt rules     [UI]
 
 	/* ---------------- Logging levels ----------------
 	 * Higher number = more severe. A line is written only when its level is
@@ -105,6 +118,18 @@ class ghoti {
 		'enableStore'        => 'bool',
 		'enableBpong'        => 'bool',
 		'enableCriticalAlerts' => 'bool',
+		'seoSiteUrl'         => 'url',
+		'seoHomeTitle'       => 'text',
+		'seoTitleFormat'     => 'text',
+		'seoDescription'     => 'longtext',
+		'seoKeywords'        => 'longtext',
+		'seoShareImage'      => 'background',
+		'seoTwitterHandle'   => 'handle',
+		'seoAllowIndexing'   => 'bool',
+		'seoStructuredData'  => 'bool',
+		'seoGoogleVerification' => 'token',
+		'seoBingVerification'   => 'token',
+		'seoRobotsExtra'     => 'robots',
 	);
 
 ################################################################
@@ -326,7 +351,12 @@ class ghoti {
 		//Widening the requirement to every member is the same risk as switching it
 		//on in the first place - more so, since it puts the mail server in front of
 		//every sign-in on the site - so it is gated the same way.
-		if(($twoFactorWanted && !self::$enableTwoFactor) || ($allUsersWanted && !self::$twoFactorAllUsers)){
+		//One exception for switching it on for administrators: when every one of
+		//them already has an authenticator app, none needs mail to sign in, so
+		//untested mail cannot lock anybody out. Members default to e-mail, so
+		//widening to them still needs tested mail.
+		$adminsOnApp = function_exists('login_2fa_all_admins_enrolled') && login_2fa_all_admins_enrolled();
+		if(($twoFactorWanted && !self::$enableTwoFactor && !$adminsOnApp) || ($allUsersWanted && !self::$twoFactorAllUsers)){
 			//A recorded successful test is the whole check, and it is a stronger
 			//one than it looks: mailDeliverTestMessage() refuses outright when no
 			//administrator has a usable address, and records the marker only after
@@ -340,7 +370,7 @@ class ghoti {
 			//case is caught at sign-in instead, by login_2fa_begin(), which refuses
 			//an administrator with no address and says so.
 			if(!function_exists('ghoti_mail_verified') || !ghoti_mail_verified()){
-				return "Two-factor authentication needs outbound mail that has been tested. Open Mail Settings, send a test message, then enable it.";
+				return "Two-factor authentication needs outbound mail that has been tested (or, for administrators only, every administrator set up with an authenticator app). Open Site Settings → Mail, send a test message, then enable it.";
 			}
 		}
 
@@ -352,6 +382,21 @@ class ghoti {
 
 		if(array_key_exists('backgroundImg', $settings) && self::sanitizeSetting('background', $settings['backgroundImg']) === null){
 			return "Background image must be an existing local PNG, JPEG, GIF, WebP or AVIF image path, or blank to use theme defaults.";
+		}
+
+		//The SEO fields refuse rather than silently drop a bad value: a
+		//verification token or URL that vanished on save would look like it
+		//had been accepted.
+		$seoChecks = array(
+			'seoSiteUrl' => array('url', "Site URL must be a full https:// address with no query string, e.g. https://example.com."),
+			'seoShareImage' => array('background', "Share image must be an existing local PNG, JPEG, GIF, WebP or AVIF image path, or blank."),
+			'seoTwitterHandle' => array('handle', "Twitter/X handle must be letters, digits and underscores, up to 15 characters."),
+			'seoGoogleVerification' => array('token', "The Google verification code must be the content value only: letters, digits, - and _."),
+			'seoBingVerification' => array('token', "The Bing verification code must be the content value only: letters, digits, - and _."),
+			'seoRobotsExtra' => array('robots', "Extra robots.txt rules must be lines of User-agent, Allow, Disallow, Crawl-delay or Sitemap, at most 2000 characters."),
+		);
+		foreach($seoChecks as $key => $check){
+			if(array_key_exists($key, $settings) && self::sanitizeSetting($check[0], $settings[$key]) === null){ return $check[1]; }
 		}
 
 		$clean = self::currentSettings(); //start from what's active, override per key
@@ -402,6 +447,36 @@ class ghoti {
 				$v = str_replace(array('<','>','"',"'","\\","\r","\n"," "), '', (string)$value);
 				$v = trim($v);
 				return substr($v, 0, 200);
+			case 'url':
+				if(!is_string($value)){ return null; }
+				if(trim($value) === ''){ return ''; }
+				$url = ghoti_seo_clean_url($value);
+				return $url === '' ? null : $url;
+			case 'handle':
+				if(!is_string($value)){ return null; }
+				$value = ltrim(trim($value), '@');
+				return $value === '' || preg_match('/^[A-Za-z0-9_]{1,15}$/', $value) ? $value : null;
+			case 'token':
+				if(!is_string($value)){ return null; }
+				$value = trim($value);
+				return $value === '' || preg_match('/^[A-Za-z0-9_-]{1,100}$/', $value) ? $value : null;
+			case 'longtext':
+				//A single line, like 'text', but long enough for a description.
+				$v = strip_tags((string)$value);
+				$v = preg_replace('/\s+/', ' ', str_replace('"', '', $v));
+				return trim(mb_substr($v, 0, 300));
+			case 'robots':
+				if(!is_string($value)){ return null; }
+				$value = trim(str_replace("\r\n", "\n", $value));
+				if(strlen($value) > 2000){ return null; }
+				$lines = array();
+				foreach(explode("\n", $value) as $line){
+					$line = trim($line);
+					if($line === '' || $line[0] === '#'){ $lines[] = $line; continue; }
+					if(!preg_match('/^(User-agent|Allow|Disallow|Crawl-delay|Sitemap)\s*:\s*[\x21-\x7e]*$/i', $line)){ return null; }
+					$lines[] = $line;
+				}
+				return implode("\n", $lines);
 			case 'text':
 			default:
 				$v = strip_tags((string)$value);
@@ -441,4 +516,6 @@ class ghoti {
 include_once('ghoti.documentation.php');
 include_once('ghoti.backup.php');
 include_once('ghoti.mail.php');
+include_once('ghoti.seo.php');
+include_once('ghoti.totp.php');
 ?>
