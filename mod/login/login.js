@@ -173,8 +173,19 @@ function loginTwoFactorPending(result){
 	return !!(result && typeof result === 'object' && result.twoFactor === 'required');
 }
 
+/*
+ * One verifyTwoFactor request at a time. A pasted code fires the input handler
+ * and an Enter right after it fires submit, so two requests could race: the one
+ * that succeeds regenerates the session id, and the other - still carrying the
+ * old cookie and token - could then overwrite the new session cookie, leaving
+ * every following request failing CSRF. Held from send until a reply that
+ * allows another try; never released after success.
+ */
+var twoFactorRequestPending = false;
 var loginTwoFactorMethod = "email";
+
 function loginShowTwoFactorForm(method){
+	twoFactorRequestPending = false;
 	loginTwoFactorMethod = method === "app" ? "app" : "email";
 	var app = loginTwoFactorMethod === "app";
 	$("#popupTitle").html(app ? "Enter your authenticator code" : "Check your email");
@@ -202,7 +213,7 @@ function loginShowTwoFactorForm(method){
 	var field = document.getElementById("twoFactorCode");
 	field.addEventListener("input", function(){
 		setTwoFactorError("");
-		if(field.value.replace(/\D/g, "").length === 6){ submitTwoFactor(); }
+		if(!twoFactorRequestPending && field.value.replace(/\D/g, "").length === 6){ submitTwoFactor(); }
 	});
 	showPopup();
 	field.focus();
@@ -215,16 +226,35 @@ function setTwoFactorError(message){
 	box.hidden = !message;
 }
 
+//Locks or unlocks the form along with twoFactorRequestPending, so what the
+//person can press matches what the page will accept.
+function setTwoFactorBusy(busy){
+	twoFactorRequestPending = busy;
+	var field = document.getElementById("twoFactorCode");
+	var form = document.getElementById("twoFactorForm");
+	var submitButton = form ? form.querySelector('button[type="submit"]') : null;
+	if(field){ field.disabled = busy; }
+	if(submitButton){
+		submitButton.disabled = busy;
+		submitButton.textContent = busy ? "Signing in\u2026" : "Sign in";
+	}
+}
+
 function submitTwoFactor(){
+	if(twoFactorRequestPending){ return; }
 	var field = document.getElementById("twoFactorCode");
 	if(!field){ return; }
 	var code = field.value.replace(/\D/g, "");
 	if(code.length !== 6){ return setTwoFactorError(loginTwoFactorMethod === "app" ? "Enter the six-digit code from your authenticator app." : "Enter the six-digit code from your email."); }
+	setTwoFactorBusy(true);
 	x_verifyTwoFactor(code, verifyTwoFactor_cb);
 }
 
 function verifyTwoFactor_cb(result){
+	//Success keeps the lock: the session is established and the form is going
+	//away, so nothing may send a second code on the old session.
 	if(result > 0){ return loginEstablished(result); }
+	setTwoFactorBusy(false);
 	if(result === 0 || result === "0"){
 		setTwoFactorError(loginTwoFactorMethod === "app"
 			? "That code is not right. Wait for the next code in your app and try again."
@@ -240,6 +270,9 @@ function verifyTwoFactor_cb(result){
 }
 
 function cancelTwoFactor(){
+	//A cancel racing an in-flight code is the same session race as a double
+	//submit, so it waits for the reply.
+	if(twoFactorRequestPending){ return; }
 	x_cancelTwoFactor(function(){ cancelPopup('popup-bg'); });
 }
 
