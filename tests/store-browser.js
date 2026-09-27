@@ -16,10 +16,13 @@
 		check(visible().length === 0 && !root.querySelector('.ghotiStoreNoResults').hidden, 'No-results state');
 		check(getComputedStyle(root.querySelector('.ghotiStoreCard')).display === 'none', 'Hidden cards respect CSS');
 		storeResetFilters(root.querySelector('.ghotiStoreNoResults button'));
-		check(visible().length === 4 && root.querySelector('.ghotiStoreNoResults').hidden, 'Reset restores collection');
+		check(visible().length === 6 && root.querySelector('.ghotiStoreNoResults').hidden, 'Reset restores collection');
 		var kind = root.querySelector('[data-store-kind]'); kind.value = 'spring'; storeFilterCatalog(kind);
 		check(visible().length === 1 && visible()[0].dataset.spring === '1', 'Spring filter');
 		check(!visible()[0].querySelector('input[type=number]'), 'No local quantities on Spring card');
+		kind.value = 'service'; storeFilterCatalog(kind);
+		check(visible().length === 2, 'Service filter');
+		check(visible().some(function(card){ return card.querySelector('button') && card.textContent.includes('Managed web hosting') && !card.querySelector('input[type=number]'); }), 'Subscription service bypasses cart quantity');
 		kind.value = 'sale'; storeFilterCatalog(kind);
 		check(visible().length === 1 && visible()[0].dataset.sale === '1', 'Sale filter');
 		check(visible()[0].querySelector('.ghotiStoreRibbon').textContent.includes('33%'), 'Sale percentage displayed');
@@ -34,7 +37,7 @@
 		check(visible().length === 2, 'Category filter');
 		storeResetFilters(root.querySelector('.ghotiStoreNoResults button'));
 		var sort = root.querySelector('[data-store-sort]'); sort.value = 'price-asc'; storeFilterCatalog(sort);
-		check(visible().map(function(card){return Number(card.dataset.price);}).join(',') === '1200,2400,2600,3200', 'Ascending prices');
+		check(visible().map(function(card){return Number(card.dataset.price);}).join(',') === '800,1200,1500,2400,2600,3200', 'Ascending prices');
 		sort.value = 'newest'; storeFilterCatalog(sort);
 		check(visible()[0].dataset.name === 'Weekend canvas tote', 'Newest sort');
 		sort.value = 'featured'; storeFilterCatalog(sort);
@@ -64,6 +67,12 @@
 		route.value = 'self'; storeToggleDropshipFields();
 		check(!document.getElementById('storeDownloadField').hidden && document.getElementById('storeSpringField').hidden, 'Local digital uses download path');
 		check(document.getElementById('storeProductExternal').disabled, 'Hidden Spring URL cannot block local product validation');
+		storeEditProduct(6);
+		check(document.getElementById('storeProductKind').value === 'service' && !document.querySelector('.storeServiceField').hidden, 'Service editor fields visible');
+		check(document.getElementById('storeProductBilling').value === 'subscription' && !document.querySelector('.storeSubscriptionField').hidden, 'Subscription billing fields visible');
+		check(document.getElementById('storeProductPlanId').value === 'P-1234567890', 'PayPal plan id displayed');
+		storeSaveProduct();
+		check(window.lastSaved.billingType === 'subscription' && window.lastSaved.serviceRequired === 1, 'Subscription form payload');
 		storeCloseProduct();
 		var adminSearch = document.querySelector('.ghotiStoreAdminSearch input'); adminSearch.value = 'Spring'; storeFilterProducts(adminSearch);
 		check(Array.from(document.querySelectorAll('[data-store-admin-product]')).filter(function(row){return !row.hidden;}).length === 1, 'Admin search includes provider');

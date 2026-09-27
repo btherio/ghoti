@@ -30,7 +30,7 @@ function ghoti_backup_excluded_path($relative){
     $base = end($parts);
     if(in_array($base, array(
         'db.config.local.php','db.provisioned.json','ghoti.settings.json.tmp',
-        'login.throttle.json','security.blacklist.json','critical-alerts.json',
+        'login.throttle.json','security.blacklist.json','critical-alerts.json','critical-alerts.pending.json','critical-alerts.history.json',
         'agents.md','agent.md','claude.md', GHOTI_BACKUP_MANIFEST
     ), true)){ return true; }
     return $base === 'ghoti.log' || strpos($base, 'ghoti.log.') === 0 || substr($base, -4) === '.tmp';

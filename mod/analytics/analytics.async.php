@@ -167,14 +167,15 @@ class analyticsui{
 
 		$out  = "<div id=\"ghotiAnalytics\">\n";
 		$docs = ghoti_docs_panel("How to use analytics", "tabs, ranges, tiles, export, logs", array(
-			array('heading' => 'The three tabs',
+			array('heading' => 'The four tabs',
 				'list' => array(
 					'<b>Usage data</b> &mdash; who visited, which pages, which browsers and referrers.',
 					'<b>Errors</b> &mdash; error-like lines from this site&rsquo;s own log, grouped by message and counted, so a fault that recurs stands out from one that happened once.',
 					'<b>Server logs</b> &mdash; the raw site log, newest first, and the Apache log analyzer for the web server&rsquo;s own access and error logs.',
+					'<b>Alerts</b> &mdash; every critical alert e-mailed to administrators, by number. The e-mail only says what kind of problem it was; open the matching alert here to see the log events behind it and whether each administrator&rsquo;s copy was delivered.',
 					'The tab you are on survives a range change, so you can compare 7d and 90d without losing your place.')),
 			array('heading' => 'Choose a range',
-				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons scope <b>Usage data</b> and <b>Errors</b> &mdash; and the CSV export.', 'The range does not apply to <b>Server logs</b>: a log file is whatever the server has written, and the Apache analyzer reads the file you pick.')),
+				'list' => array('The <b>7d / 30d / 90d / 1y</b> buttons scope <b>Usage data</b> and <b>Errors</b> &mdash; and the CSV export.', 'The range does not apply to <b>Server logs</b> or <b>Alerts</b>: a log file is whatever the server has written, the Apache analyzer reads the file you pick, and the last 100 alerts are always listed.')),
 			array('heading' => 'Exclude admin views',
 				'list' => array('Tick the checkbox to ignore pageviews recorded while an admin was viewing, for visitor-only numbers.')),
 			array('heading' => 'The tiles',
@@ -205,10 +206,10 @@ class analyticsui{
 		$out .= "</div>\n";
 
 		//KPI row
-		//Three tabs, because this screen had grown into three unrelated jobs
-		//stacked in one scroll: what visitors did, what broke, and what the web
-		//server itself recorded. An admin chasing a 500 should not have to
-		//scroll past seven charts to reach the log.
+		//Tabs, because this screen had grown into unrelated jobs stacked in one
+		//scroll: what visitors did, what broke, what the web server itself
+		//recorded, and what administrators were alerted about. An admin chasing
+		//a 500 should not have to scroll past seven charts to reach the log.
 		//
 		//data-analytics-tab, NOT data-report-tab: the Apache card inside the
 		//Server logs panel has tabs of its own and queries that attribute.
@@ -272,6 +273,11 @@ class analyticsui{
 		$out .= $this->apacheLogCard();
 		$out .= $this->panelClose();
 
+		/* ---- Alerts: the details an alert e-mail deliberately leaves out ---- */
+		$out .= $this->panelOpen('alerts', 'Alerts', false);
+		$out .= $this->alertsCard(GhotiAlertHistory::forSite()->alerts());
+		$out .= $this->panelClose();
+
 		$out .= "</div>\n"; //analytics-tab-panels
 
 		$out .= $docs;
@@ -281,7 +287,7 @@ class analyticsui{
 		return $out;
 	}
 
-	/* The three dashboard views. Kept in one place so the strip and the panels
+	/* The dashboard views. Kept in one place so the strip and the panels
 	 * cannot drift apart - a tab pointing at a panel id that does not exist is
 	 * a tab that does nothing, and nothing about the page would say why. */
 	public static function tabs(){
@@ -289,6 +295,7 @@ class analyticsui{
 			array('usage',  'Usage data',  'Visitors, pages, referrers'),
 			array('errors', 'Errors',      'What is going wrong, grouped'),
 			array('logs',   'Server logs', 'The raw log and the Apache analyzer'),
+			array('alerts', 'Alerts',      'What administrators were e-mailed about'),
 		);
 	}
 
@@ -349,6 +356,89 @@ class analyticsui{
 			$out .= "</ol>\n";
 		}
 		$out .= "</div>\n";
+		return $out;
+	}
+
+	/*
+	 * Every alert e-mailed to administrators, newest first, each opening to the
+	 * log events that counted towards it and how each delivery went. The e-mail
+	 * names the alert by number (#N) and sends the reader here.
+	 *
+	 * Every stored string is escaped: the lines are log entries, and log entries
+	 * carry what visitors typed (a username, a path).
+	 */
+	private function alertsCard(array $alerts){
+		$e = function($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+		$when = function($t){ return gmdate('Y-m-d H:i:s', (int)$t).' UTC'; };
+		$explain = array(
+			'critical-error'    => 'An ERROR was written to the site log. One is enough to alert.',
+			'failed-login'      => 'Five or more failed or throttled sign-ins within 15 minutes.',
+			'suspicious-access' => 'Five or more rejected requests (bad security token, admin-only endpoint, forged session) within 15 minutes.',
+		);
+		$statusText = array('sent' => 'Delivered', 'partial' => 'Partly delivered', 'failed' => 'Not delivered', 'sending' => 'Delivery did not finish');
+
+		$out  = "<div class=\"card analytics-card analytics-alerts-card wide\">\n";
+		$out .= "<h2>Alerts sent to administrators <span class=\"analytics-muted\">(".count($alerts)." kept, newest first)</span></h2>\n";
+		$out .= "<p class=\"analytics-alerts-intro\">"
+			.(ghoti::$enableCriticalAlerts
+				? "Critical alerts are <b>on</b>."
+				: "Critical alerts are <b>off</b>; turn them on in <b>Site Settings &rarr; Logging &amp; alerts</b>. Earlier alerts stay listed.")
+			." An alert e-mail says only what kind of problem it was and its number. The events behind it, with their log messages, are here. Times are UTC, as in the e-mail.</p>\n";
+		if(!$alerts){
+			$out .= "<div class=\"analytics-empty\">No alerts have been sent.</div>\n</div>\n";
+			return $out;
+		}
+		$out .= "<div class=\"analytics-alerts\">\n";
+		foreach($alerts as $i => $alert){
+			$id = (int)($alert['id'] ?? 0);
+			$status = (string)($alert['status'] ?? 'sending');
+			$deliveries = is_array($alert['deliveries'] ?? null) ? $alert['deliveries'] : array();
+			$events = is_array($alert['events'] ?? null) ? $alert['events'] : array();
+			$reached = 0;
+			foreach($deliveries as $d){ if(($d['status'] ?? '') === 'sent'){ $reached++; } }
+			$category = (string)($alert['category'] ?? '');
+
+			//The newest is open: that is the one an admin arriving from the e-mail wants.
+			$out .= "<details class=\"analytics-alert analytics-alert--".$e($status)."\" id=\"alert-".$id."\"".($i === 0 ? " open" : "").">\n";
+			$out .= "<summary>";
+			$out .= "<span class=\"analytics-alert-id\">#".$id."</span>";
+			$out .= "<span class=\"analytics-alert-label\">".$e($alert['label'] ?? $category)."</span>";
+			$out .= "<span class=\"analytics-alert-when\">".$e($when($alert['time'] ?? 0))."</span>";
+			$out .= "<span class=\"analytics-alert-status\">".$e($statusText[$status] ?? $status)." &middot; ".$reached." of ".count($deliveries)."</span>";
+			$out .= "</summary>\n";
+			$out .= "<div class=\"analytics-alert-body\">\n";
+			if(isset($explain[$category])){ $out .= "<p class=\"analytics-alert-why\">".$e($explain[$category])."</p>\n"; }
+			$out .= "<dl class=\"analytics-alert-facts\">";
+			$out .= "<dt>Window</dt><dd>".$e($when($alert['windowStart'] ?? 0))." &ndash; ".$e($when($alert['time'] ?? 0))."</dd>";
+			$out .= "<dt>Events counted</dt><dd>".(int)($alert['count'] ?? 0).(count($events) < (int)($alert['count'] ?? 0) ? " <span class=\"analytics-muted\">(the latest ".count($events)." are listed)</span>" : "")."</dd>";
+			$out .= "</dl>\n";
+
+			$out .= "<h3>Events</h3>\n";
+			if(!$events){
+				$out .= "<p class=\"analytics-muted\">No event details were recorded for this alert.</p>\n";
+			}else{
+				$out .= "<ol class=\"analytics-alert-events\">\n";
+				foreach(array_reverse($events) as $event){
+					$out .= "<li><span class=\"analytics-alert-event-time\">".$e(gmdate('H:i:s', (int)($event['time'] ?? 0)))."</span>"
+						."<span class=\"analytics-alert-event-level\">".$e($event['level'] ?? '')."</span>"
+						."<code class=\"analytics-alert-event-context\">".$e($event['context'] ?? '')."</code>"
+						."<span class=\"analytics-alert-event-line\">".$e($event['line'] ?? '')."</span></li>\n";
+				}
+				$out .= "</ol>\n";
+			}
+
+			$out .= "<h3>Delivery</h3>\n<ul class=\"analytics-alert-deliveries\">\n";
+			foreach($deliveries as $d){
+				$ok = ($d['status'] ?? '') === 'sent';
+				$out .= "<li><code>".$e($d['to'] ?? '')."</code> &mdash; "
+					.($ok ? "delivered to the mail server" : "<b>".$e(($d['status'] ?? '') === 'pending' ? 'not attempted' : 'failed')."</b>"
+						.(($d['detail'] ?? '') !== '' ? ": ".$e($d['detail']) : ""))
+					."</li>\n";
+			}
+			$out .= "</ul>\n";
+			$out .= "</div>\n</details>\n";
+		}
+		$out .= "</div>\n</div>\n";
 		return $out;
 	}
 

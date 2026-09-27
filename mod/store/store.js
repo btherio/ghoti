@@ -15,14 +15,21 @@
  */
 
 var GHOTI_STORE_SDK = null; //a promise once the PayPal SDK has begun loading
+var GHOTI_STORE_SUBSCRIPTION_SDK = null;
+var GHOTI_STORE_CRYPTO_TIMER = null;
+var GHOTI_STORE_STRIPE_SCRIPT = null;
+var GHOTI_STORE_SQUARE_SCRIPT = null;
+var GHOTI_STORE_SQUARE_CARD = null;
 
 function showStore(category){
+	storeStopCryptoPoll();
 	x_showStore(category || 'all', function(html){
 		printPage(html);
 	});
 }
 
 function storeShowCart(code){
+	storeStopCryptoPoll();
 	x_storeShowCart(code === undefined ? null : code, function(html){
 		printPage(html);
 	});
@@ -56,9 +63,19 @@ function storeSetCartQuantity(productId, quantity){
 }
 
 function storeShowCheckout(){
+	storeStopCryptoPoll();
 	x_storeShowCheckout(function(html){
 		printPage(html);
 		storeMountPaypal();
+		storeMountSquare();
+	});
+}
+
+function storeShowSubscription(productId){
+	storeStopCryptoPoll();
+	x_storeShowSubscription(productId, function(html){
+		printPage(html);
+		storeMountSubscriptionPaypal();
 	});
 }
 
@@ -115,7 +132,11 @@ function storeCheckoutFields(){
 		region: value('storeRegion'),
 		postcode: value('storePostcode'),
 		country: value('storeCountry'),
-		note: value('storeNote')
+		note: value('storeNote'),
+		serviceDetails: Array.prototype.reduce.call(document.querySelectorAll('[data-store-service]'), function(details, field){
+			details[field.dataset.storeService] = field.value;
+			return details;
+		}, {})
 	};
 }
 
@@ -183,6 +204,199 @@ function storeMountPaypal(){
 	});
 }
 
+function storeStopCryptoPoll(){
+	if(GHOTI_STORE_CRYPTO_TIMER){ window.clearTimeout(GHOTI_STORE_CRYPTO_TIMER); }
+	GHOTI_STORE_CRYPTO_TIMER = null;
+}
+
+function storeBeginCryptoPayment(button){
+	var form = document.getElementById('ghotiStoreCheckoutForm');
+	if(form && !form.reportValidity()){ return; }
+	var currency = document.getElementById('storeCryptoCurrency');
+	if(!currency){ return; }
+	if(button){ button.disabled = true; }
+	storePayStatus('Creating a deposit address…');
+	x_storeBeginCryptoCheckout(storeCheckoutFields(), currency.value, function(result){
+		if(button){ button.disabled = false; }
+		if(!result || !result.ok){
+			storePayStatus((result && result.error) || 'The crypto payment could not be started.', true);
+			return;
+		}
+		printPage(result.html);
+		if(!result.final){ storeScheduleCryptoPoll(result.orderId); }
+	});
+}
+
+function storeRefreshCryptoPayment(orderId, button, automatic){
+	storeStopCryptoPoll();
+	if(button){ button.disabled = true; }
+	storePayStatus('Checking network confirmations…');
+	x_storeRefreshCryptoPayment(orderId, function(result){
+		if(button){ button.disabled = false; }
+		if(!result || !result.ok){
+			storePayStatus((result && result.error) || 'The payment status could not be checked.', true);
+			//A temporary provider outage should not strand an otherwise valid page.
+			if(automatic){ storeScheduleCryptoPoll(orderId); }
+			return;
+		}
+		printPage(result.html);
+		if(!result.final){ storeScheduleCryptoPoll(orderId); }
+		if(result.final && result.submitQueued && typeof x_storeSubmitQueued === 'function'){
+			x_storeSubmitQueued(function(){});
+		}
+	});
+}
+
+function storeScheduleCryptoPoll(orderId){
+	storeStopCryptoPoll();
+	var panel = document.getElementById('ghotiStoreCryptoPayment');
+	if(!panel || panel.dataset.final === '1'){ return; }
+	GHOTI_STORE_CRYPTO_TIMER = window.setTimeout(function(){
+		storeRefreshCryptoPayment(orderId, null, true);
+	}, 12000);
+}
+
+function storeCopyCrypto(id, button){
+	var node = document.getElementById(id);
+	if(!node){ return; }
+	var value = node.textContent || '';
+	if(navigator.clipboard && navigator.clipboard.writeText){
+		navigator.clipboard.writeText(value).then(function(){
+			if(button){ button.textContent = 'Copied'; window.setTimeout(function(){ button.textContent = 'Copy'; }, 1500); }
+		}, function(){ pageFeedBack('Copy failed. Select the value manually.'); });
+	}else{ pageFeedBack('Select and copy the value manually.'); }
+}
+
+function storeLoadPaymentScript(url, globalName, cached){
+	if(window[globalName]){ return Promise.resolve(window[globalName]); }
+	if(cached){ return cached; }
+	return new Promise(function(resolve,reject){
+		var script=document.createElement('script'); script.src=url; script.async=true;
+		script.onload=function(){ window[globalName] ? resolve(window[globalName]) : reject(new Error('The payment library did not initialize.')); };
+		script.onerror=function(){ reject(new Error('The payment library could not be loaded.')); };
+		document.head.appendChild(script);
+	});
+}
+
+function storeBeginStripePayment(button){
+	var form=document.getElementById('ghotiStoreCheckoutForm'); if(form && !form.reportValidity()){ return; }
+	button.disabled=true; storePayStatus('Preparing Stripe checkout…');
+	x_storeBeginStripeCheckout(storeCheckoutFields(),function(result){
+		button.disabled=false;
+		if(!result || !result.ok){ storePayStatus((result&&result.error)||'Stripe checkout could not be started.',true); return; }
+		printPage(result.html);
+		GHOTI_STORE_STRIPE_SCRIPT=storeLoadPaymentScript('https://js.stripe.com/v3/','Stripe',GHOTI_STORE_STRIPE_SCRIPT);
+		GHOTI_STORE_STRIPE_SCRIPT.then(function(Stripe){
+			var stripe=Stripe(result.publishableKey), elements=stripe.elements({clientSecret:result.clientSecret});
+			var payment=elements.create('payment'); payment.mount('#ghotiStoreStripeElement');
+			var payButton=document.getElementById('ghotiStoreStripeButton');
+			payButton.addEventListener('click',function(){
+				payButton.disabled=true; storePayStatus('Confirming with Stripe…');
+				stripe.confirmPayment({elements:elements,confirmParams:{return_url:window.location.href},redirect:'if_required'}).then(function(answer){
+					if(answer.error){ payButton.disabled=false; storePayStatus(answer.error.message||'Stripe could not complete the payment.',true); return; }
+					storeRefreshProcessorPayment(result.orderId,null);
+				});
+			});
+		}).catch(function(error){ storePayStatus(error.message||'Stripe is unavailable.',true); });
+	});
+}
+
+function storeMountSquare(){
+	var panel=document.getElementById('ghotiStoreSquare'); if(!panel){ return; }
+	var url=panel.dataset.env==='live'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js';
+	GHOTI_STORE_SQUARE_SCRIPT=storeLoadPaymentScript(url,'Square',GHOTI_STORE_SQUARE_SCRIPT);
+	GHOTI_STORE_SQUARE_SCRIPT.then(function(Square){ return Square.payments(panel.dataset.appId,panel.dataset.locationId).card(); })
+		.then(function(card){ GHOTI_STORE_SQUARE_CARD=card; return card.attach('#ghotiStoreSquareCard'); })
+		.then(function(){ var button=document.getElementById('ghotiStoreSquareButton'); if(button){ button.disabled=false; } })
+		.catch(function(error){ storePayStatus(error.message||'Square is unavailable.',true); });
+}
+
+function storePayWithSquare(button){
+	var form=document.getElementById('ghotiStoreCheckoutForm'); if(form && !form.reportValidity()){ return; }
+	var panel=document.getElementById('ghotiStoreSquare'); if(!panel || !GHOTI_STORE_SQUARE_CARD){ return; }
+	var fields=storeCheckoutFields(), names=fields.name.trim().split(/\s+/);
+	button.disabled=true; storePayStatus('Securing your card with Square…');
+	GHOTI_STORE_SQUARE_CARD.tokenize({amount:panel.dataset.amount,currencyCode:panel.dataset.currency,intent:'CHARGE',customerInitiated:true,sellerKeyedIn:false,
+		billingContact:{givenName:names.shift()||'',familyName:names.join(' '),email:fields.email,addressLines:[fields.address1,fields.address2].filter(Boolean),city:fields.city,state:fields.region,postalCode:fields.postcode,countryCode:fields.country.toUpperCase()}})
+		.then(function(tokenResult){
+			if(tokenResult.status!=='OK'){ throw new Error((tokenResult.errors&&tokenResult.errors[0]&&tokenResult.errors[0].message)||'Square could not tokenize the card.'); }
+			storePayStatus('Completing your Square payment…');
+			x_storeBeginSquareCheckout(fields,tokenResult.token,function(result){
+				if(!result||!result.ok){ button.disabled=false; storePayStatus((result&&result.error)||'Square could not complete the payment.',true); return; }
+				printPage(result.html); if(result.submitQueued&&typeof x_storeSubmitQueued==='function'){ x_storeSubmitQueued(function(){}); }
+			});
+		}).catch(function(error){ button.disabled=false; storePayStatus(error.message||'Square could not tokenize the card.',true); });
+}
+
+function storeRefreshProcessorPayment(orderId,button){
+	if(button){ button.disabled=true; } storePayStatus('Checking payment status…');
+	x_storeRefreshProcessorPayment(orderId,function(result){
+		if(button){ button.disabled=false; }
+		if(!result||!result.ok){ storePayStatus((result&&result.error)||'The payment could not be verified.',true); return; }
+		printPage(result.html); if(result.submitQueued&&typeof x_storeSubmitQueued==='function'){ x_storeSubmitQueued(function(){}); }
+	});
+}
+
+//Subscriptions need PayPal's subscription intent and vault mode. A separate
+//namespace lets this SDK coexist with the Orders SDK when both were loaded in
+//the same page session.
+function storeLoadSubscriptionPaypal(){
+	if(GHOTI_STORE_SUBSCRIPTION_SDK){ return GHOTI_STORE_SUBSCRIPTION_SDK; }
+	GHOTI_STORE_SUBSCRIPTION_SDK = new Promise(function(resolve, reject){
+		x_storePaypalConfig(function(config){
+			if(!config || !config.ok){ reject(new Error((config && config.error) || 'This store is not connected to PayPal yet.')); return; }
+			if(window.paypalSubscriptions){ resolve(window.paypalSubscriptions); return; }
+			var script = document.createElement('script');
+			script.setAttribute('data-namespace', 'paypalSubscriptions');
+			script.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(config.clientId)
+				+ '&currency=' + encodeURIComponent(config.currency) + '&intent=subscription&vault=true&components=buttons';
+			script.onload = function(){
+				if(window.paypalSubscriptions){ resolve(window.paypalSubscriptions); }
+				else { reject(new Error('The PayPal subscription button did not load.')); }
+			};
+			script.onerror = function(){ reject(new Error('The PayPal subscription button could not be loaded.')); };
+			document.head.appendChild(script);
+		});
+	});
+	GHOTI_STORE_SUBSCRIPTION_SDK.catch(function(){ GHOTI_STORE_SUBSCRIPTION_SDK = null; });
+	return GHOTI_STORE_SUBSCRIPTION_SDK;
+}
+
+function storeMountSubscriptionPaypal(){
+	var root = document.getElementById('ghotiStoreSubscription');
+	var container = document.getElementById('ghotiStoreSubscriptionPaypal');
+	if(!root || !container){ return; }
+	storePayStatus('Loading the PayPal subscription button…');
+	storeLoadSubscriptionPaypal().then(function(paypal){
+		container.replaceChildren();
+		storePayStatus('');
+		paypal.Buttons({
+			style: { layout: 'vertical', shape: 'rect', label: 'subscribe' },
+			createSubscription: function(data, actions){
+				var form = document.getElementById('ghotiStoreSubscriptionForm');
+				if(form && !form.reportValidity()){ return Promise.reject(new Error('Check your subscription details.')); }
+				return actions.subscription.create({plan_id: root.dataset.planId});
+			},
+			onApprove: function(data){
+				storePayStatus('Confirming your subscription…');
+				return new Promise(function(resolve){
+					x_storeConfirmSubscription(root.dataset.productId, data.subscriptionID, {
+						name: document.getElementById('storeSubscriptionName').value,
+						email: document.getElementById('storeSubscriptionEmail').value,
+						serviceDetails: document.getElementById('storeSubscriptionDetails').value
+					}, function(result){
+						if(!result || !result.ok){ storePayStatus((result && result.error) || 'The subscription could not be confirmed.', true); resolve(); return; }
+						printPage(result.html);
+						resolve();
+					});
+				});
+			},
+			onCancel: function(){ storePayStatus('Subscription cancelled. Nothing has been started.'); },
+			onError: function(){ storePayStatus('PayPal reported a problem with this subscription.', true); }
+		}).render(container);
+	}).catch(function(error){ storePayStatus(error.message || 'PayPal is unavailable right now.', true); });
+}
+
 /* ---------------- admin ---------------- */
 
 function showStoreManager(tab){
@@ -230,15 +444,23 @@ function storeEditProduct(productId, duplicate){
 		+ storeField('storeProductDelivery', 'Delivery note (optional)', product ? product.deliveryNote : '', 'text', 'maxlength="160" placeholder="Made to order · Ships in 5–7 days"')
 		+ storeField('storeProductCategory', 'Category', product ? product.category : 'default', 'text', 'maxlength="40"')
 		+ '<label class="ghotiField"><span>Kind</span><select id="storeProductKind" onchange="storeToggleDownloadField();">'
-		+ '<option value="physical"' + (product && product.kind === 'digital' ? '' : ' selected="selected"') + '>Physical &mdash; needs shipping</option>'
+		+ '<option value="physical"' + (!product || product.kind === 'physical' ? ' selected="selected"' : '') + '>Physical &mdash; needs shipping</option>'
 		+ '<option value="digital"' + (product && product.kind === 'digital' ? ' selected="selected"' : '') + '>Digital &mdash; delivered as a download</option>'
+		+ '<option value="service"' + (product && product.kind === 'service' ? ' selected="selected"' : '') + '>Service &mdash; provisioned for the customer</option>'
 		+ '</select></label>'
 		+ storeField('storeProductSort', 'Sort order', product ? product.sortOrder : 0, 'number', 'min="0" max="99999" step="1"')
 		+ storeField('storeProductImage', 'Image URL', product ? product.imageUrl : '', 'text', 'maxlength="2048" placeholder="files/shop/mug.jpg"')
 		+ '<label class="ghotiField" id="storeDownloadField"><span>File to deliver <i>(path under files/store/)</i></span>'
 		+ '<input type="text" id="storeProductDownload" maxlength="255" value="' + storeAttr(product ? product.downloadPath : '') + '" placeholder="guide.pdf" /></label>'
+		+ '<label class="ghotiField storeServiceField"><span>Billing</span><select id="storeProductBilling" onchange="storeToggleDownloadField();">'
+		+ '<option value="one_time"' + (!product || product.billingType !== 'subscription' ? ' selected="selected"' : '') + '>One-time purchase</option>'
+		+ '<option value="subscription"' + (product && product.billingType === 'subscription' ? ' selected="selected"' : '') + '>Recurring PayPal subscription</option></select></label>'
+		+ storeField('storeProductServiceTerm', 'Service / billing term', product ? product.serviceTerm : '', 'text', 'maxlength="80" placeholder="per month, 1 year, one-time setup…"').replace('class="ghotiField"', 'class="ghotiField storeServiceField"')
+		+ storeField('storeProductPlanId', 'PayPal plan ID', product ? product.paypalPlanId : '', 'text', 'maxlength="80" placeholder="P-…"').replace('class="ghotiField"', 'class="ghotiField storeServiceField storeSubscriptionField"')
+		+ storeField('storeProductServicePrompt', 'Setup question', product ? product.servicePrompt : '', 'text', 'maxlength="160" placeholder="Which domain should we configure?"').replace('class="ghotiField"', 'class="ghotiField storeServiceField"')
 		+ storeFulfilmentFields(product)
 		+ '</div>'
+		+ '<label class="ghotiInlineChoice storeServiceField"><input type="checkbox" id="storeProductServiceRequired"' + (product && product.serviceRequired ? ' checked="checked"' : '') + ' /> Require an answer to the setup question</label>'
 		+ '<label class="ghotiField ghotiFieldWide"><span>Description</span><textarea id="storeProductDescription" rows="4" maxlength="2000">'
 		+ storeAttr(product ? product.description : '') + '</textarea></label>'
 		+ '<label class="ghotiInlineChoice"><input type="checkbox" id="storeProductFeatured"' + (product && product.featured ? ' checked="checked"' : '') + ' /> Featured — show first in the collection</label>'
@@ -275,7 +497,7 @@ function storeFulfilmentFields(product){
 	});
 
 	return ''
-		+ '<label class="ghotiField"><span>Fulfilled by</span><select id="storeProductFulfilment" onchange="storeToggleDropshipFields();">'
+		+ '<label class="ghotiField" id="storeFulfilmentField"><span>Fulfilled by</span><select id="storeProductFulfilment" onchange="storeToggleDropshipFields();">'
 		+ '<option value="self"' + (current === 'self' ? ' selected="selected"' : '') + '>You &mdash; you ship it</option>'
 		+ '<option value="dropship"' + (current === 'dropship' ? ' selected="selected"' : '') + '>A supplier &mdash; sent to them when paid</option>'
 		+ '<option value="spring"' + (current === 'spring' ? ' selected="selected"' : '') + '>Spring / Teespring — checkout and fulfilment on Spring</option>'
@@ -294,6 +516,10 @@ function storeToggleDropshipFields(){
 	var provider = document.getElementById('storeProductProvider');
 	var kind = document.getElementById('storeProductKind');
 	if(!route){ return; }
+	var isService = kind && kind.value === 'service';
+	var routeField = document.getElementById('storeFulfilmentField');
+	if(routeField){ routeField.hidden = isService; }
+	if(isService){ route.value = 'self'; }
 	var isDrop = route.value === 'dropship';
 	var springField = document.getElementById('storeSpringField');
 	if(springField){ springField.hidden = route.value !== 'spring'; }
@@ -308,10 +534,10 @@ function storeToggleDropshipFields(){
 		field.hidden = !isDrop;
 	});
 	//A download has no supplier; the two routes are mutually exclusive.
-	if(isDrop && kind && kind.value === 'digital'){
+	if(isDrop && kind && kind.value !== 'physical'){
 		route.value = 'self';
 		storeToggleDropshipFields();
-		pageFeedBack('A digital download is delivered by this site, not by a supplier.');
+		pageFeedBack('Only a physical product can be sent to a supplier.');
 		return;
 	}
 	if(!isDrop || !provider){ return; }
@@ -353,6 +579,10 @@ function storeToggleDownloadField(){
 	var field = document.getElementById('storeDownloadField');
 	if(!kind || !field){ return; }
 	field.hidden = kind.value !== 'digital';
+	var service = kind.value === 'service';
+	document.querySelectorAll('.storeServiceField').forEach(function(node){ node.hidden = !service; });
+	var billing = document.getElementById('storeProductBilling');
+	document.querySelectorAll('.storeSubscriptionField').forEach(function(node){ node.hidden = !service || !billing || billing.value !== 'subscription'; });
 	storeToggleDropshipFields();
 }
 
@@ -375,6 +605,11 @@ function storeSaveProduct(){
 		compareAtPrice: value('storeProductCompareAt'),
 		badge: value('storeProductBadge'),
 		deliveryNote: value('storeProductDelivery'),
+		serviceTerm: value('storeProductServiceTerm'),
+		servicePrompt: value('storeProductServicePrompt'),
+		serviceRequired: document.getElementById('storeProductServiceRequired') && document.getElementById('storeProductServiceRequired').checked ? 1 : 0,
+		billingType: value('storeProductBilling'),
+		paypalPlanId: value('storeProductPlanId'),
 		externalUrl: value('storeProductExternal'),
 		featured: document.getElementById('storeProductFeatured').checked ? 1 : 0,
 		category: value('storeProductCategory'),
@@ -419,6 +654,14 @@ function storeSaveSettings(){
 		paypalClientId: value('store-clientId'),
 		paypalSecret: value('store-secret'),
 		paypalEnv: value('store-env'),
+		cryptoEnabled: !!(document.getElementById('store-cryptoEnabled') && document.getElementById('store-cryptoEnabled').checked),
+		cryptoApiKey: value('store-cryptoApiKey'),
+		cryptoCurrencies: value('store-cryptoCurrencies'),
+		stripeEnabled: !!(document.getElementById('store-stripeEnabled') && document.getElementById('store-stripeEnabled').checked),
+		stripePublishableKey: value('store-stripePublishableKey'), stripeSecretKey: value('store-stripeSecretKey'),
+		squareEnabled: !!(document.getElementById('store-squareEnabled') && document.getElementById('store-squareEnabled').checked),
+		squareApplicationId: value('store-squareApplicationId'), squareLocationId: value('store-squareLocationId'),
+		squareAccessToken: value('store-squareAccessToken'), squareEnv: value('store-squareEnv'),
 		currency: value('store-currency'),
 		shipping: value('store-shipping'),
 		shippingNote: value('store-shippingNote'),
@@ -428,6 +671,10 @@ function storeSaveSettings(){
 		if(result === true){
 			//Drop any SDK loaded for the previous credentials or currency.
 			GHOTI_STORE_SDK = null;
+			GHOTI_STORE_SUBSCRIPTION_SDK = null;
+			GHOTI_STORE_STRIPE_SCRIPT = null;
+			GHOTI_STORE_SQUARE_SCRIPT = null;
+			GHOTI_STORE_SQUARE_CARD = null;
 			pageFeedBack('Store settings saved.');
 			showStoreManager('settings');
 			return;
@@ -443,6 +690,28 @@ function storeShowOrder(orderId){
 		panel.innerHTML = html;
 		panel.hidden = false;
 		panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+	});
+}
+
+function storeRefreshCryptoOrder(orderId){
+	x_storeRefreshCryptoPayment(orderId, function(result){
+		if(result && result.ok){
+			if(result.submitQueued && typeof x_storeSubmitQueued === 'function'){ x_storeSubmitQueued(function(){}); }
+			pageFeedBack(result.final ? 'Crypto payment status updated.' : 'Payment is still awaiting confirmation.');
+			showStoreManager('orders');
+			return;
+		}
+		pageFeedBack((result && result.error) || 'The crypto payment status could not be refreshed.');
+	});
+}
+
+function storeRefreshProcessorOrder(orderId){
+	x_storeRefreshProcessorPayment(orderId,function(result){
+		if(result&&result.ok){
+			if(result.submitQueued&&typeof x_storeSubmitQueued==='function'){ x_storeSubmitQueued(function(){}); }
+			pageFeedBack(result.final?'Payment status updated.':'Payment is still pending.'); showStoreManager('orders'); return;
+		}
+		pageFeedBack((result&&result.error)||'The payment status could not be refreshed.');
 	});
 }
 
@@ -463,6 +732,31 @@ function storeSetOrderStatus(orderId, status){
 			return;
 		}
 		pageFeedBack(result || 'The order could not be updated.');
+	});
+}
+
+function storeSetOrderServiceStatus(orderId, status){
+	var question = status === 'fulfilled' ? 'Mark this service ready?' : 'Reopen this service setup?';
+	if(!confirm(question)){ return; }
+	x_setStoreOrderServiceStatus(orderId, status, function(result){
+		if(result === true){ pageFeedBack('Service status updated.'); showStoreManager('orders'); return; }
+		pageFeedBack(result || 'The service status could not be updated.');
+	});
+}
+
+function storeRefreshSubscription(subscriptionId){
+	x_refreshStoreSubscription(subscriptionId, function(result){
+		if(result === true){ pageFeedBack('Subscription status refreshed from PayPal.'); showStoreManager('subscriptions'); return; }
+		pageFeedBack(result || 'The subscription status could not be refreshed.');
+	});
+}
+
+function storeSetSubscriptionServiceStatus(subscriptionId, status){
+	var question = status === 'fulfilled' ? 'Mark this subscribed service ready?' : 'Reopen this service setup?';
+	if(!confirm(question)){ return; }
+	x_setStoreSubscriptionServiceStatus(subscriptionId, status, function(result){
+		if(result === true){ pageFeedBack('Subscription setup status updated.'); showStoreManager('subscriptions'); return; }
+		pageFeedBack(result || 'The setup status could not be updated.');
 	});
 }
 

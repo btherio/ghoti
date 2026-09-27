@@ -3,7 +3,7 @@ if(PHP_SAPI !== 'cli'){ http_response_code(404); exit; }
 /*
  * Run: php tests/analytics-tabs.php - no database, no browser, no network.
  *
- * The dashboard was one long scroll and is now three tabs. The regression a
+ * The dashboard was one long scroll and is now four tabs. The regression a
  * refactor like that invites is not a broken tab - that is visible the moment
  * anyone opens the screen - it is a card that quietly stops being rendered at
  * all, because it was dropped between two panels and nothing scrolls past its
@@ -40,15 +40,19 @@ class AnalyticsDbFake{
 }
 class AnalyticsObjFake{ public $analyticsdb; public function __construct(){ $this->analyticsdb = new AnalyticsDbFake(); } }
 
+//Never the live alert history: an empty scratch pair (tests/alerts.php
+//covers what fills it).
+GhotiAlertHistory::$pendingFile = sys_get_temp_dir().'/ghoti-tabs-pending-'.getmypid().'.json';
+GhotiAlertHistory::$archiveFile = sys_get_temp_dir().'/ghoti-tabs-history-'.getmypid().'.json';
 $_SESSION = array('analyticsObj' => new AnalyticsObjFake(), 'loggedIn' => true, 'userId' => 1);
 $html = (new analyticsui())->printDashboard(30, true);
 
-/* ---------------- the three tabs exist and are wired ---------------- */
+/* ---------------- the four tabs exist and are wired ---------------- */
 
 $tabs = analyticsui::tabs();
-analyticsCheck(count($tabs) === 3, 'Expected exactly three dashboard tabs');
-analyticsCheck(array_column($tabs, 0) === array('usage','errors','logs'), 'The tab ids changed: '.implode(',', array_column($tabs, 0)));
-analyticsCheck(array_column($tabs, 1) === array('Usage data','Errors','Server logs'), 'The tab labels changed: '.implode(',', array_column($tabs, 1)));
+analyticsCheck(count($tabs) === 4, 'Expected exactly four dashboard tabs');
+analyticsCheck(array_column($tabs, 0) === array('usage','errors','logs','alerts'), 'The tab ids changed: '.implode(',', array_column($tabs, 0)));
+analyticsCheck(array_column($tabs, 1) === array('Usage data','Errors','Server logs','Alerts'), 'The tab labels changed: '.implode(',', array_column($tabs, 1)));
 
 foreach($tabs as $tab){
 	list($id, $label) = $tab;
@@ -64,22 +68,24 @@ foreach($tabs as $tab){
 //Server logs panel. They are told apart by their labels, not their count.
 analyticsCheck(substr_count($html, 'aria-label="Analytics views"') === 1, 'Expected one dashboard tablist');
 analyticsCheck(substr_count($html, 'aria-label="Report views"') === 1, 'The Apache report tablist went missing');
-analyticsCheck(substr_count($html, 'data-analytics-tab=') === 3, 'Expected three tab buttons');
-analyticsCheck(substr_count($html, 'data-analytics-panel=') === 3, 'Expected three tab panels');
+analyticsCheck(substr_count($html, 'data-analytics-tab=') === 4, 'Expected four tab buttons');
+analyticsCheck(substr_count($html, 'data-analytics-panel=') === 4, 'Expected four tab panels');
 
-//Exactly one tab is selected and exactly two panels are hidden, or the screen
+//Exactly one tab is selected and exactly three panels are hidden, or the screen
 //opens either blank or showing everything at once. Counted inside the dashboard
 //strip only: the Apache report has a selected tab of its own.
 $stripStart = strpos($html, 'aria-label="Analytics views"');
 $strip = substr($html, $stripStart, strpos($html, '</div>', $stripStart) - $stripStart);
 analyticsCheck(substr_count($strip, 'aria-selected="true"') === 1, 'Expected exactly one selected dashboard tab');
-analyticsCheck(substr_count($strip, 'aria-selected="false"') === 2, 'Expected the other two dashboard tabs to be unselected');
-analyticsCheck(substr_count($strip, 'data-analytics-tab=') === 3, 'The dashboard strip does not hold all three tabs');
+analyticsCheck(substr_count($strip, 'aria-selected="false"') === 3, 'Expected the other three dashboard tabs to be unselected');
+analyticsCheck(substr_count($strip, 'data-analytics-tab=') === 4, 'The dashboard strip does not hold all four tabs');
 analyticsCheck(substr_count($html, 'data-analytics-panel="usage"') === 1 && strpos($html, 'data-analytics-panel="usage" hidden') === false, 'The first panel is not the visible one');
 analyticsCheck(substr_count($html, 'data-analytics-panel="errors" hidden="hidden"') === 1, 'The errors panel is not hidden on arrival');
 analyticsCheck(substr_count($html, 'data-analytics-panel="logs" hidden="hidden"') === 1, 'The server logs panel is not hidden on arrival');
+analyticsCheck(substr_count($html, 'data-analytics-panel="alerts" hidden="hidden"') === 1, 'The alerts panel is not hidden on arrival');
+analyticsCheck(strpos($html, 'No alerts have been sent.') !== false, 'The alerts panel has no empty state');
 //Roving tabindex: the inactive tabs are skipped by Tab, reachable by arrow keys.
-analyticsCheck(substr_count($strip, 'tabindex="-1"') === 2, 'Inactive dashboard tabs are still in the tab order');
+analyticsCheck(substr_count($strip, 'tabindex="-1"') === 3, 'Inactive dashboard tabs are still in the tab order');
 
 /* ---------------- the attribute names cannot collide ---------------- */
 
@@ -171,9 +177,9 @@ $stripAt = strpos($html, 'role="tablist"');
 analyticsCheck(strpos($html, 'analytics-toolbar') < $stripAt, 'The range toolbar moved inside a tab');
 analyticsCheck(strpos($html, 'setAnalyticsRange') < $stripAt, 'The range buttons moved inside a tab');
 analyticsCheck(strpos($html, 'analytics.export.php') < $stripAt, 'The CSV export moved inside a tab');
-//The docs panel stays outside, below: it describes all three tabs.
+//The docs panel stays outside, below: it describes all four tabs.
 analyticsCheck(analyticsPanelOf($html, 'How to use analytics') === 'outside', 'The docs panel was absorbed into a tab');
-analyticsCheck(strpos($html, 'The three tabs') !== false, 'The docs panel does not explain the tabs');
+analyticsCheck(strpos($html, 'The four tabs') !== false && strpos($html, '<b>Alerts</b>') !== false, 'The docs panel does not explain the tabs');
 
 //The chart payload is still emitted, and after the panels, so charts.js can
 //find it however the panels are arranged.

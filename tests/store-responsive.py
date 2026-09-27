@@ -21,13 +21,14 @@ def main():
         base = pathlib.Path(directory)
         jobs = []
         for theme in THEMES:
-            for view in ('catalog', 'cart', 'checkout', 'promotions'):
+            for view in ('catalog', 'cart', 'checkout', 'subscription', 'promotions', 'settings'):
                 fixture = base / f'{theme}-{view}.html'
                 rendered = subprocess.run(['php', 'tests/store-preview.php', '--test',
                                            f'--theme={theme}', f'--view={view}'], cwd=ROOT,
                                           check=True, capture_output=True).stdout
                 fixture.write_bytes(rendered)
-                for width in (390, 1366):
+                widths = (390, 768, 1366) if view == 'settings' else (390, 1366)
+                for width in widths:
                     jobs.append((theme, view, width, fixture))
 
         def check(job):
@@ -46,6 +47,10 @@ def main():
             surface = re.search(r'data-surface="([^"]+)', dom)
             if not surface:
                 raise RuntimeError(f'{theme}/{view}/{width}: theme surface missing')
+            if view == 'settings':
+                expected_columns = '2' if width == 1366 else '1'
+                if f'data-settings-columns="{expected_columns}"' not in dom:
+                    raise RuntimeError(f'{theme}/{view}/{width}: settings fields are still cramped')
             return f'PASS {theme}/{view}/{width} surface={surface.group(1)}'
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:

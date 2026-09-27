@@ -3,9 +3,9 @@
  * store.paypal.php - a small PayPal Orders v2 client.
  *
  * Mirrors mail.smtp.php: a dependency-free client class the module owns, rather
- * than a vendored SDK. It speaks exactly three calls - get an access token,
- * create an order, capture an order - because that is the whole of what a
- * server-side checkout needs.
+	 * than a vendored SDK. It speaks the Orders calls for one-time checkout and
+	 * reads subscription records after the browser creates them from a PayPal
+	 * plan. That server-side read is what makes a browser-supplied id trustworthy.
  *
  * The transport is injectable (a callable taking a request array and returning
  * array(status, body)) for the same reason GhotiAlertService takes one: the
@@ -89,7 +89,7 @@ class StorePaypalClient{
 				'name'        => self::clip($item['name'], 127),
 				'sku'         => self::clip($item['sku'], 127),
 				'quantity'    => (string)(int)$item['quantity'],
-				'category'    => $item['kind'] === 'digital' ? 'DIGITAL_GOODS' : 'PHYSICAL_GOODS',
+				'category'    => in_array($item['kind'], array('digital', 'service'), true) ? 'DIGITAL_GOODS' : 'PHYSICAL_GOODS',
 				'unit_amount' => array('currency_code' => $currency, 'value' => self::amount((int)$item['unitCents'])),
 			);
 		}
@@ -144,18 +144,38 @@ class StorePaypalClient{
 		);
 	}
 
+	//Verify a subscription id and return only the fields the store persists.
+	//Plan and lifecycle status are read from PayPal, never accepted from the
+	//browser that ran the subscription button.
+	public function getSubscription($paypalSubscriptionId){
+		$payload = $this->decode($this->authorized('GET', '/v1/billing/subscriptions/'.rawurlencode($paypalSubscriptionId), null));
+		if(empty($payload['id']) || empty($payload['plan_id']) || !hash_equals((string)$paypalSubscriptionId, (string)$payload['id'])){
+			throw new StorePaypalException('PayPal did not return a valid subscription.');
+		}
+		$next = (string)($payload['billing_info']['next_billing_time'] ?? '');
+		$nextAt = $next === '' ? 0 : strtotime($next);
+		return array(
+			'id' => (string)$payload['id'],
+			'planId' => (string)$payload['plan_id'],
+			'status' => strtoupper((string)($payload['status'] ?? '')),
+			'payerEmail' => (string)($payload['subscriber']['email_address'] ?? ''),
+			'nextBillingAt' => $nextAt === false ? 0 : (int)$nextAt,
+		);
+	}
+
 	/* ---------------- plumbing ---------------- */
 
 	private function authorized($method, $path, $body){
-		return $this->send(array(
+		$request = array(
 			'method'  => $method,
 			'url'     => $this->base.$path,
 			'headers' => array(
 				'Content-Type: application/json',
 				'Authorization: Bearer '.$this->accessToken(),
 			),
-			'body'    => json_encode($body),
-		));
+		);
+		if($body !== null){ $request['body'] = json_encode($body); }
+		return $this->send($request);
 	}
 
 	private function send($request){

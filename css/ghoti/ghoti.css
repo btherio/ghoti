@@ -802,8 +802,11 @@ input[type=button], input[type=submit], button{
   box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.22);
   text-decoration: none;
   max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  /* A label stays on one line. Wrapping (with overflow-wrap:anywhere) broke
+   * short labels mid-word - "Dele|te" - whenever a table column squeezed the
+   * button. Keep labels short enough to fit a phone instead; text buttons that
+   * show data (.ghotiTextButton, e.g. a product name) still wrap, below. */
+  white-space: nowrap;
   text-align: center;
   position: relative;
   transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
@@ -1667,6 +1670,8 @@ img.linkIcon:hover{ transform: scale(1.15); }
  * ================================================================== */
 .ghotiTextButton{
   display: inline;
+  white-space: normal;       /* link-style, often a name: let it wrap */
+  overflow-wrap: break-word; /* between words; only an overlong word is split */
   width: auto;
   margin: 0;
   padding: 0;

@@ -53,12 +53,16 @@ function fm_root(){
 	return realpath(dirname(__DIR__, 2));
 }
 
-//True when a basename is off-limits (also covers ghoti.log + rotations).
+//True when a basename is off-limits (also covers ghoti.log + rotations and
+//the critical-alerts* runtime files).
 function fm_is_denied($name){
 	$name = (string)$name;
 	$low  = strtolower($name);
 	if($low === '' || $low[0] === '.' || strpos($low, 'login.throttle.json') === 0 || in_array($low, FM_DENY_BASENAMES, true)){ return true; }
 	if(strpos($low, 'ghoti.log') === 0){ return true; }
+	//Alert counters and the alert history (log lines, usernames, IPs) - runtime
+	//state like ghoti.log, read through Analytics -> Alerts, never edited here.
+	if(strpos($low, 'critical-alerts') === 0){ return true; }
 	return false;
 }
 

@@ -102,6 +102,26 @@
 /* The PayPal buttons render into an iframe of their own; give them a sane
    maximum so they do not stretch the width of a wide page. */
 .ghotiStorePaypal{ max-width:420px; margin-top:.5rem; }
+.ghotiStorePaymentMethods{ margin-top:1.25rem; }
+.ghotiStorePaymentMethods > h2{ margin:0 0 .8rem; font-size:1.05rem; }
+.ghotiStorePaymentOption{
+	max-width:620px; margin:.75rem 0; padding:1rem;
+	border:1px solid var(--store-line); border-radius:14px; background:var(--store-raised);
+}
+.ghotiStorePaymentOption h3{ margin:0 0 .75rem; font-size:.95rem; }
+.ghotiStorePaymentOption .ghotiField{ max-width:320px; margin-bottom:.75rem; }
+#ghotiStoreStripeElement, #ghotiStoreSquareCard{ min-height:48px; margin-bottom:.85rem; padding:.75rem; border:1px solid var(--store-line); border-radius:9px; background:var(--store-surface); }
+.ghotiStoreCryptoPayment{ max-width:760px; }
+.ghotiStoreCryptoDetails{
+	display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem;
+	margin:1rem 0; padding:1rem; border:1px solid var(--store-line); border-radius:14px; background:var(--store-raised);
+}
+.ghotiStoreCryptoDetails > div{ min-width:0; }
+.ghotiStoreCryptoDetails dt{ color:var(--store-muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; }
+.ghotiStoreCryptoDetails dd{ margin:.25rem 0 0; overflow-wrap:anywhere; }
+.ghotiStoreCryptoDetails code{ word-break:break-all; }
+.ghotiStoreCryptoDetails .ghotiTextButton{ margin-left:.6rem; }
+.ghotiStoreCryptoState{ padding:.75rem 1rem; border-radius:10px; background:var(--store-raised); }
 
 .ghotiStoreDownloads{
 	margin-top:1.2rem; padding:1rem; border:1px solid var(--store-line);
@@ -133,6 +153,10 @@
 #ghotiStoreManager .ghotiStoreAdminHead h2,
 #ghotiStoreManager .ghotiStoreAdminHead h3{ margin:0; font-size:1.05rem; }
 #ghotiStoreManager .ghotiStoreAdminTableWrap{ overflow-x:auto; }
+/* The name column gives way last: with the badge and action buttons unable to
+ * wrap, a narrow screen would otherwise squeeze names to a word per line. The
+ * wrapper scrolls sideways instead. */
+#ghotiStoreManager .ghotiStoreTable td:first-child{ min-width:12rem; }
 #ghotiStoreManager .ghotiStoreProductForm,
 #ghotiStoreManager .ghotiStoreOrderDetail{
 	margin-bottom:1rem; padding:1rem;
@@ -148,20 +172,32 @@
 #ghotiStoreManager .ghotiStoreDownloadList{ margin:.3rem 0 0; padding-left:1.1rem; color: var(--store-muted); font-size:.85rem; }
 
 .ghotiStoreBadge{
-	display:inline-block; padding:.1rem .5rem; border-radius:999px;
+	display:inline-block; padding:.1rem .5rem; border-radius:999px; white-space:nowrap;
 	font-size:.72rem; font-weight:700; text-transform:uppercase;
 	background: color-mix(in srgb, var(--store-muted) 18%, transparent); color: var(--store-muted);
 }
 .ghotiStoreBadge-paid{ background: color-mix(in srgb, var(--store-good) 18%, transparent); color: var(--store-good); }
+.ghotiStoreBadge-active,
+.ghotiStoreBadge-approved,
+.ghotiStoreBadge-confirmed,
+.ghotiStoreBadge-sending,
+.ghotiStoreBadge-finished{ background: color-mix(in srgb, var(--store-good) 18%, transparent); color: var(--store-good); }
 .ghotiStoreBadge-shipped{ background: color-mix(in srgb, var(--store-accent) 18%, transparent); color: var(--store-accent); }
-.ghotiStoreBadge-pending{ background: color-mix(in srgb, var(--store-warn) 20%, transparent); color: var(--store-warn); }
+.ghotiStoreBadge-pending,
+.ghotiStoreBadge-waiting,
+.ghotiStoreBadge-confirming,
+.ghotiStoreBadge-partially_paid,
+.ghotiStoreBadge-approval_pending{ background: color-mix(in srgb, var(--store-warn) 20%, transparent); color: var(--store-warn); }
 .ghotiStoreBadge-failed,
+.ghotiStoreBadge-suspended,
+.ghotiStoreBadge-expired,
 .ghotiStoreBadge-cancelled{ background: color-mix(in srgb, var(--store-bad) 18%, transparent); color: var(--store-bad); }
 
 @media (max-width: 640px){
 	.ghotiStoreGrid{ grid-template-columns:minmax(0,1fr); }
 	.ghotiStoreBar{ align-items:stretch; flex-direction:column; }
 	.ghotiStorePrice{ margin-right:0; width:100%; }
+	.ghotiStoreCryptoDetails{ grid-template-columns:minmax(0,1fr); }
 }
 
 /* Collection and merchandising. The same tokens carry through light and dark themes. */
@@ -266,6 +302,19 @@
 :is(.ghotiStore, #ghotiStoreManager) input[type="checkbox"] { min-height:auto; accent-color:var(--store-accent); }
 :is(.ghotiStore, #ghotiStoreManager) .ghotiFormGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 :is(.ghotiStore, #ghotiStoreManager) :is(.ghotiField, fieldset) { min-width:0; }
+#ghotiStoreManager #ghotiStoreSettingsForm .ghotiFormGrid {
+	/* Admin content can sit in a narrower theme column even on a wide screen.
+	   Give a roomy panel more breathing space without squeezing its two columns. */
+	gap:1.15rem clamp(1rem,3cqi,2rem);
+	align-items:start;
+}
+@container (max-width:54rem) {
+	#ghotiStoreManager #ghotiStoreSettingsForm .ghotiFormGrid {
+		/* Respond to the content panel rather than the viewport: sidebar themes
+		   can reach this width on a laptop long before a mobile media query fires. */
+		grid-template-columns:minmax(0,1fr);
+	}
+}
 .ghotiStore :is(.ghotiButton, .ghotiStoreSave) { min-height:44px; }
 .ghotiStoreSummary li > span:first-child { min-width:0; overflow-wrap:anywhere; }
 .ghotiStoreSummary li > span:last-child { flex-shrink:0; }

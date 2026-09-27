@@ -1172,7 +1172,7 @@ class loginui{
 		if($enrolled){
 			$o .= "<p><b>You are using an authenticator app.</b> Sign-in codes come from the app, not by e-mail.</p>";
 			$o .= "<form action=\"#\" onsubmit=\"totpRemove(); return false;\">".$pw('totpRemovePassword');
-			$o .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton ghotiButtonSecondary\">Stop using the app (switch to e-mailed codes)</button></div></form>";
+			$o .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton ghotiButtonSecondary\">Switch to e-mailed codes</button></div></form>";
 		}else{
 			$o .= "<p><b>Codes are e-mailed to you.</b> An authenticator app such as Google Authenticator, Microsoft Authenticator, Authy or 1Password works without e-mail and keeps working if mail is down.</p>";
 			$o .= "<div class=\"ghotiFormActions\"><button type=\"button\" id=\"totpStartButton\" class=\"ghotiButton\" onclick=\"totpStartEnroll(this);\">Set up an authenticator app</button></div>";

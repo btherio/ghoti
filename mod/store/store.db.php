@@ -35,6 +35,12 @@ class storedb extends ghotidb{
 			'paypalClientId' => '',
 			'paypalSecret'   => '',
 			'paypalEnv'      => 'sandbox',
+			'cryptoEnabled'  => false,
+			'cryptoApiKey'   => '',
+			'cryptoCurrencies' => 'btc,eth,ltc,usdc',
+			'stripeEnabled' => false, 'stripePublishableKey' => '', 'stripeSecretKey' => '',
+			'squareEnabled' => false, 'squareApplicationId' => '', 'squareLocationId' => '',
+			'squareAccessToken' => '', 'squareEnv' => 'sandbox',
 			'currency'       => 'CAD',
 			'shippingCents'  => 0,
 			'shippingNote'   => '',
@@ -50,7 +56,7 @@ class storedb extends ghotidb{
 
 	public function getSettings(){
 		try{
-			$rows = $this->queryArray("select paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt,commerceConfig from store where id = 1 limit 1");
+			$rows = $this->queryArray("select paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt,commerceConfig,cryptoEnabled,cryptoApiKey,cryptoCurrencies,stripeEnabled,stripePublishableKey,stripeSecretKey,squareEnabled,squareApplicationId,squareLocationId,squareAccessToken,squareEnv from store where id = 1 limit 1");
 			if(isset($rows[0])){
 				$row = $rows[0];
 				return array(
@@ -70,6 +76,14 @@ class storedb extends ghotidb{
 					'dropshipConfig'     => self::decodeConfig($row[10]),
 					'updatedAt'      => (int)$row[11],
 					'commerceConfig' => self::decodeConfig($row[12] ?? ''),
+					'cryptoEnabled' => (int)($row[13] ?? 0) === 1,
+					'cryptoApiKey' => (string)($row[14] ?? ''),
+					'cryptoCurrencies' => (string)($row[15] ?? 'btc,eth,ltc,usdc'),
+					'stripeEnabled' => (int)($row[16] ?? 0) === 1,
+					'stripePublishableKey' => (string)($row[17] ?? ''), 'stripeSecretKey' => (string)($row[18] ?? ''),
+					'squareEnabled' => (int)($row[19] ?? 0) === 1, 'squareApplicationId' => (string)($row[20] ?? ''),
+					'squareLocationId' => (string)($row[21] ?? ''), 'squareAccessToken' => (string)($row[22] ?? ''),
+					'squareEnv' => ($row[23] ?? '') === 'live' ? 'live' : 'sandbox',
 				);
 			}
 		}catch (Throwable $e){
@@ -94,19 +108,28 @@ class storedb extends ghotidb{
 			$settings = array_merge($current, $settings);
 			$config = isset($settings['dropshipConfig']) && is_array($settings['dropshipConfig']) ? $settings['dropshipConfig'] : array();
 			$this->query(
-				"insert into store (id,paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt,commerceConfig)"
-				." values (1,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+				"insert into store (id,paypalClientId,paypalSecret,paypalEnv,currency,shippingCents,shippingNote,downloadHours,downloadLimit,dropshipEnabled,dropshipAutoSubmit,dropshipConfig,updatedAt,commerceConfig,cryptoEnabled,cryptoApiKey,cryptoCurrencies,stripeEnabled,stripePublishableKey,stripeSecretKey,squareEnabled,squareApplicationId,squareLocationId,squareAccessToken,squareEnv)"
+				." values (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 				." on duplicate key update paypalClientId=values(paypalClientId),paypalSecret=values(paypalSecret),paypalEnv=values(paypalEnv),"
 				." currency=values(currency),shippingCents=values(shippingCents),shippingNote=values(shippingNote),"
 				." downloadHours=values(downloadHours),downloadLimit=values(downloadLimit),"
 				." dropshipEnabled=values(dropshipEnabled),dropshipAutoSubmit=values(dropshipAutoSubmit),dropshipConfig=values(dropshipConfig),"
-				." updatedAt=values(updatedAt),commerceConfig=values(commerceConfig)",
+				." updatedAt=values(updatedAt),commerceConfig=values(commerceConfig),cryptoEnabled=values(cryptoEnabled),"
+				." cryptoApiKey=values(cryptoApiKey),cryptoCurrencies=values(cryptoCurrencies),stripeEnabled=values(stripeEnabled),"
+				." stripePublishableKey=values(stripePublishableKey),stripeSecretKey=values(stripeSecretKey),squareEnabled=values(squareEnabled),"
+				." squareApplicationId=values(squareApplicationId),squareLocationId=values(squareLocationId),squareAccessToken=values(squareAccessToken),squareEnv=values(squareEnv)",
 				array(
 					$settings['paypalClientId'], $settings['paypalSecret'], $settings['paypalEnv'],
 					$settings['currency'], (int)$settings['shippingCents'], $settings['shippingNote'],
 					(int)$settings['downloadHours'], (int)$settings['downloadLimit'],
 					!empty($settings['dropshipEnabled']) ? 1 : 0, !empty($settings['dropshipAutoSubmit']) ? 1 : 0,
-					json_encode($config), time(), json_encode($settings['commerceConfig'] ?? array())
+					json_encode($config), time(), json_encode($settings['commerceConfig'] ?? array()),
+					!empty($settings['cryptoEnabled']) ? 1 : 0, (string)($settings['cryptoApiKey'] ?? ''),
+					(string)($settings['cryptoCurrencies'] ?? 'btc,eth,ltc,usdc'), !empty($settings['stripeEnabled']) ? 1 : 0,
+					(string)($settings['stripePublishableKey'] ?? ''), (string)($settings['stripeSecretKey'] ?? ''),
+					!empty($settings['squareEnabled']) ? 1 : 0, (string)($settings['squareApplicationId'] ?? ''),
+					(string)($settings['squareLocationId'] ?? ''), (string)($settings['squareAccessToken'] ?? ''),
+					($settings['squareEnv'] ?? '') === 'live' ? 'live' : 'sandbox'
 				)
 			);
 			return true;
@@ -119,13 +142,14 @@ class storedb extends ghotidb{
 	/* ---------------- catalogue ---------------- */
 
 	private static function productRow($row){
+		$kind = in_array($row[5], array('digital', 'service'), true) ? $row[5] : 'physical';
 		return array(
 			'productId'    => (int)$row[0],
 			'sku'          => (string)$row[1],
 			'name'         => (string)$row[2],
 			'description'  => (string)$row[3],
 			'priceCents'   => (int)$row[4],
-			'kind'         => $row[5] === 'digital' ? 'digital' : 'physical',
+			'kind'         => $kind,
 			'category'     => (string)$row[6],
 			'imageUrl'     => (string)$row[7],
 			'downloadPath' => (string)$row[8],
@@ -143,10 +167,15 @@ class storedb extends ghotidb{
 			'compareAtCents' => (int)$row[18],
 			'badge'        => (string)$row[19],
 			'deliveryNote' => (string)$row[20],
+			'serviceTerm' => (string)($row[21] ?? ''),
+			'servicePrompt' => (string)($row[22] ?? ''),
+			'serviceRequired' => (int)($row[23] ?? 0) === 1,
+			'billingType' => isset($row[24]) && $row[24] === 'subscription' ? 'subscription' : 'one_time',
+			'paypalPlanId' => (string)($row[25] ?? ''),
 		);
 	}
 
-	private const PRODUCT_COLUMNS = "productId,sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,fulfilment,dropProvider,dropProductId,dropVariantId,createdAt,externalUrl,featured,compareAtCents,badge,deliveryNote";
+	private const PRODUCT_COLUMNS = "productId,sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,fulfilment,dropProvider,dropProductId,dropVariantId,createdAt,externalUrl,featured,compareAtCents,badge,deliveryNote,serviceTerm,servicePrompt,serviceRequired,billingType,paypalPlanId";
 
 	//$category 'all' returns every category. Inactive products are never
 	//returned to the storefront; the admin list asks for them explicitly.
@@ -215,13 +244,15 @@ class storedb extends ghotidb{
 	public function addProduct($product){
 		try{
 			$this->query(
-				"insert into store_products (sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,fulfilment,dropProvider,dropProductId,dropVariantId,createdAt,externalUrl,featured,compareAtCents,badge,deliveryNote)"
-				." values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+				"insert into store_products (sku,name,description,priceCents,kind,category,imageUrl,downloadPath,active,sortOrder,fulfilment,dropProvider,dropProductId,dropVariantId,createdAt,externalUrl,featured,compareAtCents,badge,deliveryNote,serviceTerm,servicePrompt,serviceRequired,billingType,paypalPlanId)"
+				." values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
 				array($product['sku'], $product['name'], $product['description'], (int)$product['priceCents'],
 					$product['kind'], $product['category'], $product['imageUrl'], $product['downloadPath'],
 					$product['active'] ? 1 : 0, (int)$product['sortOrder'],
 					$product['fulfilment'], $product['dropProvider'], $product['dropProductId'], $product['dropVariantId'], time(),
-					$product['externalUrl'], $product['featured'] ? 1 : 0, (int)$product['compareAtCents'], $product['badge'], $product['deliveryNote'])
+					$product['externalUrl'], $product['featured'] ? 1 : 0, (int)$product['compareAtCents'], $product['badge'], $product['deliveryNote'],
+					$product['serviceTerm'] ?? '', $product['servicePrompt'] ?? '', !empty($product['serviceRequired']) ? 1 : 0,
+					$product['billingType'] ?? 'one_time', $product['paypalPlanId'] ?? '')
 			);
 			return true;
 		}catch (Throwable $e){
@@ -234,12 +265,14 @@ class storedb extends ghotidb{
 		try{
 			$this->query(
 				"update store_products set sku=?,name=?,description=?,priceCents=?,kind=?,category=?,imageUrl=?,downloadPath=?,active=?,sortOrder=?,"
-				."fulfilment=?,dropProvider=?,dropProductId=?,dropVariantId=?,externalUrl=?,featured=?,compareAtCents=?,badge=?,deliveryNote=? where productId=?",
+				."fulfilment=?,dropProvider=?,dropProductId=?,dropVariantId=?,externalUrl=?,featured=?,compareAtCents=?,badge=?,deliveryNote=?,serviceTerm=?,servicePrompt=?,serviceRequired=?,billingType=?,paypalPlanId=? where productId=?",
 				array($product['sku'], $product['name'], $product['description'], (int)$product['priceCents'],
 					$product['kind'], $product['category'], $product['imageUrl'], $product['downloadPath'],
 					$product['active'] ? 1 : 0, (int)$product['sortOrder'],
 					$product['fulfilment'], $product['dropProvider'], $product['dropProductId'], $product['dropVariantId'],
-					$product['externalUrl'], $product['featured'] ? 1 : 0, (int)$product['compareAtCents'], $product['badge'], $product['deliveryNote'], (int)$productId)
+					$product['externalUrl'], $product['featured'] ? 1 : 0, (int)$product['compareAtCents'], $product['badge'], $product['deliveryNote'],
+					$product['serviceTerm'] ?? '', $product['servicePrompt'] ?? '', !empty($product['serviceRequired']) ? 1 : 0,
+					$product['billingType'] ?? 'one_time', $product['paypalPlanId'] ?? '', (int)$productId)
 			);
 			return true;
 		}catch (Throwable $e){
@@ -291,20 +324,35 @@ class storedb extends ghotidb{
 			'totalCents'     => (int)$row[14],
 			'currency'       => (string)$row[15],
 			'hasPhysical'    => (int)$row[16] === 1,
-			'paypalOrderId'  => (string)$row[17],
-			'paypalCaptureId'=> (string)$row[18],
-			'payerEmail'     => (string)$row[19],
-			'note'           => (string)$row[20],
-			'createdAt'      => (int)$row[21],
-			'paidAt'         => (int)$row[22],
-			'shippedAt'      => (int)$row[23],
-			'discountCents' => (int)($row[24] ?? 0),
-			'discountLabel' => (string)($row[25] ?? ''),
-			'loyaltyPoints' => (int)($row[26] ?? 0),
-		);
-	}
+			'hasService'     => (int)($row[17] ?? 0) === 1,
+			'serviceStatus'  => (string)($row[18] ?? ''),
+			'serviceFulfilledAt' => (int)($row[19] ?? 0),
+			'paypalOrderId'  => (string)$row[20],
+			'paypalCaptureId'=> (string)$row[21],
+			'payerEmail'     => (string)$row[22],
+			'note'           => (string)$row[23],
+			'createdAt'      => (int)$row[24],
+			'paidAt'         => (int)$row[25],
+			'shippedAt'      => (int)$row[26],
+			'discountCents' => (int)($row[27] ?? 0),
+			'discountLabel' => (string)($row[28] ?? ''),
+				'loyaltyPoints' => (int)($row[29] ?? 0),
+				'paymentProvider' => (string)($row[30] ?? 'paypal'),
+				'cryptoPaymentId' => (string)($row[31] ?? ''),
+				'cryptoStatus' => (string)($row[32] ?? ''),
+				'cryptoCurrency' => (string)($row[33] ?? ''),
+				'cryptoAmount' => (string)($row[34] ?? ''),
+				'cryptoAddress' => (string)($row[35] ?? ''),
+				'cryptoExtraId' => (string)($row[36] ?? ''),
+				'cryptoNetwork' => (string)($row[37] ?? ''),
+				'cryptoExpiresAt' => (int)($row[38] ?? 0),
+				'cryptoUpdatedAt' => (int)($row[39] ?? 0),
+				'providerPaymentId' => (string)($row[40] ?? ''),
+				'providerStatus' => (string)($row[41] ?? ''),
+			);
+		}
 
-	private const ORDER_COLUMNS = "orderId,reference,status,userId,email,customerName,address1,address2,city,region,postcode,country,subtotalCents,shippingCents,totalCents,currency,hasPhysical,paypalOrderId,paypalCaptureId,payerEmail,note,createdAt,paidAt,shippedAt,discountCents,discountLabel,loyaltyPoints";
+	private const ORDER_COLUMNS = "orderId,reference,status,userId,email,customerName,address1,address2,city,region,postcode,country,subtotalCents,shippingCents,totalCents,currency,hasPhysical,hasService,serviceStatus,serviceFulfilledAt,paypalOrderId,paypalCaptureId,payerEmail,note,createdAt,paidAt,shippedAt,discountCents,discountLabel,loyaltyPoints,paymentProvider,cryptoPaymentId,cryptoStatus,cryptoCurrency,cryptoAmount,cryptoAddress,cryptoExtraId,cryptoNetwork,cryptoExpiresAt,cryptoUpdatedAt,providerPaymentId,providerStatus";
 
 	//Writes the order and its line items as one transaction: an order without
 	//its items would be unreconcilable. Returns the new orderId, or false.
@@ -315,21 +363,30 @@ class storedb extends ghotidb{
 			try{
 				$this->query(
 					"insert into store_orders (reference,status,userId,email,customerName,address1,address2,city,region,postcode,country,"
-					."subtotalCents,shippingCents,totalCents,currency,hasPhysical,paypalOrderId,note,createdAt,discountCents,discountLabel,loyaltyPoints)"
-					." values (?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+					."subtotalCents,shippingCents,totalCents,currency,hasPhysical,hasService,serviceStatus,paypalOrderId,note,createdAt,discountCents,discountLabel,loyaltyPoints,"
+					."paymentProvider,cryptoPaymentId,cryptoStatus,cryptoCurrency,cryptoAmount,cryptoAddress,cryptoExtraId,cryptoNetwork,cryptoExpiresAt,cryptoUpdatedAt,providerPaymentId,providerStatus)"
+					." values (?,'pending',?,?,?,?,?,?,?,?,?,?"
+					.",?,?,?,?,?,?,?,?,?,?,?,?"
+					.",?,?,?,?,?,?,?,?,?,?,?,?)",
 					array($order['reference'], $order['userId'], $order['email'], $order['customerName'],
 						$order['address1'], $order['address2'], $order['city'], $order['region'],
 						$order['postcode'], $order['country'], (int)$order['subtotalCents'],
 						(int)$order['shippingCents'], (int)$order['totalCents'], $order['currency'],
-						$order['hasPhysical'] ? 1 : 0, $order['paypalOrderId'], $order['note'], time(),
-						(int)($order['discountCents'] ?? 0), $order['discountLabel'] ?? '', (int)($order['loyaltyPoints'] ?? 0))
+						$order['hasPhysical'] ? 1 : 0, !empty($order['hasService']) ? 1 : 0,
+						!empty($order['hasService']) ? 'pending' : '', $order['paypalOrderId'], $order['note'], time(),
+						(int)($order['discountCents'] ?? 0), $order['discountLabel'] ?? '', (int)($order['loyaltyPoints'] ?? 0),
+						$order['paymentProvider'] ?? 'paypal', $order['cryptoPaymentId'] ?? '', $order['cryptoStatus'] ?? '',
+						$order['cryptoCurrency'] ?? '', $order['cryptoAmount'] ?? '', $order['cryptoAddress'] ?? '',
+						$order['cryptoExtraId'] ?? '', $order['cryptoNetwork'] ?? '', (int)($order['cryptoExpiresAt'] ?? 0),
+						(int)($order['cryptoUpdatedAt'] ?? 0), $order['providerPaymentId'] ?? '', $order['providerStatus'] ?? '')
 				);
 				$orderId = (int)$pdo->lastInsertId();
 				foreach($items as $item){
 					$this->query(
-						"insert into store_order_items (orderId,productId,name,sku,kind,unitCents,quantity) values (?,?,?,?,?,?,?)",
+						"insert into store_order_items (orderId,productId,name,sku,kind,unitCents,quantity,serviceTerm,serviceDetails) values (?,?,?,?,?,?,?,?,?)",
 						array($orderId, (int)$item['productId'], $item['name'], $item['sku'],
-							$item['kind'], (int)$item['unitCents'], (int)$item['quantity'])
+							$item['kind'], (int)$item['unitCents'], (int)$item['quantity'],
+							$item['serviceTerm'] ?? '', $item['serviceDetails'] ?? '')
 					);
 				}
 				$pdo->commit();
@@ -364,6 +421,22 @@ class storedb extends ghotidb{
 		return isset($rows[0]) ? self::orderRow($rows[0]) : null;
 	}
 
+	public function getOrderByCryptoPaymentId($paymentId){
+		try{
+			$rows = $this->queryArray("select ".self::ORDER_COLUMNS." from store_orders where cryptoPaymentId = ? limit 1", array((string)$paymentId));
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getOrderByCryptoPaymentId", $e);
+			return null;
+		}
+		return isset($rows[0]) ? self::orderRow($rows[0]) : null;
+	}
+
+	public function getOrderByProviderPaymentId($paymentId){
+		try{ $rows = $this->queryArray("select ".self::ORDER_COLUMNS." from store_orders where providerPaymentId = ? limit 1", array((string)$paymentId)); }
+		catch(Throwable $e){ ghoti::logException('store.db.php:getOrderByProviderPaymentId', $e); return null; }
+		return isset($rows[0]) ? self::orderRow($rows[0]) : null;
+	}
+
 	public function getOrders($status = 'all', $limit = 100){
 		$limit = max(1, min(500, (int)$limit));
 		try{
@@ -390,7 +463,7 @@ class storedb extends ghotidb{
 	public function getOrderItems($orderId){
 		try{
 			$rows = $this->queryArray(
-				"select i.itemId,i.productId,i.name,i.sku,i.kind,i.unitCents,i.quantity,"
+				"select i.itemId,i.productId,i.name,i.sku,i.kind,i.unitCents,i.quantity,i.serviceTerm,i.serviceDetails,"
 				."coalesce(p.fulfilment,'self'),coalesce(p.dropProvider,''),coalesce(p.dropProductId,''),coalesce(p.dropVariantId,'')"
 				." from store_order_items i left join store_products p on p.productId = i.productId"
 				." where i.orderId = ? order by i.itemId asc",
@@ -410,10 +483,12 @@ class storedb extends ghotidb{
 				'kind'      => (string)$row[4],
 				'unitCents' => (int)$row[5],
 				'quantity'  => (int)$row[6],
-				'fulfilment'    => isset($row[7]) && $row[7] === 'dropship' ? 'dropship' : 'self',
-				'dropProvider'  => isset($row[8]) ? (string)$row[8] : '',
-				'dropProductId' => isset($row[9]) ? (string)$row[9] : '',
-				'dropVariantId' => isset($row[10]) ? (string)$row[10] : '',
+				'serviceTerm' => (string)($row[7] ?? ''),
+				'serviceDetails' => (string)($row[8] ?? ''),
+				'fulfilment'    => isset($row[9]) && $row[9] === 'dropship' ? 'dropship' : 'self',
+				'dropProvider'  => isset($row[10]) ? (string)$row[10] : '',
+				'dropProductId' => isset($row[11]) ? (string)$row[11] : '',
+				'dropVariantId' => isset($row[12]) ? (string)$row[12] : '',
 			);
 		}
 		return $items;
@@ -435,6 +510,48 @@ class storedb extends ghotidb{
 		}
 	}
 
+	public function updateCryptoPayment($orderId, $payment){
+		try{
+			$this->query(
+				"update store_orders set cryptoStatus=?,cryptoAmount=?,cryptoAddress=?,cryptoExtraId=?,cryptoNetwork=?,cryptoExpiresAt=?,cryptoUpdatedAt=? where orderId=? and paymentProvider='crypto'",
+				array((string)$payment['status'], (string)$payment['payAmount'], (string)$payment['address'],
+					(string)$payment['extraId'], (string)$payment['network'], (int)$payment['expiresAt'], time(), (int)$orderId)
+			);
+			return true;
+		}catch(Throwable $e){
+			ghoti::logException('store.db.php:updateCryptoPayment', $e);
+			return false;
+		}
+	}
+
+	public function markCryptoOrderPaid($orderId, $paymentId){
+		try{
+			$statement = $this->db()->prepare("update store_orders set status='paid',cryptoUpdatedAt=?,paidAt=? where orderId=? and cryptoPaymentId=? and paymentProvider='crypto' and status='pending'");
+			$now = time();
+			$statement->execute(array($now, $now, (int)$orderId, (string)$paymentId));
+			return $statement->rowCount() > 0;
+		}catch(Throwable $e){
+			ghoti::logException('store.db.php:markCryptoOrderPaid', $e);
+			return false;
+		}
+	}
+
+	public function updateProviderPayment($orderId, $paymentId, $status){
+		try{
+			$this->query("update store_orders set providerPaymentId=?,providerStatus=? where orderId=? and paymentProvider in ('stripe','square')",
+				array((string)$paymentId, (string)$status, (int)$orderId));
+			return true;
+		}catch(Throwable $e){ ghoti::logException('store.db.php:updateProviderPayment', $e); return false; }
+	}
+
+	public function markProviderOrderPaid($orderId, $paymentId, $status){
+		try{
+			$statement = $this->db()->prepare("update store_orders set status='paid',providerPaymentId=?,providerStatus=?,paidAt=? where orderId=? and paymentProvider in ('stripe','square') and status='pending'");
+			$statement->execute(array((string)$paymentId, (string)$status, time(), (int)$orderId));
+			return $statement->rowCount() > 0;
+		}catch(Throwable $e){ ghoti::logException('store.db.php:markProviderOrderPaid', $e); return false; }
+	}
+
 	public function setOrderStatus($orderId, $status){
 		try{
 			if($status === 'shipped'){
@@ -445,6 +562,119 @@ class storedb extends ghotidb{
 			return true;
 		}catch (Throwable $e){
 			ghoti::logException("store.db.php:setOrderStatus", $e);
+			return false;
+		}
+	}
+
+	public function setServiceStatus($orderId, $status){
+		try{
+			$fulfilledAt = $status === 'fulfilled' ? time() : 0;
+			$this->query(
+				"update store_orders set serviceStatus=?,serviceFulfilledAt=? where orderId=? and hasService=1",
+				array((string)$status, $fulfilledAt, (int)$orderId)
+			);
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:setServiceStatus", $e);
+			return false;
+		}
+	}
+
+	/* ---------------- subscriptions ---------------- */
+
+	private static function subscriptionRow($row){
+		return array(
+			'subscriptionId' => (int)$row[0],
+			'paypalSubscriptionId' => (string)$row[1],
+			'paypalPlanId' => (string)$row[2],
+			'productId' => (int)$row[3],
+			'userId' => $row[4] === null ? null : (int)$row[4],
+			'sku' => (string)$row[5],
+			'name' => (string)$row[6],
+			'priceCents' => (int)$row[7],
+			'currency' => (string)$row[8],
+			'serviceTerm' => (string)$row[9],
+			'customerName' => (string)$row[10],
+			'email' => (string)$row[11],
+			'serviceDetails' => (string)$row[12],
+			'status' => (string)$row[13],
+			'nextBillingAt' => (int)$row[14],
+			'serviceStatus' => (string)$row[15],
+			'serviceFulfilledAt' => (int)$row[16],
+			'createdAt' => (int)$row[17],
+			'updatedAt' => (int)$row[18],
+		);
+	}
+
+	private const SUBSCRIPTION_COLUMNS = "subscriptionId,paypalSubscriptionId,paypalPlanId,productId,userId,sku,name,priceCents,currency,serviceTerm,customerName,email,serviceDetails,status,nextBillingAt,serviceStatus,serviceFulfilledAt,createdAt,updatedAt";
+
+	public function addSubscription($subscription){
+		try{
+			$this->query(
+				"insert into store_subscriptions (paypalSubscriptionId,paypalPlanId,productId,userId,sku,name,priceCents,currency,serviceTerm,customerName,email,serviceDetails,status,nextBillingAt,serviceStatus,createdAt,updatedAt) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',?,?)",
+				array($subscription['paypalSubscriptionId'], $subscription['paypalPlanId'], (int)$subscription['productId'], $subscription['userId'],
+					$subscription['sku'], $subscription['name'], (int)$subscription['priceCents'], $subscription['currency'],
+					$subscription['serviceTerm'], $subscription['customerName'], $subscription['email'], $subscription['serviceDetails'],
+					$subscription['status'], (int)$subscription['nextBillingAt'], time(), time())
+			);
+			return (int)$this->db()->lastInsertId();
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:addSubscription", $e);
+			return false;
+		}
+	}
+
+	public function getSubscription($subscriptionId){
+		try{
+			$rows = $this->queryArray("select ".self::SUBSCRIPTION_COLUMNS." from store_subscriptions where subscriptionId=? limit 1", array((int)$subscriptionId));
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getSubscription", $e);
+			return null;
+		}
+		return isset($rows[0]) ? self::subscriptionRow($rows[0]) : null;
+	}
+
+	public function getSubscriptionByPaypalId($paypalSubscriptionId){
+		try{
+			$rows = $this->queryArray("select ".self::SUBSCRIPTION_COLUMNS." from store_subscriptions where paypalSubscriptionId=? limit 1", array((string)$paypalSubscriptionId));
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getSubscriptionByPaypalId", $e);
+			return null;
+		}
+		return isset($rows[0]) ? self::subscriptionRow($rows[0]) : null;
+	}
+
+	public function getSubscriptions($limit = 100){
+		$limit = max(1, min(500, (int)$limit));
+		try{
+			$rows = $this->queryArray("select ".self::SUBSCRIPTION_COLUMNS." from store_subscriptions order by createdAt desc limit ".$limit);
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:getSubscriptions", $e);
+			return array();
+		}
+		$subscriptions = array();
+		foreach($rows as $row){ $subscriptions[] = self::subscriptionRow($row); }
+		return $subscriptions;
+	}
+
+	public function updateSubscriptionStatus($subscriptionId, $status, $nextBillingAt){
+		try{
+			$this->query("update store_subscriptions set status=?,nextBillingAt=?,updatedAt=? where subscriptionId=?",
+				array((string)$status, (int)$nextBillingAt, time(), (int)$subscriptionId));
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:updateSubscriptionStatus", $e);
+			return false;
+		}
+	}
+
+	public function setSubscriptionServiceStatus($subscriptionId, $status){
+		try{
+			$this->query("update store_subscriptions set serviceStatus=?,serviceFulfilledAt=?,updatedAt=? where subscriptionId=?",
+				array((string)$status, $status === 'fulfilled' ? time() : 0, time(), (int)$subscriptionId));
+			return true;
+		}catch (Throwable $e){
+			ghoti::logException("store.db.php:setSubscriptionServiceStatus", $e);
 			return false;
 		}
 	}

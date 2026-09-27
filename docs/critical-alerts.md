@@ -11,10 +11,21 @@ In **Site Settings → Logging & alerts**, enable **E-mail critical log alerts**
 
 Each category permits one delivery attempt every 15 minutes. Counts and cooldowns persist across requests in `critical-alerts.json`, protected by a file lock, excluded from Git and denied by Apache. Replicate that deny rule when using another web server. Events before alerts are enabled are not replayed. Disabling/re-enabling does not erase a cooldown.
 
-Emails include the site name, category, UTC time, and count. They exclude raw log messages, usernames, addresses of visitors, passwords, request URLs and authentication tokens. Inspect the protected application log for details. Signals indicate suspicious activity, not proof of compromise; ordinary expired sessions can also produce CSRF failures.
+Emails include the site name, category, UTC time, count and an **alert number** (`#12`, also in the subject). They exclude raw log messages, usernames, addresses of visitors, passwords, request URLs and authentication tokens.
+
+## Reading an alert: Analytics → Alerts
+
+The details an e-mail leaves out are in **Analytics → Alerts**, listed by number, newest first (the newest opens by itself). Each alert shows:
+
+- what kind of alert it was and what triggers that kind;
+- the window it covers and how many events were counted;
+- **the events themselves** — time, level, where in the code, and the full log message (usernames and IP addresses included), up to the latest 25;
+- **delivery** — each administrator address, and whether the mail server accepted it or why it failed. An alert whose delivery died part-way is still listed.
+
+Storage: the events counting towards each category's current window are kept in `critical-alerts.pending.json` (at most 25 per category, rewritten on every event), and the alerts themselves in `critical-alerts.history.json` (the last 100, each log line cut at 500 characters). Unlike the counter file, both hold request data — the same log lines `ghoti.log` holds — so they get the same treatment as `ghoti.log`: denied by Apache, excluded from Git, left out of backups and hidden from the file manager. Replicate the deny rule on other web servers. Only events that happen while alerts are enabled are recorded. Deleting both files clears the history. Signals indicate suspicious activity, not proof of compromise; ordinary expired sessions can also produce CSRF failures.
 
 Delivery is best-effort and synchronous through the configured SMTP client. A recursion guard prevents SMTP errors from generating more alert emails. Recipients are resolved once per alert, so one failing address does not stop the others and does not consume an extra cooldown slot. A failed delivery still consumes the cooldown, and a generic diagnostic goes to PHP's error log. Disabled mail, unavailable state storage, process termination before bootstrap, out-of-memory failures, and an unavailable PHP/server process can prevent delivery. This is not a queued or externally monitored alert service. Use independent host monitoring for those cases.
 
-Validation: `php tests/alerts.php` covers classifications, thresholds, persisted cooldowns, recipient validation and fan-out to each administrator, message minimization, disabled alerts, delivery failure and recursion; the transport is mocked. `python3 tests/alerts-runtime.py` checks uncaught exceptions and fatal errors in subprocesses without sending mail.
+Validation: `php tests/alerts.php` covers classifications, thresholds, persisted cooldowns, recipient validation and fan-out to each administrator, message minimization, disabled alerts, delivery failure and recursion, and the alert history (events per window, per-admin delivery results, failed deliveries recorded, caps, escaping in Analytics, file protection); the transport is mocked. `python3 tests/alerts-runtime.py` checks uncaught exceptions and fatal errors in subprocesses without sending mail.
 
 The consolidated security changes also require operators to set `GHOTI_PUBLIC_URL` to the canonical HTTPS site URL for password-recovery links and explicitly configure `GHOTI_SETUP_KEY` for browser-based setup/recovery. See the security review and bootstrap CLI instructions before deployment.
