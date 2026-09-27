@@ -3,7 +3,6 @@
  * Created on Mar 1, 2009
  *
  */
-include_once('ghoti.html.php');
 include_once('ghoti.async.php'); //async RPC layer + core endpoints + class ghotiui
 include_once('ghoti.db.php');
 include_once('ghoti.validate.php');
@@ -140,7 +139,6 @@ class ghoti {
 		$this->ghotidb = new ghotidb();
 		$this->ghotiui = new ghotiui();
 		$this->validate = new validate();
-		$this->html = new html();
 	}
 	public static function enabledModules(){
 		$modules = array('links','login','banners','analytics','gallery','filemanager','mail');
