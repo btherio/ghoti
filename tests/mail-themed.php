@@ -51,6 +51,7 @@ $expected = array(
 	'mod/vhosts/vhosts.notify.php' => array('fallback' => 1),
 	'mod/store/store.paypal.php' => array('not-email' => 2),
 	'mod/store/store.dropship.php' => array('not-email' => 1),
+	'mod/store/store.cards.php'  => array('not-email' => 2),  //Stripe and Square API requests (StoreCardClient::send)
 );
 
 $sendSites = array();

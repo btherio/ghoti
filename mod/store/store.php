@@ -45,5 +45,22 @@ class store{
 		return StorePaypalClient::configured($settings) || StoreCryptoClient::configured($settings)
 			|| StoreStripeClient::configured($settings) || StoreSquareClient::configured($settings);
 	}
+
+	//Extra content-security-policy origins for the card processors that are
+	//actually configured, so a shop without Stripe or Square keeps the tighter
+	//policy. Keyed script/frame/connect/style/font. An unreadable settings row
+	//reports none - the safe direction, as for banners' adsActive().
+	public function cardCspOrigins(){
+		$out = array('script'=>array(), 'frame'=>array(), 'connect'=>array(), 'style'=>array(), 'font'=>array());
+		try{ $settings = $this->storedb->getSettings(); }
+		catch(Throwable $e){ return $out; }
+		$add = array();
+		if(StoreStripeClient::configured($settings)){ $add[] = StoreStripeClient::cspOrigins(); }
+		if(StoreSquareClient::configured($settings)){ $add[] = StoreSquareClient::cspOrigins($settings); }
+		foreach($add as $origins){
+			foreach($out as $key => $list){ $out[$key] = array_merge($list, $origins[$key]); }
+		}
+		return $out;
+	}
 }
 ?>

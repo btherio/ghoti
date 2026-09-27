@@ -111,11 +111,23 @@ if(!headers_sent()){
 	$scriptSrc = array("'self'", "'unsafe-inline'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com");
 	$connectSrc = array("'self'");
 	$frameSrc = array();
+	$styleSrc = array("'self'", "'unsafe-inline'", "https://fonts.googleapis.com");
+	$fontSrc = array("'self'", "data:");
 	if(ghoti::$enableStore){
 		$paypal = array("https://www.paypal.com", "https://www.sandbox.paypal.com", "https://www.paypalobjects.com");
 		$scriptSrc = array_merge($scriptSrc, $paypal);
 		$connectSrc = array_merge($connectSrc, $paypal);
 		$frameSrc = array_merge($frameSrc, $paypal);
+		//Stripe and Square card forms load their own scripts, frames, styles and
+		//fonts - but only for a processor that is configured (store.php).
+		if(isset($_SESSION['storeObj']) && $_SESSION['storeObj'] instanceof store){
+			$cards = $_SESSION['storeObj']->cardCspOrigins();
+			$scriptSrc = array_merge($scriptSrc, $cards['script']);
+			$connectSrc = array_merge($connectSrc, $cards['connect']);
+			$frameSrc = array_merge($frameSrc, $cards['frame']);
+			$styleSrc = array_merge($styleSrc, $cards['style']);
+			$fontSrc = array_merge($fontSrc, $cards['font']);
+		}
 	}
 	//Ads are a per-site setting rather than a module switch, so the widening is
 	//conditional on the banners module actually being about to emit Google's
@@ -131,7 +143,9 @@ if(!headers_sent()){
 	$scriptSrc = implode(' ', array_unique($scriptSrc));
 	$connectSrc = implode(' ', array_unique($connectSrc));
 	$frameSrc = $frameSrc ? implode(' ', array_unique($frameSrc)) : "'none'";
-	header("Content-Security-Policy: default-src 'self'; script-src ".$scriptSrc."; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:; img-src 'self' data: http: https:; connect-src ".$connectSrc."; frame-src ".$frameSrc."; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+	$styleSrc = implode(' ', array_unique($styleSrc));
+	$fontSrc = implode(' ', array_unique($fontSrc));
+	header("Content-Security-Policy: default-src 'self'; script-src ".$scriptSrc."; style-src ".$styleSrc."; font-src ".$fontSrc."; img-src 'self' data: http: https:; connect-src ".$connectSrc."; frame-src ".$frameSrc."; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
 }
 
 //process GET & SESSION variables

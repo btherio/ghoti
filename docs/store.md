@@ -54,8 +54,22 @@ tokenizes the card in the browser. The one-time token is sent to this server,
 which writes a pending order and calls [CreatePayment](https://developer.squareup.com/reference/square/payments/create-payment)
 with an idempotency key, the server-computed amount, currency, location, and order
 reference. Only a matching `COMPLETED` payment fulfils the order. Square requires
-the checkout to run over HTTPS and the site's Content Security Policy must allow
-the Web Payments SDK domains listed in Square's deployment guidance.
+the checkout to run over HTTPS.
+
+**Content-security policy.** Both card forms load third-party scripts, frames,
+styles and fonts, which the site's CSP would otherwise block. `index.php` adds
+them automatically, but only for a processor that is enabled and has complete
+credentials: Stripe's Stripe.js origins (`js.stripe.com`, `*.js.stripe.com`,
+`hooks.stripe.com` for 3-D Secure, `api.stripe.com`), and Square's origins for the
+configured environment only (sandbox *or* production `squarecdn`/`pci-connect`
+hosts, Square's font hosts, and its SDK error-reporting host). The lists come from
+[Stripe's](https://docs.stripe.com/security/guide#content-security-policy) and
+[Square's](https://developer.squareup.com/docs/web-payments/content-security-policy)
+CSP guidance; they live in `StoreStripeClient::cspOrigins()` and
+`StoreSquareClient::cspOrigins()`. If a card form stays blank, check the browser
+console for a CSP violation first. A web server that sets its own CSP must add
+the same origins. `tests/store-csp.php` checks every SDK host `store.js` loads
+is allowed.
 
 Stripe and Square in this version cover one-time orders. Recurring service plans
 continue to use PayPal subscriptions. There is no public Stripe or Square webhook

@@ -46,6 +46,15 @@ class StoreStripeClient extends StoreCardClient{
 		$this->secretKey = trim((string)($settings['stripeSecretKey'] ?? ''));
 		$this->transport = $transport ?: function($request){ return $this->curl($request, 'Stripe'); };
 	}
+	/* Origins Stripe.js and Elements need in the content-security policy, from
+	 * https://docs.stripe.com/security/guide#content-security-policy. hooks.stripe.com
+	 * frames 3-D Secure. The Google Maps entries there are only for the Address
+	 * Element with your own Maps key, which this store does not use. */
+	public static function cspOrigins(){
+		$js = array('https://js.stripe.com', 'https://*.js.stripe.com');
+		return array('script' => $js, 'frame' => array_merge($js, array('https://hooks.stripe.com')),
+			'connect' => array('https://api.stripe.com'), 'style' => array(), 'font' => array());
+	}
 	public static function configured($settings){
 		$publishable=trim((string)($settings['stripePublishableKey'] ?? '')); $secret=trim((string)($settings['stripeSecretKey'] ?? ''));
 		if(!preg_match('/^pk_(test|live)_[A-Za-z0-9_]+$/',$publishable,$pk) || !preg_match('/^sk_(test|live)_[A-Za-z0-9_]+$/',$secret,$sk)){ return false; }
@@ -93,6 +102,17 @@ class StoreSquareClient extends StoreCardClient{
 		$this->locationId = trim((string)($settings['squareLocationId'] ?? ''));
 		$this->base = ($settings['squareEnv'] ?? 'sandbox') === 'live' ? self::LIVE_BASE : self::SANDBOX_BASE;
 		$this->transport = $transport ?: function($request){ return $this->curl($request, 'Square'); };
+	}
+	/* Origins the Web Payments SDK needs, for the configured environment only,
+	 * from https://developer.squareup.com/docs/web-payments/content-security-policy.
+	 * The Sentry host is Square's own SDK error reporting, which it lists as
+	 * required. */
+	public static function cspOrigins($settings){
+		$live = ($settings['squareEnv'] ?? 'sandbox') === 'live';
+		$cdn = $live ? 'https://web.squarecdn.com' : 'https://sandbox.web.squarecdn.com';
+		return array('script' => array($cdn), 'frame' => array($cdn), 'style' => array($cdn),
+			'connect' => array($live ? 'https://pci-connect.squareup.com' : 'https://pci-connect.squareupsandbox.com', 'https://o160250.ingest.sentry.io'),
+			'font' => array('https://square-fonts-production-f.squarecdn.com', 'https://d1g145x70srn7h.cloudfront.net'));
 	}
 	public static function configured($settings){
 		return !empty($settings['squareEnabled']) && trim((string)($settings['squareApplicationId'] ?? '')) !== ''
