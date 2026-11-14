@@ -14,7 +14,7 @@ $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off')
 @ini_set('session.use_only_cookies', 1);
 @ini_set('session.use_strict_mode', 1);
 if(defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70300){ @ini_set('session.cookie_samesite', 'Strict'); }
-@session_name(ghoti::$sessionName);
+@session_name(ghoti::getSessionName());
 @session_set_cookie_params(0, '/', '', $secure, true);
 @session_start();
 
