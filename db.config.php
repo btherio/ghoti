@@ -26,7 +26,7 @@ $config = array(
     'charset'  => getenv('GHOTI_DB_CHARSET')  ?: 'utf8mb4',
 );
 
-$localOverride = __DIR__.'/db.config.local.php';
+$localOverride = getenv('GHOTI_DB_CONFIG') ?: __DIR__.'/db.config.local.php';
 if (is_file($localOverride)) {
     $config = array_merge($config, require $localOverride);
 }

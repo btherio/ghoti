@@ -1076,14 +1076,14 @@ class loginui{
 	public $output;
 
 	public function printSystemMenu(){
-		$this->output .= "<ul>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"logout();\">&nbsp;Log Out</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"printChangePasswordForm();\">&nbsp;Change Password</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"printSignInSecurity();\">&nbsp;Sign-in security</a></li>\n";
+		$this->output = "<ul>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"logout();\">&nbsp;Log Out</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"printChangePasswordForm();\">&nbsp;Change Password</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"printSignInSecurity();\">&nbsp;Sign-in security</a></li>\n";
 		//Only while boards are on: the setting is about board replies, and the
 		//dialog's script (boards.js) is not loaded otherwise.
 		if(ghoti::$enableBoards){
-			$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('boardsShowNotifyPrefs');\">&nbsp;Notifications</a></li>\n";
+			$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('boardsShowNotifyPrefs');\">&nbsp;Notifications</a></li>\n";
 		}
 		$this->output .= "</ul>\n";
 		return $this->output;
@@ -1092,27 +1092,27 @@ class loginui{
 	public function printAdminMenu(){
 		$this->output = "<ul>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"showPageManager();\">Pages</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('manageBanners');\">Banners</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('editLinkForm');\">Links</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('manageBanners');\">Banners</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('editLinkForm');\">Links</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('showAnalytics');\">Analytics</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('galleryManager');\">Galleries</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('galleryManager');\">Galleries</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('fileManager');\">Files</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('printManageUserForm');\">Users</a></li>\n";
 		if(ghoti::$enableBoards){
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showBoardManager');\">Boards</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('showBoardManager');\">Boards</a></li>\n";
 		}
 		if(ghoti::$enableVhosts){
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showVhosts');\">Apache Vhosts</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('showVhosts');\">Apache Vhosts</a></li>\n";
 		}
 		if(ghoti::$enableStore){
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showStoreManager');\">Store</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('showStoreManager');\">Store</a></li>\n";
 		}
 		if(ghoti::$enableBpong){
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"ghotiModuleAction('showBpongManager');\">Pong</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"ghotiModuleAction('showBpongManager');\">Pong</a></li>\n";
 		}
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"showDocumentation();\">Documentation</a></li>\n";
 		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\" class=\"dropdown-item ghotiMenu\" onclick=\"showBackupRestore();\">Backup / Restore</a></li>\n";
-		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item\" class=\"ghotiMenu\" onclick=\"showSiteSettings();\">Site Settings</a></li>\n";
+		$this->output .= "<li class=\"dropdown-item\"><a href=\"#\"class=\"dropdown-item ghotiMenu\" onclick=\"showSiteSettings();\">Site Settings</a></li>\n";
 		$this->output .= "</ul>\n";
 		return $this->output;
 	}

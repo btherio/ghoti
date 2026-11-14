@@ -4,8 +4,8 @@
 require_once 'ghoti.php';
 
 //apply admin-managed Site Settings (ghoti.settings.json) over the defaults
-ghoti::loadSettings();
 ghoti_install_error_handlers();
+ghoti::loadSettings();
 ghoti_security_enforce_ip_access();
 
 //initialize session
@@ -19,7 +19,7 @@ if (defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70300) {
 }
 //sessionName is a static; read it without constructing a ghoti (which would
 //needlessly open a DB connection and run table checks on every request).
-@session_name(ghoti::$sessionName);
+@session_name(ghoti::$sessionName.'_'.substr(hash('sha256', __DIR__), 0, 12));
 @session_set_cookie_params(0, '/', '', $secure, true);
 @session_start();
 
@@ -83,6 +83,7 @@ else { unset($_SESSION['bpongObj']); }
 // request and never read; $_SESSION['ghotiObj']->ghotidb is the one used.)
 // Revoke deleted accounts and sessions created before a password change.
 ghoti_validate_session($_SESSION['loginObj']->logindb);
+ghoti_run_hook('request.init');
 //dispatch an async (fetch) call if this request is one; otherwise fall
 //through and render the page normally.
 ghoti_async_handle_request();
@@ -173,7 +174,7 @@ if($_GET){
 
 }
 
-//load the default theme
+ghoti_run_hook('request.render');
 include_once "css/".ghoti::$defaultTheme."/".ghoti::$defaultTheme.".php";
 
 //The page has fully rendered; drop the per-request service objects so they are

@@ -485,7 +485,7 @@ class ghotidb{
     }
 
     function loadModuleSql($moduleName="default"){
-        if(!in_array($moduleName, self::$validModules, true)){
+        if(!in_array($moduleName, self::$validModules, true) && !(is_string($moduleName) && ghoti_extensions()->allowsSchema($moduleName))){
             ghoti::logError("ghoti.db.php:loadModuleSql", "Can't load module '$moduleName'");
             return false;
         }
@@ -538,7 +538,12 @@ class ghotidb{
             //Every statement is `create table if not exists`, so this is a no-op
             //for tables that are already there and creates any the module has
             //gained since it was installed.
-            $this->db()->exec($tableSql);
+            // Schema files can contain several CREATE statements. Drain every
+            // result before the next query (required by newer MariaDB clients).
+            $schemaStatement = $this->db()->prepare($tableSql);
+            $schemaStatement->execute();
+            while ($schemaStatement->nextRowset()) { /* consume schema results */ }
+            $schemaStatement->closeCursor();
 
             //Then add columns the module has gained. A create-if-not-exists
             //never alters a table that already exists, which is what left

@@ -1,15 +1,19 @@
+<?php
+$ghotiThemeOptions = $ghotiThemeOptions ?? [];
+$ghotiWorkspaceLayout = ($ghotiThemeOptions['layout'] ?? 'portfolio') === 'workspace';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo ghoti_seo_title_html(); ?></title>
-  <?php if(ghoti::$seoDescription === ''){ ?><meta name="description" content="Portfolio of a designer operating at the intersection of craft, systems, and code."><?php } ?>
+  <?php if(ghoti::$seoDescription === ''){ ?><meta name="description" content="<?php echo htmlspecialchars($ghotiThemeOptions['description'] ?? 'Portfolio of a designer operating at the intersection of craft, systems, and code.', ENT_QUOTES); ?>"><?php } ?>
   <link href="lib/fonts/ghoticms.css" rel="stylesheet">
   <link rel="stylesheet" href="./css/ghoticms/style.css?v=<?php echo filemtime(__DIR__.'/style.css'); ?>">
   <?php include_once "ghoti.header.php"; ?>
 </head>
-<body class="ghoticms-theme">
+<body class="ghoticms-theme<?php echo ' '.htmlspecialchars($ghotiThemeOptions['bodyClass'] ?? '', ENT_QUOTES); ?>">
   <a class="ghotiSkip" href="#ghotiContent">Skip to content</a>
   <div class="bg-layer" aria-hidden="true">
     <img src="<?php echo htmlspecialchars(ghoti::themeBackground('css/ghoticms/background.png'), ENT_QUOTES, 'UTF-8'); ?>" alt="" class="bg-layer__image" width="1920" height="1080">
@@ -20,7 +24,7 @@
 
   <header class="site-header" data-animate="header">
     <div class="header-layout">
-      <a href="/" class="header-brand" aria-label="ghoti — home">
+      <a href="<?php echo htmlspecialchars($ghotiAssetBase, ENT_QUOTES); ?>" class="header-brand" aria-label="ghoti — home">
         <span class="brand-logo">
           <img src="<?php print htmlspecialchars(ghoti::$headerImg, ENT_QUOTES, 'UTF-8');?>" alt="" class="brand-logo__img" width="256" height="256">
         </span>
@@ -32,7 +36,7 @@
       </nav>
       <div class="header-actions">
         <button type="button" class="account-signin" id="account-signin" data-login-visible="<?php echo ghoti::showLoginButton() ? 'true' : 'false'; ?>"<?php if (ghoti_require_login() || !ghoti::showLoginButton()) { echo ' hidden'; } ?> onclick="popupLogin();">Sign in <span aria-hidden="true">↗</span></button>
-        <details class="workspace-menu" id="workspace-menu"<?php if (!ghoti_require_login() && !ghoti::$enableThemeChanger) { echo ' hidden'; } ?>>
+        <details class="workspace-menu" id="workspace-menu" data-admin-label="<?php echo htmlspecialchars($ghotiThemeOptions['adminLabel'] ?? 'Workspace', ENT_QUOTES); ?>"<?php if (!ghoti_require_login() && !ghoti::$enableThemeChanger) { echo ' hidden'; } ?>>
           <summary class="workspace-trigger" aria-controls="workspace-panel">
             <span class="account-avatar" aria-hidden="true">g</span>
             <span id="workspace-trigger-label">Account</span>
@@ -71,6 +75,8 @@
     <div class="scroll-progress" aria-hidden="true"><span class="scroll-progress__bar"></span></div>
   </header>
 <main class="site-main">
+    <?php ghoti_run_hook('theme.before-content', ['theme'=>'ghoticms','asset'=>$ghotiAsset]); ?>
+    <?php if($ghotiWorkspaceLayout){ include "ghoti.body.php"; } else { ?>
     <section class="hero" data-animate="hero">
       <?php include "ghoti.body.php";?>
       <div class="hero-coords">
@@ -81,9 +87,10 @@
 
       
     </section>
-          
+    <?php } ?>
   </main>
   
+  <?php if(!$ghotiWorkspaceLayout){ ?>
   <section class="capabilities content-panel" data-animate="section">
       <header class="section-header">
         <h2>stats</h2>
@@ -96,16 +103,19 @@
 
   </section>
 
+  <?php } ?>
   <footer class="site-footer content-panel">
     <?php print $_SESSION['bannersObj']->displayBanner(false); ?>
     <?php print $_SESSION['ghotiObj']->ghotiui->printFooter();?>
   </footer>
 
   
+  <?php if(!$ghotiWorkspaceLayout){ ?>
   <script src="<?php echo $ghotiAsset('lib/vendor/gsap.min.js'); ?>"></script>
   <script src="<?php echo $ghotiAsset('lib/vendor/ScrollTrigger.min.js'); ?>"></script>
   <script src="<?php echo $ghotiAsset('lib/vendor/lenis.min.js'); ?>"></script>
+  <?php } ?>
   <script src="<?php echo $ghotiAsset('css/ghoticms/workspace.js'); ?>"></script>
-  <script src="<?php echo $ghotiAsset('css/ghoticms/script.js'); ?>"></script>
+  <?php if(!$ghotiWorkspaceLayout){ ?><script src="<?php echo $ghotiAsset('css/ghoticms/script.js'); ?>"></script><?php } ?>
 </body>
 </html>
