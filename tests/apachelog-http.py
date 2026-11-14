@@ -10,6 +10,8 @@ import urllib.error
 import urllib.request
 
 root = Path(__file__).resolve().parent.parent
+session_name = subprocess.check_output(
+    ['php', '-r', "require 'ghoti.php'; echo ghoti::getSessionName();"], cwd=root, text=True)
 with tempfile.TemporaryDirectory(prefix='ghoti-apachelog-http-') as tmp:
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
@@ -23,7 +25,7 @@ with tempfile.TemporaryDirectory(prefix='ghoti-apachelog-http-') as tmp:
         def request(path, session_id=None):
             req = urllib.request.Request(f'http://127.0.0.1:{port}' + path)
             if session_id:
-                req.add_header('Cookie', 'ghoti=' + session_id)
+                req.add_header('Cookie', session_name + '=' + session_id)
             try:
                 with urllib.request.urlopen(req, timeout=10) as response:
                     return response.status, response.read().decode('utf-8', 'replace')

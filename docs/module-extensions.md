@@ -71,6 +71,8 @@ A child template can set `$ghotiThemeOptions` and include `css/ghoticms/ghoticms
 
 This release also scopes session cookie names by installation path. Existing upstream installations sign in again once; sibling installations no longer share a cookie. Moving an installation changes that suffix. `GHOTI_DB_CONFIG` optionally names a trusted operator-owned PHP configuration file for CLI services; otherwise `db.config.local.php` remains the default. Never point this variable at user input.
 
+Standalone endpoints that share Ghoti's login session must call `session_name(ghoti::getSessionName())` before `session_start()`. The helper in `ghoti.php` computes the suffix from the Ghoti root, including for callers in module subdirectories. Keep the endpoint's cookie flags, session validation, authorization and CSRF checks in place; selecting the cookie name does not perform those checks.
+
 Validation without installed extensions, a database, browser or mail server:
 
 ```sh

@@ -22,6 +22,7 @@ with tempfile.TemporaryDirectory(prefix='ghoti-backup-http-') as tmp:
 class ghotidb {}
 class ghoti {
  public static $sessionName='backupfixture', $siteTitle='Fixture';
+ public static function getSessionName(){return self::$sessionName;}
  public static function loadSettings(){}
  public static function enabledModules(){return ($_GET['mode'] ?? '') === 'absent' ? array() : array('mail');}
  public static function logWarn(...$args){}
@@ -34,6 +35,9 @@ function ghoti_remote_addr(){return '127.0.0.1';}
 function ghoti_csrf_verify($token){return $token === 'fixture-token';}
 function ghoti_validate_session($db){return true;}
 function ghoti_admin_emails($refresh=false){return array('first@example.test','second@example.test');}
+function ghoti_mail_send_themed($mailer,$to,$name,$subject,$body,$audience,$attachments,$text){
+ return $mailer->send($to,$name,$subject,$text,$attachments);
+}
 ''')
     (base / 'mod/login/login.db.php').write_text("<?php class logindb {public function isAdmin($id){return $id === 1;}}")
     (base / 'mod/mail/mail.php').write_text('''<?php

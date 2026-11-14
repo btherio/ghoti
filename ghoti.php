@@ -83,10 +83,15 @@ class ghoti {
 	// Not exposed in the UI on purpose:
 	//  - $ghotiLog is an arbitrary filesystem path (letting the browser set it
 	//    would be an arbitrary-file-write primitive).
-	//  - $sessionName is read in index.php before settings load, and changing it
-	//    logs everyone out; it is a per-install infra choice.
+	//  - $sessionName is the cookie-name prefix; changing it logs everyone out,
+	//    so it remains a file-only infrastructure setting.
  	public static $ghotiLog = "ghoti.log";      	//log file to use. Should be writable by apache
-	public static $sessionName = "ghoti"; 	//change the session name for each installation of GhotiCMS that you have on the server or they will use each others cookies
+	public static $sessionName = "ghoti"; 	//base name; getSessionName() scopes the cookie to this installation
+
+	public static function getSessionName(): string {
+		//Use the Ghoti root even when called by an endpoint in a module directory.
+		return self::$sessionName.'_'.substr(hash('sha256', __DIR__), 0, 12);
+	}
 
 	//Untracked, per-install file that stores admin-edited settings (see .gitignore).
 	public static $settingsFile = "ghoti.settings.json";

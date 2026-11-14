@@ -89,7 +89,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
           <p>The PHP service account must be able to maintain <code>ghoti.settings.json</code>, <code>ghoti.log</code>, <code>db.provisioned.json</code>, <code>critical-alerts.json</code> (and the alert history beside it, <code>critical-alerts.pending.json</code> and <code>critical-alerts.history.json</code>), <code>login.throttle.json</code>, and <code>files/gallery/</code>. If web setup is used, it must also be able to create <code>db.config.local.php</code>. Grant access only to these paths; avoid making the entire application tree world-writable.</p>
 
           <h3>5. Serve securely</h3>
-          <p>Enable HTTPS, keep PHP error display off in production, set a unique session name if multiple Ghoti sites share one host, and ensure the web server honors the root access-control rules. For password-reset links, set <code>GHOTI_PUBLIC_URL</code> to the public HTTPS base URL, such as <code>https://example.com/ghoti</code>.</p>
+          <p>Enable HTTPS, keep PHP error display off in production, and ensure the web server honors the root access-control rules. Login session cookie names are scoped automatically to the installation directory, so separate Ghoti installations on one host use separate cookies. Moving an installation changes its cookie name and requires a new sign-in. For password-reset links, set <code>GHOTI_PUBLIC_URL</code> to the public HTTPS base URL, such as <code>https://example.com/ghoti</code>.</p>
         </div>
       </section>
 
