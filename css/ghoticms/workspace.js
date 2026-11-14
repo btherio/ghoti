@@ -32,7 +32,7 @@
     signin.hidden = loggedIn || signin.getAttribute('data-login-visible') === 'false';
     document.getElementById('workspace-admin').hidden = !isAdmin;
     document.getElementById('workspace-private').hidden = !loggedIn || !privatePages.querySelector('a');
-    document.getElementById('workspace-trigger-label').textContent = isAdmin ? 'Workspace' : (loggedIn ? 'Account' : 'Appearance');
+    document.getElementById('workspace-trigger-label').textContent = isAdmin ? (menu.dataset.adminLabel || 'Workspace') : (loggedIn ? 'Account' : 'Appearance');
     if (!loggedIn) menu.open = false;
     filterTools();
   }

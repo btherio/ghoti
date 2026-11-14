@@ -22,8 +22,19 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 ?>
 <?php /* Search and sharing metadata - Site Settings -> SEO, see ghoti.seo.php. */ echo ghoti_seo_head_tags(ghoti_seo_page_context()); ?>
 
-<link rel="icon" type="image/x-icon" href="<?php echo $ghotiAsset('favicon.ico'); ?>" />
-<link rel="icon" type="image/png" sizes="32x32" href="<?php echo $ghotiAsset('gfx/ghoti-favicon.png'); ?>" />
+<?php
+$ghotiIcons = ghoti_apply_filters('document.icons', [
+    ['rel'=>'icon','type'=>'image/x-icon','path'=>'favicon.ico'],
+    ['rel'=>'icon','type'=>'image/png','sizes'=>'32x32','path'=>'gfx/ghoti-favicon.png'],
+]);
+foreach ($ghotiIcons as $icon) {
+    echo '<link rel="'.htmlspecialchars($icon['rel'], ENT_QUOTES).'" href="'.htmlspecialchars($ghotiAsset($icon['path']), ENT_QUOTES).'"';
+    foreach (['type','sizes'] as $attribute) {
+        if (isset($icon[$attribute])) echo ' '.$attribute.'="'.htmlspecialchars($icon[$attribute], ENT_QUOTES).'"';
+    }
+    echo " />\n";
+}
+?>
 
 <script type="text/javascript">
 <?php ghoti_async_emit_js(); ?>
@@ -79,3 +90,5 @@ $ghotiAsset = function($path) use ($ghotiAssetBase) {
 <?php } ?>
 
 <link rel="stylesheet" href="<?php echo $ghotiAsset('css/ghoti/privacy.css'); ?>" />
+
+<?php ghoti_run_hook('document.head', ['asset'=>$ghotiAsset, 'base'=>$ghotiAssetBase]); ?>

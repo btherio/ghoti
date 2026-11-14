@@ -158,6 +158,7 @@ function ghoti_csrf_verify($token){
  * pageId, theme, ...) is untouched.
  */
 function ghoti_free_request_objects(){
+    ghoti_run_hook('request.cleanup');
 	foreach(array('ghotiObj','loginObj','linksObj','bannersObj','boardsObj','analyticsObj','galleryObj','filemanagerObj','mailObj','vhostsObj','storeObj','bpongObj','ghotidb') as $k){
 		unset($_SESSION[$k]);
 	}
@@ -400,7 +401,8 @@ function getPage($content){
 	//Discussion is no longer appended to every page: it appears only where a
 	//[board:slug] tag puts it, which is the whole point of the boards module
 	//that replaced comments.
-	$pageDisplay = ghoti_expand_shortcodes(ghoti_validate()->pageHtml($content));
+	// Decode legacy stored escaping before module expansion so embedded JSON stays intact.
+	$pageDisplay = ghoti_expand_shortcodes(stripslashes(ghoti_validate()->pageHtml($content)));
 	$content = "<div id=\"ghotiPageDisplay\">\n".$pageDisplay."</div>\n";
 	ghoti::logDebug("ghoti.async.php:getPage", "Checking for session userId");
 	$isAdminViewer = false;
@@ -415,7 +417,7 @@ function getPage($content){
 	}
 	trackPageView($isAdminViewer);
 
-	return stripslashes($content);
+	return $content;
 }
 function getPageById($id){
 	//Public navigation endpoint: coerce to a positive int and bail quietly on
@@ -631,11 +633,10 @@ function refreshPageMenu(){
 }
 function refreshPrivateMenu() {
 	if(!ghoti_require_login()){ return ""; }
-	$_SESSION['ghotiObj'] = new ghoti();
-	$_SESSION["ghotiObj"]->ghotiui = new ghotiui();
-	$_SESSION['ghotiObj']->ghotidb = new ghotidb();
+	// Reuse the current framework services; a menu refresh must not replace them.
+	if(!isset($_SESSION['ghotiObj'])){ $_SESSION['ghotiObj'] = new ghoti(); }
 	$pageList = $_SESSION['ghotiObj']->ghotidb->getPageList("private");
-	return $_SESSION['ghotiObj']->ghotiui->printPageMenu($pageList,false);
+	return $_SESSION['ghotiObj']->ghotiui->printPageMenu($pageList ?: array(),false);
 }
 function logToFile($line){
 	if(!ghoti_require_login()){ return false; }
@@ -769,13 +770,13 @@ class ghotiui{
 	public $output;
 
 	function printPageList($pageList){
-		$this->output = "<ul class=\"navbar-nav text-light\" id=\"accordionSidebar\">\n";
+		$this->output = "<ul class=\"navbar-nav text-light\">\n";
 		foreach($pageList as $records => $row){
 			$id = (int)$row[0];
 			$title = htmlspecialchars(stripslashes((string)$row[1]), ENT_QUOTES, 'UTF-8');
 			//A real href so crawlers (and middle-click) can follow it; the
 			//.ghotiMenu click handler cancels it and loads the page in place.
-			$this->output .= "<li class=\"nav-item\"><a class=\"nav-link ghotiMenu\" href=\"?page=".$id."\" onclick=\"getPage(".$id.")\"><i class=\"fas fa-tachometer-alt\"></i><span>".$title."</span></a></li>\n";
+			$this->output .= "<li class=\"nav-item\"><a class=\"nav-link ghotiMenu\" href=\"?page=".$id."\"><i class=\"fas fa-tachometer-alt\"></i><span>".$title."</span></a></li>\n";
 		}
 		$this->output .= "</ul>\n";
 		return $this->output;
@@ -1144,6 +1145,12 @@ class ghotiui{
 		$o .= $choice("enableBoards", "Boards &mdash; message boards and comment sections placed with [board:name]", ghoti::$enableBoards, "set-enableBoards-help");
 		$o .= $choice("enableVhosts", "Apache Vhosts &mdash; manage virtual hosts and TLS certificates", ghoti::$enableVhosts);
 		$o .= $choice("enableStore", "Store &mdash; sell physical and digital goods through PayPal", ghoti::$enableStore, "set-enableStore-help");
+        foreach (ghoti_extensions()->getDefinitions() as $id=>$definition) {
+            $checked = !empty(ghoti::$extensionModules[$id]) ? ' checked' : '';
+            $o .= '<label class="ghotiInlineChoice"><input type="checkbox" data-ghoti-extension="'.$esc($id).'"'.$checked.'> <span><strong>'.$esc($definition['name']).'</strong> — '.$esc($definition['description']);
+            if ($definition['requires']) $o .= ' Requires: '.$esc(implode(', ', $definition['requires'])).'.';
+            $o .= '</span></label>';
+        }
 		$o .= $choice("enableBpong", "Pong &mdash; put a playable Bitcoin Pong board on a page", ghoti::$enableBpong, "set-enableBpong-help");
 		$o .= "</div>\n";
 		$o .= "<p class=\"ghotiHelpText\">Save and reload to show or hide it in the workspace. It opens read-only; writing to Apache needs a root-owned helper installed first.</p>\n";

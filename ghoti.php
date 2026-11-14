@@ -3,6 +3,7 @@
  * Created on Mar 1, 2009
  *
  */
+require_once __DIR__.'/ghoti.extensions.php';
 include_once('ghoti.async.php'); //async RPC layer + core endpoints + class ghotiui
 include_once('ghoti.db.php');
 include_once('ghoti.validate.php');
@@ -43,6 +44,7 @@ class ghoti {
 	public static $enableBoards = False;          //optional message-board module [UI]
 	public static $enableVhosts = False;          //optional privileged module [UI]
 	public static $enableStore = False;           //optional shop module        [UI]
+	public static $extensionModules = [];     // installed manifest modules, disabled by default
 	public static $enableBpong = False;           //optional pong module        [UI]
 	public static $enableCriticalAlerts = False;
 	public static $enableDebug = False;            //enable debug logging           [UI]
@@ -116,6 +118,7 @@ class ghoti {
 		'enableVhosts'       => 'bool',
 		'enableStore'        => 'bool',
 		'enableBpong'        => 'bool',
+		'extensionModules'   => 'modules',
 		'enableCriticalAlerts' => 'bool',
 		'seoSiteUrl'         => 'url',
 		'seoHomeTitle'       => 'text',
@@ -140,7 +143,7 @@ class ghoti {
 		$this->ghotiui = new ghotiui();
 		$this->validate = new validate();
 	}
-	public static function enabledModules(){
+	public static function builtInModules(){
 		$modules = array('links','login','banners','analytics','gallery','filemanager','mail');
 		if(self::$enableBoards){ $modules[] = 'boards'; }
 		if(self::$enableVhosts){ $modules[] = 'vhosts'; }
@@ -148,8 +151,16 @@ class ghoti {
 		if(self::$enableBpong){ $modules[] = 'bpong'; }
 		return $modules;
 	}
+	public static function enabledModules(){
+        $builtIns = self::builtInModules();
+        return array_merge($builtIns, ghoti_extensions()->getEnabled(self::$extensionModules, $builtIns));
+    }
+    public static function isModuleEnabled(string $name): bool {
+        return in_array($name, self::enabledModules(), true);
+    }
 	public function loadModules($modules){
 		foreach ($modules as $moduleName){
+            if (!is_string($moduleName) || (!in_array($moduleName, GhotiModuleRegistry::BUILT_INS, true) && !isset(ghoti_extensions()->getDefinitions()[$moduleName]))) throw new InvalidArgumentException('Module is not installed.');
 			include_once "mod/".$moduleName."/".$moduleName.".php";
 			include_once "mod/".$moduleName."/".$moduleName.".async.php";
 		}
@@ -281,8 +292,9 @@ class ghoti {
 		if(!is_file($file)){ return; }
 		$data = json_decode(@file_get_contents($file), true);
 		if(!is_array($data)){ return; }
+        self::$extensionModules = ghoti_extensions()->readSettings($data);
 		foreach(self::$settingsSchema as $key => $type){
-			if(!array_key_exists($key, $data)){ continue; }
+			if($key === 'extensionModules' || !array_key_exists($key, $data)){ continue; }
 			$value = self::sanitizeSetting($type, $data[$key]);
 			if($value !== null){ self::$$key = $value; }
 		}
@@ -404,6 +416,14 @@ class ghoti {
 			if($value !== null){ $clean[$key] = $value; }
 		}
 
+        if (array_key_exists('extensionModules', $settings)) {
+            $builtIns = ['links','login','banners','analytics','gallery','filemanager','mail'];
+            foreach (['enableBoards'=>'boards','enableVhosts'=>'vhosts','enableStore'=>'store','enableBpong'=>'bpong'] as $key=>$id) {
+                if ($clean[$key]) $builtIns[] = $id;
+            }
+            try { $clean['extensionModules'] = ghoti_extensions()->validateSelection($settings['extensionModules'], self::$extensionModules, $builtIns); }
+            catch (InvalidArgumentException $error) { return $error->getMessage(); }
+        }
 		$json = json_encode($clean, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 		if($json === false){ return "Could not encode settings."; }
 		if(@file_put_contents(self::settingsPath(), $json, LOCK_EX) === false){
@@ -419,6 +439,7 @@ class ghoti {
 	//skip (e.g. an invalid theme).
 	private static function sanitizeSetting($type, $value){
 		switch($type){
+			case 'modules': return null; // validated with dependency context in saveSettings()
 			case 'email':
 				return is_string($value) && ($value === '' || filter_var($value, FILTER_VALIDATE_EMAIL)) ? $value : null;
 			case 'bool':

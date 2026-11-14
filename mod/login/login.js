@@ -18,11 +18,13 @@ function login(){
 function logout_cb(result){
 		if(result){
 			//x_logToFile('logout success');
+			document.dispatchEvent(new CustomEvent('ghoti:logged-out'));
 			location.href = "index.php";//refresh the page. 
 		}
 }
 function logout(){
 	//x_logToFile('logout trial...');
+	if(!document.dispatchEvent(new CustomEvent('ghoti:before-logout', {cancelable:true}))){ return; }
 	x_logout(logout_cb);
 }
 function register(){
@@ -134,7 +136,11 @@ function checkLogin(){
 
 function checkLogin_cb(result){
 	if(result > 0){
-		login_cb(result);
+		// A session check must not regenerate its cookie or replace an open module.
+		x_printSystemMenu(systemMenu_cb);
+		x_refreshPrivateMenu(privateMenu_cb);
+		x_isAdmin(result,adminMenu_cb);
+		document.dispatchEvent(new CustomEvent('ghoti:authenticated', {detail:{userId:Number(result),existing:true}}));
 	}else{
 		return false;
 	}
@@ -155,7 +161,9 @@ function loginEstablished(id){
 		x_printSystemMenu(systemMenu_cb);
 		x_refreshPrivateMenu(privateMenu_cb);
 		x_isAdmin(id,adminMenu_cb);
-		x_getDefaultPage(printPage);
+        // A mounted component may consume sign-in without losing its draft.
+        var navigate = document.dispatchEvent(new CustomEvent('ghoti:authenticated', {cancelable:true, detail:{userId:Number(id),existing:false}}));
+        if(navigate){ x_getDefaultPage(printPage); }
 	});
 	cancelPopup('popup-bg');
 }

@@ -4,8 +4,14 @@
  */
 ?>
 <span id="pageFeedback" role="status" aria-live="polite"></span>
-<?php $ghotiPublicView = ghoti_public_view(); ?>
-<div id="ghotiContent" tabindex="-1"<?php if($ghotiPublicView !== null){ echo ' data-server-rendered="true"'; } ?>><?php echo $ghotiPublicView ?? ''; ?></div>
+<?php
+$ghotiPublicView = ghoti_public_view();
+if ($ghotiPublicView === null) {
+    $pageId = $_GET['page'] ?? null;
+    $ghotiPublicView = $pageId !== null ? getPageById($pageId) : getDefaultPage();
+}
+?>
+<div id="ghotiContent" tabindex="-1"<?php if ($ghotiPublicView !== null) echo ' data-server-rendered="true"'; ?>><?php echo $ghotiPublicView ?? ''; ?></div>
 <div id="popup-bg">
 	<div id="popup" class="popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle" tabindex="-1">
 		<div id="popup-title"><h2 id="popupTitle">Ghoti CMS</h2></div>

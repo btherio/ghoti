@@ -29,6 +29,7 @@ $(document).ready(function(){
 	//A page rendered by the server (rather than fetched by printPage) still has
 	//its board containers waiting to be filled.
 	if(typeof boardsScan === 'function'){ boardsScan(); }
+    document.dispatchEvent(new CustomEvent('ghoti:page-rendered', {detail:{initial:true}}));
 });
 
 //regular javascript
@@ -75,7 +76,16 @@ function bindGhotiMenuLinks(){
 	$(document)
 		.off('click.ghotiMenu', '.ghotiMenu')
 		.on('click.ghotiMenu', '.ghotiMenu', function(e){
-			e.preventDefault();
+			if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+			// Follow database page links through the same renderer, including module-generated links.
+			if (!this.getAttribute('onclick')) {
+				var url = new URL(this.href, location.href);
+				var page = url.searchParams.get('page');
+				if (url.origin === location.origin && url.pathname === location.pathname && /^[1-9][0-9]*$/.test(page || '')) {
+					e.preventDefault(); getPage(page, url.search); return;
+				}
+			}
+			if (this.getAttribute('onclick') || (this.getAttribute('href') || '#') === '#') e.preventDefault();
 		});
 }
 
@@ -585,10 +595,12 @@ document.addEventListener('click', function(event){
 /* Menu links carry a real ?page=N href for crawlers; the click is cancelled
  * and the page loaded in place, so the address bar is kept in step here to
  * leave a URL that can be shared, bookmarked and reached with Back. */
-function getPage(id) {
+function getPage(id, query) {
 	x_getPageById(id,printPage);
 	if(window.history && history.pushState && /^[1-9][0-9]*$/.test(String(id))){
-		var url = '?page=' + id;
+		var params = new URLSearchParams(query || '');
+		params.delete('view'); params.delete('theme'); params.set('page', String(id));
+		var url = '?' + params.toString();
 		if(window.location.search !== url){ history.pushState({ghotiPage: String(id)}, '', url); }
 	}
 }
@@ -968,6 +980,7 @@ function clearAutoBlockedIp(ip){
 }
 function saveSiteSettings(){
 	var settings = {
+        extensionModules: Object.fromEntries(Array.from(document.querySelectorAll('[data-ghoti-extension]'), function(box){ return [box.dataset.ghotiExtension, box.checked]; })),
 		siteTitle: $("#set-siteTitle").val(),
 		enableTwoFactor: $("#set-enableTwoFactor").is(":checked") ? 1 : 0,
 		twoFactorAllUsers: $("#set-twoFactorAllUsers").is(":checked") ? 1 : 0,
@@ -1049,8 +1062,10 @@ function changePageGroup_cb(id) {
 }
 function printPage(content) {
 	ghotiPageEditorState.dirty = false;
+	document.dispatchEvent(new CustomEvent('ghoti:before-page-render'));
 	var $target = $("#ghotiContent");
 	$target.html(content);
+	document.dispatchEvent(new CustomEvent('ghoti:page-rendered'));
 	// add fade-in animation to updated content.
 	// Build the set explicitly instead of relying on traversal helper behavior.
 	$target.addClass('fade-in').find('*').addClass('fade-in');
