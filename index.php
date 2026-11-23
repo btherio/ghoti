@@ -1,4 +1,7 @@
 <?php
+// Keep include-time diagnostics from sending output before response headers.
+ini_set('display_errors', '0');
+
 //load the system
 //ghoti.php pulls in ghoti.async.php (the fetch/JSON RPC layer + core endpoints)
 require_once 'ghoti.php';
@@ -7,6 +10,33 @@ require_once 'ghoti.php';
 ghoti_install_error_handlers();
 ghoti::loadSettings();
 ghoti_security_enforce_ip_access();
+
+// Only an unconfigured directory without installation state can open setup.
+$method = ghoti_request_method();
+$setupPost = $method === 'POST' && ($_POST['ghoti_install'] ?? null) === '1';
+$databaseReady = ghotidb::isConfigured();
+$needsSetup = false;
+if(!$databaseReady){
+    require_once __DIR__.'/lib/install.php';
+    $needsSetup = ($method === 'GET' || $method === 'HEAD' || $setupPost) && GhotiInstaller::isFresh();
+}
+if(!$needsSetup && !$databaseReady){
+	if($setupPost){
+		ghoti::logWarn('install:browser', 'Setup is unavailable for this directory. Request from '
+			.ghoti_validate()->logLine(ghoti_remote_addr()));
+	}
+	header('Retry-After: 60');
+	if(ghoti_async_read_request() !== null){
+		ghoti_async_send_json(array('ok' => false, 'error' => 'Database unavailable.'), 503);
+	}else{
+		http_response_code(503);
+		header('Content-Type: text/plain; charset=utf-8');
+		header('Cache-Control: no-store');
+		header('X-Content-Type-Options: nosniff');
+		echo "Database unavailable.\n";
+	}
+	exit;
+}
 
 //initialize session
 $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
@@ -43,10 +73,13 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 }
 $_SESSION['last_activity'] = time();
 
-// First run and database recovery must work without bootstrapping modules.
-$setupMode = ghoti_setup_mode();
-if($setupMode !== 'ready' || isset($_POST['ghoti_setup_action'])){
-	ghoti_setup_dispatch($setupMode);
+if($needsSetup){
+    GhotiInstaller::dispatch();
+    exit;
+}
+if($setupPost){
+    header('Location: index.php?login', true, 303);
+    exit;
 }
 
 //Im going to a load the ghoti object instance into a session variable here

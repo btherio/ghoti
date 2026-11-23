@@ -67,7 +67,12 @@ class analyticsdb extends ghotidb{
 		$days = (int)$days;
 		if($days < 1) $days = 1;
 		if($days > 3650) $days = 3650;
-		return "createdAt >= date_sub(now(), interval $days day)";
+		// MySQL stores these timestamps in its session timezone. SQLite and
+		// MongoDB store them in UTC.
+		if($this->db() instanceof PDO){
+			return "createdAt >= date_sub(now(), interval $days day)";
+		}
+		return "createdAt >= '".gmdate('Y-m-d H:i:s', time() - $days * 86400)."'";
 	}
 
 	public function getSummary($days=30,$excludeAdmin=true){

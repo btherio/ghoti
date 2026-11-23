@@ -2,18 +2,7 @@
 
 Ghoti is a PHP content management framework with editable pages, account and administration menus, themes, and optional modules. Modules can add components to ordinary Ghoti pages through shortcodes and use the same session, navigation and page renderer.
 
-## Install Ghoti
-
-1. Serve this directory over HTTPS with PHP 8.1 or newer and the `pdo_mysql`, `dom`, `fileinfo`, `mbstring`, and `xml` extensions. Enable the bundled Apache access rules or configure equivalent rules on your web server.
-2. Create an empty MySQL or MariaDB database and an account with `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, and `INDEX` on that database. Give PHP write access to the installation, `files/`, and `files/gallery/` directories and to any existing runtime settings and log files.
-3. Set a strong, temporary `GHOTI_SETUP_KEY` in the PHP environment and open `index.php?k=YOUR_SETUP_KEY`. The wizard tests the database connection, collects the site title, theme, and optional public URL, and checks the PHP runtime and file permissions. Finish installation to prepare the enabled module schemas and create the first administrator, then sign in and remove the setup key.
-
-The wizard can use an existing connection configured through `GHOTI_DB_*` or `GHOTI_DB_CONFIG`. Choose **Use current connection** when it is available. For unattended installs, configure the connection and run `php bin/create-admin.php USERNAME EMAIL`, supplying the password on standard input.
-
-After setup, Ghoti opens the normal site. If its database goes offline, the setup key can unlock connection recovery. Use the existing database or a restored backup to reconnect.
-
-## Extend Ghoti
-
+- [Install Ghoti](#install-ghoti)
 - [Build an extension module](#build-an-extension-module)
 - [Use server hooks](#use-server-hooks)
 - [Handle browser lifecycle events](#handle-browser-lifecycle-events)
@@ -21,6 +10,16 @@ After setup, Ghoti opens the normal site. If its database goes offline, the setu
 - [Upgrade and verify extensions](#upgrade-and-verify-extensions)
 - [Full module API reference](docs/module-extensions.md)
 - [Database upgrade behavior](docs/upgrading.md)
+
+## Install Ghoti
+
+1. Copy the Ghoti files into a fresh directory served over HTTPS by PHP 8.1 or newer. Enable `pdo_sqlite` and the bundled Apache access rules or equivalent web server rules. PHP needs write access to the directory during setup.
+2. Open the new site’s URL in your browser and enter a username, email, and password. Click **Create site**.
+3. Ghoti creates the SQLite database and takes you to sign-in. Open **Site Settings** after signing in to choose your site title and theme.
+
+Open the new URL yourself before sharing it. The first completed setup creates the administrator. Keep `.ghoti-data/` private and writable by PHP.
+
+Managed installations can configure MySQL, MariaDB, MongoDB, or a custom SQLite path separately and create the first admin with `php bin/create-admin.php USERNAME EMAIL`. [Database configuration and server requirements](docs/database-providers.md)
 
 ## Requirements for extension modules
 

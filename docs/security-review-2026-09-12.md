@@ -1,5 +1,9 @@
 # ghoti security review — 12 September 2026
 
+The setup findings below cover the browser flow at the time of the review,
+including reconfiguration during an outage. In a fresh directory, the first
+person to complete setup creates the administrator. [Current setup instructions](../README.md#install-ghoti)
+
 ## Outcome and scope
 
 The review found account-takeover paths in database recovery, first-user provisioning, and password-reset URL construction, plus weaknesses in session revocation, reset concurrency, throttling, exports, and filesystem protection. This branch fixes the issues listed below. **This is a source review with targeted regression tests, not a certification that the installation is vulnerability-free.**

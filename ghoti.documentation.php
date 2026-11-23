@@ -65,8 +65,8 @@ function ghoti_documentation_html(){
           <h3>Requirements</h3>
           <ul class="ghotiGuideChecklist">
             <li>Apache or another PHP-capable web server, with HTTPS for production</li>
-            <li>PHP 8.1 or newer with PDO MySQL, DOM, fileinfo, mbstring, and XML extensions</li>
-            <li>MySQL or MariaDB and a dedicated database account</li>
+            <li>PHP 8.1 or newer with DOM, fileinfo, mbstring, XML, and your database extension (pdo_mysql, pdo_sqlite, or mongodb)</li>
+            <li>MySQL/MariaDB, internal SQLite on local disk, or MongoDB 5.0+ running as a replica set</li>
             <li>Write access for the PHP service account to Ghoti’s runtime files and upload directory</li>
             <li>Optional: ImageMagick for HEIC, TIFF, and BMP gallery conversion; a local or remote SMTP relay for mail</li>
           </ul>
@@ -74,19 +74,19 @@ function ghoti_documentation_html(){
           <h3>1. Place the application</h3>
           <p>Copy or clone the repository into the intended web directory. Point the virtual host at this directory, allow the bundled <code>.htaccess</code> rules when using Apache, and deny direct access to hidden files and local configuration at the server or proxy layer. Keep the Git checkout, local database credentials, and logs out of public directory listings.</p>
 
-          <h3>2. Create the database</h3>
-          <p>Create an empty UTF-8 database and a dedicated account. Ghoti provisions its module tables on first use and may add columns during upgrades, so the account needs normal data permissions plus <code>CREATE</code> and <code>ALTER</code> on this database. Do not grant global or administrative database privileges.</p>
+          <h3>2. Choose a database</h3>
+          <p>For internal SQLite, enable <code>pdo_sqlite</code> and open the fresh installation in your browser. For MongoDB, prepare a replica set and enable the PHP <code>mongodb</code> extension.</p>
+          <p>For MySQL/MariaDB, create an empty UTF-8 database and a dedicated account. Ghoti provisions its module tables on first use and may add columns during upgrades, so the account needs normal data permissions plus <code>CREATE</code> and <code>ALTER</code> on this database. Do not grant global or administrative database privileges.</p>
           <pre><code>CREATE DATABASE ghoti CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'ghoti'@'localhost' IDENTIFIED BY 'use-a-unique-secret';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
   ON ghoti.* TO 'ghoti'@'localhost';</code></pre>
 
           <h3>3. Configure the connection</h3>
-          <p>Use environment variables for managed deployments: <code>GHOTI_DB_HOST</code>, <code>GHOTI_DB_PORT</code>, <code>GHOTI_DB_NAME</code>, <code>GHOTI_DB_USER</code>, <code>GHOTI_DB_PASSWORD</code>, and optionally <code>GHOTI_DB_CHARSET</code>. Alternatively, create the ignored <code>db.config.local.php</code> file beside <code>db.config.php</code>. Never commit a database password.</p>
-          <p>To enter the connection in the wizard, set a strong temporary <code>GHOTI_SETUP_KEY</code> in the PHP environment and open <code>index.php?k=YOUR_SETUP_KEY</code>. The wizard can also use a connection you configured before opening it.</p>
-
+          <p>Select <code>mysql</code>, <code>sqlite</code>, or <code>mongodb</code> with <code>GHOTI_DB_DRIVER</code>. Explicit environment variables override the untracked local config. Switching provider opens a separate database and does not migrate existing data. Use environment variables for managed deployments: <code>GHOTI_DB_HOST</code>, <code>GHOTI_DB_PORT</code>, <code>GHOTI_DB_NAME</code>, <code>GHOTI_DB_USER</code>, <code>GHOTI_DB_PASSWORD</code>, and optionally <code>GHOTI_DB_CHARSET</code>. Alternatively, create the ignored <code>db.config.local.php</code> file beside <code>db.config.php</code>. Never commit a database password.</p>
+          <p>Internal SQLite needs <code>pdo_sqlite</code> and stores data under <code>.ghoti-data/</code> by default; use <code>GHOTI_DB_SQLITE_PATH</code> for an absolute path outside the document root. Use local disk and deny HTTP access to this directory. MongoDB needs the PHP <code>mongodb</code> extension and accepts <code>GHOTI_DB_AUTH_SOURCE</code> (default <code>admin</code>) and <code>GHOTI_DB_REPLICA_SET</code>. TLS is enabled by default; use <code>GHOTI_DB_TLS_CA_FILE</code> for the CA certificate path on the PHP host. A replica set, including a single-node one, is required for transactions and account locks. See <code>docs/database-providers.md</code> for examples and requirements.</p>
           <h3>4. Prepare writable paths</h3>
-          <p>The PHP service account must be able to maintain <code>ghoti.settings.json</code>, <code>ghoti.log</code>, <code>db.provisioned.json</code>, <code>critical-alerts.json</code> (and the alert history beside it, <code>critical-alerts.pending.json</code> and <code>critical-alerts.history.json</code>), <code>login.throttle.json</code>, and <code>files/gallery/</code>. The wizard needs to create <code>.ghoti-install</code> and can write the local database configuration. Grant write access to the PHP service account without making the application tree world-writable.</p>
+          <p>The PHP service account must be able to maintain <code>ghoti.settings.json</code>, <code>ghoti.log</code>, <code>db.provisioned.json</code>, <code>critical-alerts.json</code> (and the alert history beside it, <code>critical-alerts.pending.json</code> and <code>critical-alerts.history.json</code>), <code>login.throttle.json</code>, and <code>files/gallery/</code>. Browser setup needs write access to the installation directory to create <code>db.config.local.php</code> and <code>.ghoti-data/</code>. Keep the SQLite data directory writable by PHP after setup.</p>
 
           <h3>5. Serve securely</h3>
           <p>Enable HTTPS, keep PHP error display off in production, and ensure the web server honors the root access-control rules. Login session cookie names are scoped automatically to the installation directory, so separate Ghoti installations on one host use separate cookies. Moving an installation changes its cookie name and requires a new sign-in. For password-reset links, set <code>GHOTI_PUBLIC_URL</code> to the public HTTPS base URL, such as <code>https://example.com/ghoti</code>.</p>
@@ -97,12 +97,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
         <span class="ghotiGuideNumber">03</span>
         <div>
           <h2>First-run setup</h2>
-          <p>After testing the database connection in the wizard, choose the site title, theme, public URL, and indexing preference. Run the installation checks, resolve any failures, and create the first administrator. Sign in and remove <code>GHOTI_SETUP_KEY</code> from the PHP environment when you finish.</p>
-          <p>For a shell-based installation, configure the connection and provision the first administrator from the server:</p>
-          <pre><code>read -r -s -p 'Initial admin password: ' ghoti_admin_password
-printf '%s\\n' "\$ghoti_admin_password" | php bin/create-admin.php admin admin@example.com
-unset ghoti_admin_password</code></pre>
-          <p>The command only succeeds while the users table is empty. Sign in, open Site Settings, and review these items before publishing:</p>
+          <p>Open the URL of a fresh Ghoti directory. Enter the first administrator’s username, email, and password, then select <b>Create site</b>. Ghoti sets up SQLite and opens sign-in. Complete setup before sharing the URL.</p>
+          <p>For a managed database already configured through the environment or a local file, create the first administrator with <code>php bin/create-admin.php USERNAME EMAIL</code>. After signing in, review your Site Settings before publishing.</p>
           <div class="ghotiGuideCards">
             <article><strong>Identity</strong><p>Site title, theme, header image, and home page.</p></article>
             <article><strong>Access</strong><p>Registration, login visibility, page audiences, and admin roles.</p></article>
@@ -200,7 +196,7 @@ unset ghoti_admin_password</code></pre>
           <h2>Troubleshooting</h2>
           <dl class="ghotiGuideTroubleshooting">
             <dt>The site says the database is unavailable</dt>
-            <dd>Confirm the database service, host, port, database name, account permissions, and PDO MySQL extension. Web setup requires <code>GHOTI_SETUP_KEY</code>; otherwise correct the environment or <code>db.config.local.php</code> directly.</dd>
+            <dd>Check the connection settings in the PHP environment or <code>db.config.local.php</code> and confirm the required PHP extension is loaded. For MySQL or MongoDB, check the service, host, port, database name and account permissions. MongoDB requires a replica set. For SQLite, check the file path and directory permissions.</dd>
             <dt>Settings save fails</dt>
             <dd>Ensure the PHP service account can write <code>ghoti.settings.json</code> and the application directory is not read-only. Check the application log for the exact server-side failure.</dd>
             <dt>Images will not upload or convert</dt>

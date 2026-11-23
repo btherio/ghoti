@@ -1,6 +1,10 @@
 $(document).ready(function(){
 	checkLogin();
-	x_checkGetLogin(getLogin_cb);
+	if(window.location.search === '?login'){
+		printLoginForm();
+	}else{
+		x_checkGetLogin(getLogin_cb);
+	}
 });
 
 function login(){

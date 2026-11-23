@@ -25,7 +25,7 @@ function ghoti_backup_excluded_path($relative){
     if($relative === ''){ return false; }
     $parts = explode('/', strtolower($relative));
     foreach($parts as $part){
-        if(in_array($part, array('.git','.reasonix','.claude','node_modules'), true)){ return true; }
+        if(in_array($part, array('.git','.reasonix','.claude','.ghoti-data','node_modules'), true)){ return true; }
     }
     $base = end($parts);
     if(in_array($base, array(
@@ -229,7 +229,7 @@ function ghoti_backup_create_sql_dump($outputPath = null){
             if(isset($row[0]) && preg_match('/^[A-Za-z0-9_]+$/', $row[0])){ $tables[] = $row[0]; }
         }
         sort($tables, SORT_STRING);
-        ghoti_backup_sql_write($handle, "-- GHOTICMS SQL BACKUP V1\n-- Created: ".gmdate('c')."\nSET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n");
+        ghoti_backup_sql_write($handle, "-- GHOTICMS SQL BACKUP V1\n-- Provider: ".ghotidb::loadConfig()['driver']."\n-- Created: ".gmdate('c')."\nSET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n");
         foreach($tables as $table){
             $quotedTable = '`'.str_replace('`', '``', $table).'`';
             $createRow = $pdo->query('SHOW CREATE TABLE '.$quotedTable)->fetch(PDO::FETCH_NUM);
@@ -256,6 +256,9 @@ function ghoti_backup_create_sql_dump($outputPath = null){
                     }
                 }
                 ghoti_backup_sql_write($handle, 'INSERT INTO '.$quotedTable.' ('.implode(',', $columns).') VALUES ('.implode(',', $values).");\n");
+            }
+            if($pdo instanceof GhotiSqliteConnection){
+                foreach($pdo->backupIndexes($table) as $indexSql){ ghoti_backup_sql_write($handle, $indexSql.";\n"); }
             }
             ghoti_backup_sql_write($handle, "\n");
         }
@@ -319,6 +322,7 @@ function ghoti_backup_validate_sql_statements($statements){
         if(preg_match('/^CREATE\s+TABLE\s+`([A-Za-z0-9_]+)`\s*\(/is', $statement, $match)){
             $creates[$match[1]] = true; continue;
         }
+        if(preg_match('/^CREATE\s+(?:UNIQUE\s+)?INDEX\s+`[A-Za-z0-9_]+`\s+ON\s+`([A-Za-z0-9_]+)`\s*\(/i', $statement, $match)){ $references[] = $match[1]; continue; }
         if(preg_match('/^INSERT\s+INTO\s+`([A-Za-z0-9_]+)`\s*\([^;]+\)\s+VALUES\s*\(/is', $statement, $match)){
             $references[] = $match[1]; continue;
         }
@@ -336,6 +340,8 @@ function ghoti_backup_apply_sql($pdo, $statements){
 function ghoti_backup_restore_sql($path){
     $sql = file_get_contents($path);
     if($sql === false){ throw new RuntimeException('Could not read the SQL backup.'); }
+    $sourceDriver = preg_match('/^-- Provider: (mysql|sqlite|mongodb)$/m', $sql, $providerMatch) ? $providerMatch[1] : 'mysql';
+    if($sourceDriver !== ghotidb::loadConfig()['driver']){ throw new RuntimeException('Restore this backup using the same database provider that created it.'); }
     $statements = ghoti_backup_split_sql($sql);
     $tables = ghoti_backup_validate_sql_statements($statements);
     $rollback = ghoti_backup_temp_path('ghoti-db-rollback-');

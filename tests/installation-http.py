@@ -1,8 +1,6 @@
-"""Exercise the wizard with PHP's HTTP server and an isolated MySQL/MariaDB schema.
-
-Set GHOTI_INSTALL_TEST_DB_PORT to opt in. The test creates and drops two random
-schemas. GHOTI_INSTALL_TEST_DB_HOST, _USER and _PASSWORD are optional.
-"""
+"""Exercise browser setup and registration approval on a disposable SQLite install."""
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 import http.cookiejar
 import json
 import os
@@ -10,19 +8,16 @@ from pathlib import Path
 import re
 import shutil
 import socket
-import stat
+import sqlite3
 import subprocess
 import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import uuid
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KEY = 'ghoti-wizard-test-key'
-TITLE = 'Install fixture'
 ADMIN_PASSWORD = 'first-admin-test-password'
 
 
@@ -33,19 +28,6 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def client():
     return urllib.request.build_opener(NoRedirect(), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-
-
-def write_extension(app, name, *, requires=(), sql=None, entry='<?php\n'):
-    module = app / 'mod' / name
-    module.mkdir()
-    (module / 'module.json').write_text(json.dumps({'apiVersion': 1, 'name': name, 'description': 'Install fixture',
-                                                  'requires': requires, 'schema': sql is not None}))
-    (module / (name + '.php')).write_text(entry)
-    (module / (name + '.async.php')).write_text('<?php\n')
-    schema = module / (name + '.sql')
-    if sql is not None:
-        schema.write_text(sql)
-    return schema
 
 
 def run_approval_flow(request, admin, admin_token):
@@ -107,233 +89,142 @@ def rpc_token(body):
     return re.search(r'var GHOTI_CSRF_TOKEN = "([a-f0-9]+)"', body)[1]
 
 
-def run_flow(root, config, database, existing):
+def copy_checkout(app):
+    tracked = subprocess.check_output(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=ROOT)
+    for name in filter(None, tracked.split(b'\0')):
+        relative = Path(os.fsdecode(name))
+        if not (ROOT / relative).is_file():
+            continue
+        target = app / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / relative, target)
+
+
+@contextmanager
+def test_server(root, env):
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
         port = probe.getsockname()[1]
-    env = dict(os.environ, GHOTI_SETUP_KEY=KEY, GHOTI_DB_CONFIG='', GHOTI_DB_DRIVER='mysql',
-               GHOTI_DB_HOST=config['host'], GHOTI_DB_PORT=config['port'],
-               GHOTI_DB_NAME=database + '_missing', GHOTI_DB_USER=config['username'],
-               GHOTI_DB_PASSWORD=config['password'], GHOTI_DB_CHARSET='utf8mb4')
-    sessions = root / 'sessions'
-    sessions.mkdir()
-    log_path = root / 'server.log'
-    with log_path.open('w') as log:
-        server = subprocess.Popen(['php', '-d', 'session.save_path=' + str(sessions), '-d', 'display_errors=0',
-                                   '-d', 'opcache.enable=0', '-d', 'opcache.enable_cli=0',
-                                   '-S', f'127.0.0.1:{port}', '-t', str(root)],
-                                  cwd=root, env=env, stdout=log, stderr=log)
-    browser = client()
-    base_url = f'http://127.0.0.1:{port}/'
-    route = 'ghoti/index.php'
-
-    def request(path=route, data=None, browser=browser, expected=200, raw_json=False):
-        headers = {}
-        if data is not None:
-            if raw_json:
-                data = json.dumps(data).encode()
-                headers['Content-Type'] = 'application/json'
+    with (root / f'server-{port}.log').open('w+') as log:
+        server = subprocess.Popen(['php', '-d', f'session.save_path={root / "sessions"}', '-d', 'display_errors=0',
+                                   '-d', 'opcache.enable=0', '-d', 'opcache.enable_cli=0', '-S', f'127.0.0.1:{port}', '-t', str(root)], cwd=root,
+                                  env=env, stdout=log, stderr=log)
+        try:
+            for _ in range(50):
+                try:
+                    with socket.create_connection(('127.0.0.1', port), timeout=0.2):
+                        break
+                except OSError:
+                    if server.poll() is not None:
+                        raise RuntimeError('PHP test server failed to start')
+                    time.sleep(0.1)
             else:
-                data = urllib.parse.urlencode(data).encode()
-        try:
-            response = browser.open(urllib.request.Request(base_url + path, data, headers), timeout=15)
-        except urllib.error.HTTPError as error:
-            response = error
-        with response:
-            body = response.read().decode()
-            assert response.code == expected, (path, response.code, expected, body[:600])
-            return response.headers, body
-
-    def action(name, token, step='', expected=200, **fields):
-        path = route + ('?step=' + step if step else '')
-        return request(path, dict(fields, ghoti_setup_action=name, token=token), expected=expected)
-
-    def token_from(body):
-        return re.search(r'name="token" value="([a-f0-9]+)"', body)[1]
-
-    try:
-        for attempt in range(50):
-            try:
-                request(expected=403)
-                break
-            except urllib.error.URLError:
-                if server.poll() is not None:
-                    raise RuntimeError('PHP test server stopped')
-                time.sleep(.1)
-        else:
-            raise RuntimeError('PHP test server did not start')
-
-        app = root / 'ghoti'
-        credentials = dict(config, database=database)
-        config_path = app / 'db.config.local.php'
-        state_path = app / '.ghoti-install'
-        settings_path = app / 'ghoti.settings.json'
-        headers, _ = request(route + '?k=' + KEY, expected=303)
-        assert headers['Location'] == 'index.php'
-        headers, body = request()
-        assert KEY not in body and headers['Referrer-Policy'] == 'no-referrer'
-        token = token_from(body)
-        action('save-database', 'invalid', expected=403, **credentials)
-        assert not config_path.exists()
-        _, body = action('save-database', token, expected=422, **dict(credentials, port='65536'))
-        assert 'Enter a database port between 1 and 65535' in body
-        _, body = action('save-database', token, expected=422, **dict(credentials, database=database + '_missing'))
-        assert 'Connection failed' in body and not config_path.exists()
-        _, body = action('test-database', token, **credentials)
-        assert 'Database connection succeeded' in body and not config_path.exists()
-        headers, _ = action('save-database', token, expected=303, **credentials)
-        assert headers['Location'] == 'index.php?step=site'
-        assert stat.S_IMODE(config_path.stat().st_mode) == 0o600
-
-        # Upgrade a pre-approval users table on an established site.
-        fixture = root / 'legacy'
-        copy_app(fixture)
-        legacy_env = dict(env, GHOTI_DB_NAME=existing)
-        bootstrap = subprocess.run(['php', 'bin/create-admin.php', 'legacy', 'legacy@example.test'],
-                                   input=ADMIN_PASSWORD + '\n', cwd=fixture,
-                                   env=legacy_env, text=True, capture_output=True)
-        if bootstrap.returncode:
-            raise RuntimeError(bootstrap.stderr + (fixture / 'ghoti.log').read_text())
-        subprocess.run(['php', '-r', 'require "ghoti.php"; '
-                        'ghotidb::openConnection(ghotidb::loadConfig())->exec("ALTER TABLE users DROP COLUMN approvalPending");'],
-                       cwd=fixture, env=legacy_env, check=True)
-        provisioned_path = fixture / 'db.provisioned.json'
-        provisioned = json.loads(provisioned_path.read_text())
-        provisioned.update({'moduleStamp.login': 'old', 'moduleSchema.login': 'old'})
-        provisioned_path.write_text(json.dumps(provisioned))
-        (fixture / 'db.config.local.php').write_text("<?php return ['database'=>'" + existing + "'];")
-        legacy_browser = client()
-        legacy = request('legacy/index.php', browser=legacy_browser)[1]
-        assert 'Under Construction.' in legacy and 'Set up Ghoti' not in legacy
-        _, legacy_login = request('legacy/index.php', browser=legacy_browser, raw_json=True,
-                                  data={'__ghoti_async': 1, 'fn': 'login', 'args': ['legacy', ADMIN_PASSWORD],
-                                        'token': rpc_token(legacy)})
-        assert int(json.loads(legacy_login)['result']) == 1
-
-        # A reachable but empty database still requires a setup session.
-        request(browser=client(), expected=403)
-        assert 'Use current connection' in request()[1]
-        action('use-database', token, expected=303)
-        _, body = request(route + '?step=site')
-        assert 'Site title' in body and 'Continue to checks' in body
-        token = token_from(body)
-        action('save-site', token, 'site', 422, siteTitle=TITLE, defaultTheme='ghoticms', seoSiteUrl='http://example.test')
-        headers, _ = action('save-site', token, 'site', 303, siteTitle=TITLE, defaultTheme='ghoticms',
-                            seoSiteUrl='https://example.test/ghoti/')
-        assert headers['Location'] == 'index.php?step=checks'
-        assert not settings_path.exists()
-
-        gallery = app / 'files/gallery'
-        gallery.chmod(0o555)
-        try:
-            _, body = action('run-checks', token, 'checks', 422)
-            assert re.search(r'Failed</strong>\s+Gallery directory', body)
-            action('finish', token, 'checks', 422)
-            assert not settings_path.exists() and state_path.read_text() == ''
+                raise RuntimeError('PHP test server failed to respond')
+            yield f'http://127.0.0.1:{port}/'
+        except Exception:
+            log.seek(0)
+            print(log.read())
+            raise
         finally:
-            gallery.chmod(0o755)
-        _, body = action('run-checks', token, 'checks')
-        assert re.search(r'Passed</strong>\s+Gallery directory', body)
-        assert not list(app.rglob('.ghoti-check-*'))
-
-        admin = dict(adminName='fixture-admin', adminEmail='admin@example.test', adminPassword=ADMIN_PASSWORD)
-        _, body = action('finish', token, 'checks', 422, **dict(admin, adminPassword='short'))
-        assert 'Password must be at least' in body and not settings_path.exists()
-
-        # Restore a selection with a dependency, a disabled schema, and a code-only extension.
-        invalid_sql = 'This fixture schema fails until fixed.'
-        write_extension(app, 'install_parent', sql='CREATE TABLE IF NOT EXISTS install_parent (id INT PRIMARY KEY) ENGINE=InnoDB;')
-        child_schema = write_extension(app, 'install_child', requires=('install_parent',), sql=invalid_sql)
-        write_extension(app, 'install_disabled', sql=invalid_sql)
-        write_extension(app, 'install_code', entry="<?php file_put_contents(__DIR__.'/loaded', 'yes');")
-        loaded = app / 'mod/install_code/loaded'
-        selection = {'install_child': True, 'install_parent': True, 'install_disabled': False, 'install_code': True}
-        settings_path.write_text(json.dumps({'extensionModules': selection}))
-        _, body = action('finish', token, 'checks', 422, **admin)
-        assert 'could not prepare the enabled modules' in body
-        assert state_path.read_text().strip() != 'complete' and not loaded.exists()
-        child_schema.write_text('CREATE TABLE IF NOT EXISTS install_child (id INT PRIMARY KEY, '
-                                'parentId INT, FOREIGN KEY (parentId) REFERENCES install_parent(id)) ENGINE=InnoDB;')
-
-        headers, _ = action('finish', token, 'checks', 303, **admin)
-        assert headers['Location'] == 'index.php'
-        assert state_path.read_text().strip() == 'complete' and not loaded.exists()
-        settings = json.loads(settings_path.read_text())
-        assert settings['siteTitle'] == TITLE and settings['seoSiteUrl'] == 'https://example.test/ghoti'
-        assert settings['extensionModules'] == selection
-        assert settings['seoAllowIndexing'] is False and ADMIN_PASSWORD not in settings_path.read_text()
-
-        _, body = request(browser=client())
-        assert TITLE in body and 'Under Construction.' in body and 'Set up Ghoti' not in body and loaded.exists()
-        action('finish', token, 'checks', 409, **admin)
-        _, body = request()
-        csrf = rpc_token(body)
-        _, body = request(data={'__ghoti_async': 1, 'fn': 'login', 'args': ['fixture-admin', ADMIN_PASSWORD],
-                                'token': csrf}, raw_json=True)
-        login = json.loads(body)
-        assert login['ok'] and int(login['result']) == 1, login
-        _, body = request(data={'__ghoti_async': 1, 'fn': 'isAdmin', 'args': [1], 'token': csrf}, raw_json=True)
-        assert json.loads(body) == {'ok': True, 'result': True}
-
-        # After completion, an outage can only repair the saved connection.
-        good_config = config_path.read_text()
-        broken_config = app / 'broken-config.php'
-        broken_config.write_text(good_config.replace(database, database + '_missing'))
-        broken_config.replace(config_path)
-        request(browser=client(), expected=403)
-        request(route + '?k=' + KEY, expected=303)
-        _, body = request()
-        assert 'Recover the database connection' in body and 'Site settings' not in body
-        token = token_from(body)
-        action('finish', token, 'checks', 422, **admin)
-        action('save-database', token, expected=303, **credentials)
-        assert json.loads(settings_path.read_text()) == settings
-        _, body = request()
-        assert TITLE in body
-        run_approval_flow(request, browser, rpc_token(body))
-    except Exception:
-        print(log_path.read_text())
-        raise
-    finally:
-        server.terminate()
-        server.wait(timeout=10)
-
-
-def copy_app(target):
-    paths = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0')
-    for name in filter(None, paths):
-        destination = target / name
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / name, destination)
+            server.terminate()
+            server.wait(timeout=5)
 
 
 def main():
-    port = os.getenv('GHOTI_INSTALL_TEST_DB_PORT')
-    if not port:
-        raise SystemExit('Set GHOTI_INSTALL_TEST_DB_PORT for a disposable MySQL/MariaDB server.')
-    config = dict(host=os.getenv('GHOTI_INSTALL_TEST_DB_HOST', '127.0.0.1'), port=port,
-                  username=os.getenv('GHOTI_INSTALL_TEST_DB_USER', 'root'),
-                  password=os.getenv('GHOTI_INSTALL_TEST_DB_PASSWORD', ''), charset='utf8mb4')
-    schema = 'ghoti_wizard_' + uuid.uuid4().hex[:12]
-    legacy = schema + '_legacy'
-    db_env = dict(os.environ, TEST_CONFIG=json.dumps(config))
-    php = """
-        $config = json_decode(getenv('TEST_CONFIG'), true);
-        $db = new PDO('mysql:host='.$config['host'].';port='.$config['port'],
-            $config['username'], $config['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-        foreach(array_slice($argv, 1) as $sql){ $db->exec($sql); }
-    """
-    subprocess.run(['php', '-r', php, f'CREATE DATABASE {schema}', f'CREATE DATABASE {legacy}'],
-                   env=db_env, check=True)
-    try:
-        with tempfile.TemporaryDirectory(prefix='ghoti-install-test-') as tmp:
-            root = Path(tmp)
-            copy_app(root / 'ghoti')
-            run_flow(root, config, schema, legacy)
-    finally:
-        subprocess.run(['php', '-r', php, f'DROP DATABASE {schema}', f'DROP DATABASE {legacy}'],
-                       env=db_env, check=True)
-    print('Installation wizard HTTP checks passed.')
+    drivers = subprocess.check_output(['php', '-r', 'echo implode(",", PDO::getAvailableDrivers());'], text=True)
+    if 'sqlite' not in drivers.split(','):
+        print('SKIP: pdo_sqlite is required for the HTTP installation tests')
+        return
+    with tempfile.TemporaryDirectory(prefix='ghoti-install-test-') as temp:
+        root = Path(temp)
+        app = root / 'ghoti'
+        copy_checkout(app)
+        (root / 'sessions').mkdir()
+        local_config = app / 'db.config.local.php'
+        env = {key: value for key, value in os.environ.items() if not key.startswith('GHOTI_DB_') and key != 'GHOTI_SETUP_KEY'}
+        route = 'ghoti/index.php'
+        admin = client()
+        reserve = client()
+
+        with test_server(root, env) as url, test_server(root, env) as second_url:
+            def request(path=route, data=None, browser=admin, expected=200, raw_json=False, base=url):
+                headers = {}
+                payload = None
+                if data is not None:
+                    if raw_json:
+                        headers['Content-Type'] = 'application/json'
+                        payload = json.dumps(data).encode()
+                    else:
+                        headers['Content-Type'] = 'application/x-www-form-urlencoded'
+                        payload = urllib.parse.urlencode(data).encode()
+                try:
+                    response = browser.open(urllib.request.Request(base + path, payload, headers), timeout=15)
+                except urllib.error.HTTPError as error:
+                    response = error
+                with response:
+                    body = response.read().decode()
+                    codes = expected if isinstance(expected, tuple) else (expected,)
+                    assert response.code in codes, (path, response.code, codes, body[:600])
+                    return response.headers, body
+
+            def setup_form(**options):
+                headers, body = request(**options)
+                assert 'Set up Ghoti' in body and 'Create site' in body and 'GHOTI_SETUP_KEY' not in body
+                assert 'no-store' in headers['Cache-Control']
+                assert "form-action 'self'" in headers['Content-Security-Policy']
+                return re.search(r'name="token" value="([a-f0-9]+)"', body)[1]
+
+            def details(name, token):
+                return {'ghoti_install': '1', 'adminName': name, 'adminEmail': name + '@example.test',
+                        'adminPassword': ADMIN_PASSWORD, 'token': token}
+
+            token = setup_form(path='ghoti/')
+            other_token = setup_form(path='ghoti/', browser=reserve, base=second_url)
+            request(data=details('admin', 'wrong-token'), expected=403)
+            request(data=details('admin', token), browser=client(), expected=403)
+            _, body = request(data=dict(details('admin', token), adminEmail='invalid'), expected=422)
+            assert ADMIN_PASSWORD not in body
+            assert not local_config.exists() and not (app / '.ghoti-data').exists()
+            for name in ('testDbConfig', 'saveDbConfig'):
+                _, body = request(data={'__ghoti_async': 1, 'fn': name, 'args': []}, expected=503, raw_json=True)
+                assert json.loads(body) == {'ok': False, 'error': 'Database unavailable.'}
+            request('ghoti/bin/create-admin.php', expected=404)
+
+            with ThreadPoolExecutor(max_workers=2) as workers:
+                first = workers.submit(request, data=details('admin', token), expected=(303, 503))
+                second = workers.submit(request, data=details('reserve', other_token), browser=reserve,
+                                        expected=(303, 503), base=second_url)
+                redirects = [result.result()[0].get('Location') for result in (first, second)]
+            assert 'index.php?login' in redirects, (redirects, (app / 'ghoti.log').read_text())
+            assert local_config.stat().st_mode & 0o777 == 0o600
+            databases = list(app.glob('.ghoti-data/site-*/ghoti.sqlite'))
+            assert len(databases) == 1, databases
+            with sqlite3.connect(databases[0]) as connection:
+                users = connection.execute('SELECT userName, admin FROM users').fetchall()
+                assert len(users) == 1 and users[0][1] == 1, users
+                assert connection.execute('SELECT title FROM pages').fetchall() == [('Home',)]
+            assert not list(app.glob('.ghoti-config-*'))
+            request(data=details('another', token), expected=303)
+
+            _, body = request(path=route + '?login')
+            assert 'Set up Ghoti' not in body
+            token = rpc_token(body)
+            _, body = request(data={'__ghoti_async': 1, 'fn': 'login', 'args': [users[0][0], ADMIN_PASSWORD],
+                                    'token': token}, raw_json=True)
+            assert int(json.loads(body)['result']) > 0, body
+            run_approval_flow(request, admin, token)
+
+            saved = local_config.read_text()
+            local_config.write_text("<?php return array('driver' => 'sqlite', 'sqlite_path' => 'invalid');")
+            headers, body = request(browser=client(), expected=503)
+            assert 'Retry-After' in headers and 'Set-Cookie' not in headers and 'Create site' not in body
+            request(data=details('another', token), expected=503)
+            local_config.unlink()
+            _, body = request(expected=503)
+            assert 'Create site' not in body
+            local_config.write_text(saved)
+
+    print('PASS: browser installation, concurrent setup, HTTP maintenance, sign-in and registration approval')
 
 
 if __name__ == '__main__':
