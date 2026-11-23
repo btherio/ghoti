@@ -151,18 +151,19 @@ class ghotidb{
         return $pdoOptions;
     }
 
+    public static function openConnection(array $config, $timeout = null): PDO {
+        $options = self::pdoOptions($config['driver'] ?? 'mysql');
+        if($timeout !== null){ $options[PDO::ATTR_TIMEOUT] = $timeout; }
+        return new PDO(self::buildDsn($config), $config['username'] ?? '', $config['password'] ?? '', $options);
+    }
+
     private function connect(){
         if (self::$pdo instanceof PDO){
             return self::$pdo;
         }
         $config = self::loadConfig();
         try {
-            self::$pdo = new PDO(
-                self::buildDsn($config),
-                isset($config['username']) ? $config['username'] : '',
-                isset($config['password']) ? $config['password'] : '',
-                self::pdoOptions(isset($config['driver']) ? $config['driver'] : 'mysql')
-            );
+            self::$pdo = self::openConnection($config);
             ghoti::logDebug("ghoti.db.php:connect", "Connected to ".(isset($config['host']) ? $config['host'] : '?')."/".(isset($config['database']) ? $config['database'] : '?'));
         } catch (Throwable $e) {
             self::$pdo = null;
@@ -188,20 +189,39 @@ class ghotidb{
             if (!is_array($config) || empty($config['host']) || empty($config['database'])){
                 return false;
             }
-            $options = self::pdoOptions(isset($config['driver']) ? $config['driver'] : 'mysql');
-            $options[PDO::ATTR_TIMEOUT] = 4; // don't hang the page on an unreachable host
-            self::$pdo = new PDO(
-                self::buildDsn($config),
-                isset($config['username']) ? $config['username'] : '',
-                isset($config['password']) ? $config['password'] : '',
-                $options
-            );
+            self::$pdo = self::openConnection($config, 4);
             return true;
         } catch (Throwable $e) {
             self::$pdo = null;
             ghoti::logError("ghoti.db.php:isConfigured", "probe failed: ".$e->getMessage());
             return false;
         }
+    }
+
+    // Read-only detection for sites installed before the wizard existed.
+    public static function hasUsers(?PDO $connection = null, bool $administratorsOnly = false): bool {
+        $connection = $connection ?? self::$pdo;
+        if($connection === null){ return false; }
+        try{
+            $sql = $administratorsOnly ? 'SELECT 1 FROM users WHERE admin=1 LIMIT 1' : 'SELECT 1 FROM users LIMIT 1';
+            return $connection->query($sql)->fetchColumn() !== false;
+        }catch(PDOException $e){
+            if($e->getCode() === '42S02'){ return false; } // fresh database, no users table yet
+            throw $e;
+        }
+    }
+
+    public static function provisionInstallation(): bool {
+        // A previous connection may have left a cache for a different database.
+        self::$provisioned = array();
+        $db = new self();
+        foreach(array('pages', 'links', 'login', 'banners', 'analytics', 'gallery', 'mail') as $module){
+            if(!$db->loadModuleSql($module)){ return false; }
+        }
+        // Retry the starter page if a previous install created an empty table.
+        if(empty($db->queryArray('SELECT 1 FROM pages LIMIT 1'))){ $db->seedModule('pages'); }
+        return $db->ensurePageSchema()
+            && !empty($db->queryArray("SELECT 1 FROM pages WHERE isDefault=1 AND groupName='public' LIMIT 1"));
     }
 
     protected function db(){
@@ -491,7 +511,7 @@ class ghotidb{
         }
 
         if (isset(self::$moduleInitState[$moduleName]) && self::$moduleInitState[$moduleName] !== 'pending') {
-            return true;
+            return self::$moduleInitState[$moduleName] !== 'failed';
         }
 
         $tableSqlPath = __DIR__."/mod/$moduleName/$moduleName.sql";
@@ -553,22 +573,7 @@ class ghotidb{
             }
 
             //Perform initial seed data only the first time the table is created.
-            $insertSqlPath = __DIR__."/mod/$moduleName/insert.sql";
-            if (!$tableExisted && is_file($insertSqlPath)) {
-                $file = fopen($insertSqlPath, "r");
-                if($file !== false){
-                    while(!feof($file)) {
-                        //read file line by line, dumping each line into the db as it's read.
-                        $line = fgets($file, 4096);
-                        if($line !== false && strlen(trim($line)) > 0){
-                            try {
-                                $this->db()->exec($line);
-                            } catch(Throwable $e){ /***??***/ }
-                        }
-                    }
-                    fclose($file);
-                }
-            }
+            if(!$tableExisted){ $this->seedModule($moduleName); }
         }catch (Throwable $e){
             self::$moduleInitState[$moduleName] = 'failed';
             ghoti::logException("ghoti.db.php:loadModuleSql", $e);
@@ -578,6 +583,26 @@ class ghotidb{
         self::$moduleInitState[$moduleName] = 'done';
         $this->markProvisioned($moduleName, $schemaKey, $schemaHash, $stampKey, $stamp);
         return true;
+    }
+
+    private function seedModule(string $moduleName): void {
+        $path = __DIR__."/mod/$moduleName/insert.sql";
+        if(!is_file($path)){ return; }
+        $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if($lines === false){
+            ghoti::logError('ghoti.db.php:seedModule', "Could not read seed file for $moduleName");
+            return;
+        }
+        foreach($lines as $line){
+            if(trim($line) === ''){ continue; }
+            try{
+                // Some seed files contain a SELECT. Close its result before
+                // provisioning the next table on the shared connection.
+                $this->queryArray($line);
+            }catch(Throwable $e){
+                // Schema creation is still usable when optional seed data fails.
+            }
+        }
     }
     function addPage($m_title,$m_content="Under Construction"){
         try{

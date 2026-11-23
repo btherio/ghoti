@@ -43,15 +43,10 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 }
 $_SESSION['last_activity'] = time();
 
-//Database fallback: if we can't reach the database (fresh install pointed at the
-//wrong host, or an outage), divert to the setup screen - a form to enter and
-//permanently save the connection settings - instead of bootstrapping the whole
-//module stack against a dead connection. ghoti_setup_dispatch() handles the
-//setup form's async POST or renders the page, then exits. This path is only
-//reachable WHILE the DB is unreachable; once a working config is saved it never
-//runs again (see ghoti.setup.php for the security rationale).
-if(!ghotidb::isConfigured()){
-	ghoti_setup_dispatch(); // never returns
+// First run and database recovery must work without bootstrapping modules.
+$setupMode = ghoti_setup_mode();
+if($setupMode !== 'ready' || isset($_POST['ghoti_setup_action'])){
+	ghoti_setup_dispatch($setupMode);
 }
 
 //Im going to a load the ghoti object instance into a session variable here

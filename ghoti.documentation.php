@@ -65,7 +65,7 @@ function ghoti_documentation_html(){
           <h3>Requirements</h3>
           <ul class="ghotiGuideChecklist">
             <li>Apache or another PHP-capable web server, with HTTPS for production</li>
-            <li>PHP 8 or newer with PDO MySQL, DOM, fileinfo, mbstring, and XML extensions</li>
+            <li>PHP 8.1 or newer with PDO MySQL, DOM, fileinfo, mbstring, and XML extensions</li>
             <li>MySQL or MariaDB and a dedicated database account</li>
             <li>Write access for the PHP service account to Ghoti’s runtime files and upload directory</li>
             <li>Optional: ImageMagick for HEIC, TIFF, and BMP gallery conversion; a local or remote SMTP relay for mail</li>
@@ -83,10 +83,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
 
           <h3>3. Configure the connection</h3>
           <p>Use environment variables for managed deployments: <code>GHOTI_DB_HOST</code>, <code>GHOTI_DB_PORT</code>, <code>GHOTI_DB_NAME</code>, <code>GHOTI_DB_USER</code>, <code>GHOTI_DB_PASSWORD</code>, and optionally <code>GHOTI_DB_CHARSET</code>. Alternatively, create the ignored <code>db.config.local.php</code> file beside <code>db.config.php</code>. Never commit a database password.</p>
-          <p>If you prefer the web setup screen, set a strong temporary <code>GHOTI_SETUP_KEY</code>, open <code>/?k=YOUR_SETUP_KEY</code>, test and save the connection, then remove the setup key from the web-server environment. Web setup is unavailable without that key.</p>
+          <p>To enter the connection in the wizard, set a strong temporary <code>GHOTI_SETUP_KEY</code> in the PHP environment and open <code>index.php?k=YOUR_SETUP_KEY</code>. The wizard can also use a connection you configured before opening it.</p>
 
           <h3>4. Prepare writable paths</h3>
-          <p>The PHP service account must be able to maintain <code>ghoti.settings.json</code>, <code>ghoti.log</code>, <code>db.provisioned.json</code>, <code>critical-alerts.json</code> (and the alert history beside it, <code>critical-alerts.pending.json</code> and <code>critical-alerts.history.json</code>), <code>login.throttle.json</code>, and <code>files/gallery/</code>. If web setup is used, it must also be able to create <code>db.config.local.php</code>. Grant access only to these paths; avoid making the entire application tree world-writable.</p>
+          <p>The PHP service account must be able to maintain <code>ghoti.settings.json</code>, <code>ghoti.log</code>, <code>db.provisioned.json</code>, <code>critical-alerts.json</code> (and the alert history beside it, <code>critical-alerts.pending.json</code> and <code>critical-alerts.history.json</code>), <code>login.throttle.json</code>, and <code>files/gallery/</code>. The wizard needs to create <code>.ghoti-install</code> and can write the local database configuration. Grant write access to the PHP service account without making the application tree world-writable.</p>
 
           <h3>5. Serve securely</h3>
           <p>Enable HTTPS, keep PHP error display off in production, and ensure the web server honors the root access-control rules. Login session cookie names are scoped automatically to the installation directory, so separate Ghoti installations on one host use separate cookies. Moving an installation changes its cookie name and requires a new sign-in. For password-reset links, set <code>GHOTI_PUBLIC_URL</code> to the public HTTPS base URL, such as <code>https://example.com/ghoti</code>.</p>
@@ -97,7 +97,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
         <span class="ghotiGuideNumber">03</span>
         <div>
           <h2>First-run setup</h2>
-          <p>After the database connects, provision the first administrator from the server. Public registration cannot create the initial administrator.</p>
+          <p>After testing the database connection in the wizard, choose the site title, theme, public URL, and indexing preference. Run the installation checks, resolve any failures, and create the first administrator. Sign in and remove <code>GHOTI_SETUP_KEY</code> from the PHP environment when you finish.</p>
+          <p>For a shell-based installation, configure the connection and provision the first administrator from the server:</p>
           <pre><code>read -r -s -p 'Initial admin password: ' ghoti_admin_password
 printf '%s\\n' "\$ghoti_admin_password" | php bin/create-admin.php admin admin@example.com
 unset ghoti_admin_password</code></pre>
