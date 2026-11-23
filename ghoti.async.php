@@ -1014,9 +1014,11 @@ class ghotiui{
 		$o .= "<p class=\"siteSettingsSectionIntro\">What visitors may do without an account.</p>\n";
 		$o .= "<div class=\"siteSettingsChoices\">\n";
 		$o .= $choice("allowRegister", "Allow new user registration", ghoti::$allowRegister);
+		$o .= $choice("adminVerifiesNewAccounts", "Admin verifies new accounts", ghoti::$adminVerifiesNewAccounts, "set-adminVerifiesNewAccounts-help");
 		$o .= $choice("enableThemeChanger", "Show the theme-changer dropdown", ghoti::$enableThemeChanger);
 		$o .= $choice("hideLoginButton", "Hide the login button", ghoti::$hideLoginButton, "set-hideLoginButton-help");
 		$o .= "</div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"set-adminVerifiesNewAccounts-help\">Review pending registrations in <b>Manage Users</b>. These accounts can sign in after an administrator approves them.</p>\n";
 		$o .= "<p class=\"ghotiHelpText\" id=\"set-hideLoginButton-help\">With the login button hidden, sign in via <a href=\"?theme=login\">?theme=login</a> &mdash; that reveals it for one visit and keeps your theme.</p>\n";
 		$o .= "</fieldset>\n";
 		$o .= "</div>\n"; //tab panel

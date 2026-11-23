@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` varchar(255) default NULL,
   `password` varchar(255) NOT NULL,
   `admin` int(1) NOT NULL,
+  `approvalPending` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY  (`userId`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1 ;
 

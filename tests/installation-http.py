@@ -48,6 +48,65 @@ def write_extension(app, name, *, requires=(), sql=None, entry='<?php\n'):
     return schema
 
 
+def run_approval_flow(request, admin, admin_token):
+    pending = {'accountApproval': 'pending'}
+    password = 'pending-account-test-password'
+
+    def rpc(browser, token, name, *args, expected=200):
+        _, body = request(data={'__ghoti_async': 1, 'fn': name, 'args': args, 'token': token},
+                          raw_json=True, browser=browser, expected=expected)
+        response = json.loads(body)
+        assert response['ok'] == (expected == 200), response
+        return response.get('result')
+
+    def register(browser, token, username):
+        form = rpc(browser, token, 'printRegisterForm')
+        challenge = re.search(r'What is (\d+) \+ (\d+)\?', form)
+        answer = str(sum(map(int, challenge.groups())))
+        return rpc(browser, token, 'addUser', username, username + '@example.test', password, answer)
+
+    form = rpc(admin, admin_token, 'printSiteSettingsForm')
+    assert re.search(r'id="set-allowRegister"[^\n]*\n[^\n]*id="set-adminVerifiesNewAccounts"[^\n]*Admin verifies new accounts', form)
+    assert rpc(admin, admin_token, 'saveSiteSettings', {'allowRegister': 1, 'adminVerifiesNewAccounts': 1}) is True
+    visitor = client()
+    visitor_token = rpc_token(request(browser=visitor)[1])
+    assert register(visitor, visitor_token, 'waiting') == pending
+    assert rpc(visitor, visitor_token, 'login', 'waiting', 'wrong-password') is False
+    assert rpc(visitor, visitor_token, 'login', 'waiting', password) == pending
+    assert rpc(visitor, visitor_token, 'checkLogin') is False
+    assert register(visitor, visitor_token, 'declined') == pending
+
+    users = rpc(admin, admin_token, 'printManageUserForm')
+    assert 'Pending approvals' in users and 'waiting@example.test' in users and 'declined@example.test' in users
+    waiting_id = int(re.search(r'Pending account waiting".*?reviewUserRegistration\((\d+),', users, re.S)[1])
+    declined_id = int(re.search(r'Pending account declined".*?reviewUserRegistration\((\d+),', users, re.S)[1])
+    assert rpc(visitor, visitor_token, 'reviewUserRegistration', waiting_id, 'approve') == 'Admin access required.'
+    assert 'Pending approvals' not in rpc(visitor, visitor_token, 'printManageUserForm')
+    rpc(admin, 'incorrect-csrf-token', 'reviewUserRegistration', waiting_id, 'approve', expected=403)
+    assert rpc(admin, admin_token, 'toggleAdmin', waiting_id) == 'Select an approved user account.'
+    assert rpc(visitor, visitor_token, 'login', 'waiting', password) == pending
+
+    assert rpc(admin, admin_token, 'reviewUserRegistration', waiting_id, 'approve') is True
+    assert 'no longer awaiting approval' in rpc(admin, admin_token, 'reviewUserRegistration', waiting_id, 'decline')
+    assert int(rpc(visitor, visitor_token, 'login', 'waiting', password)) == waiting_id
+    assert rpc(visitor, visitor_token, 'isAdmin', waiting_id) is False
+    assert rpc(visitor, visitor_token, 'reviewUserRegistration', declined_id, 'approve') == 'Admin access required.'
+
+    assert rpc(admin, admin_token, 'saveSiteSettings', {'adminVerifiesNewAccounts': 0}) is True
+    applicant = client()
+    applicant_token = rpc_token(request(browser=applicant)[1])
+    assert rpc(applicant, applicant_token, 'login', 'declined', password) == pending
+    assert rpc(admin, admin_token, 'reviewUserRegistration', declined_id, 'decline') is True
+    assert rpc(applicant, applicant_token, 'login', 'declined', password) is False
+    assert register(applicant, applicant_token, 'instant') is True
+    assert int(rpc(applicant, applicant_token, 'login', 'instant', password)) > 0
+    assert 'Pending approvals' not in rpc(admin, admin_token, 'printManageUserForm')
+
+
+def rpc_token(body):
+    return re.search(r'var GHOTI_CSRF_TOKEN = "([a-f0-9]+)"', body)[1]
+
+
 def run_flow(root, config, database, existing):
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
@@ -126,17 +185,30 @@ def run_flow(root, config, database, existing):
         assert headers['Location'] == 'index.php?step=site'
         assert stat.S_IMODE(config_path.stat().st_mode) == 0o600
 
-        # Established sites remain reachable without an installation marker.
+        # Upgrade a pre-approval users table on an established site.
         fixture = root / 'legacy'
         copy_app(fixture)
+        legacy_env = dict(env, GHOTI_DB_NAME=existing)
         bootstrap = subprocess.run(['php', 'bin/create-admin.php', 'legacy', 'legacy@example.test'],
                                    input=ADMIN_PASSWORD + '\n', cwd=fixture,
-                                   env=dict(env, GHOTI_DB_NAME=existing), text=True, capture_output=True)
+                                   env=legacy_env, text=True, capture_output=True)
         if bootstrap.returncode:
             raise RuntimeError(bootstrap.stderr + (fixture / 'ghoti.log').read_text())
+        subprocess.run(['php', '-r', 'require "ghoti.php"; '
+                        'ghotidb::openConnection(ghotidb::loadConfig())->exec("ALTER TABLE users DROP COLUMN approvalPending");'],
+                       cwd=fixture, env=legacy_env, check=True)
+        provisioned_path = fixture / 'db.provisioned.json'
+        provisioned = json.loads(provisioned_path.read_text())
+        provisioned.update({'moduleStamp.login': 'old', 'moduleSchema.login': 'old'})
+        provisioned_path.write_text(json.dumps(provisioned))
         (fixture / 'db.config.local.php').write_text("<?php return ['database'=>'" + existing + "'];")
-        legacy = request('legacy/index.php', browser=client())[1]
+        legacy_browser = client()
+        legacy = request('legacy/index.php', browser=legacy_browser)[1]
         assert 'Under Construction.' in legacy and 'Set up Ghoti' not in legacy
+        _, legacy_login = request('legacy/index.php', browser=legacy_browser, raw_json=True,
+                                  data={'__ghoti_async': 1, 'fn': 'login', 'args': ['legacy', ADMIN_PASSWORD],
+                                        'token': rpc_token(legacy)})
+        assert int(json.loads(legacy_login)['result']) == 1
 
         # A reachable but empty database still requires a setup session.
         request(browser=client(), expected=403)
@@ -195,7 +267,7 @@ def run_flow(root, config, database, existing):
         assert TITLE in body and 'Under Construction.' in body and 'Set up Ghoti' not in body and loaded.exists()
         action('finish', token, 'checks', 409, **admin)
         _, body = request()
-        csrf = re.search(r'var GHOTI_CSRF_TOKEN = "([a-f0-9]+)"', body)[1]
+        csrf = rpc_token(body)
         _, body = request(data={'__ghoti_async': 1, 'fn': 'login', 'args': ['fixture-admin', ADMIN_PASSWORD],
                                 'token': csrf}, raw_json=True)
         login = json.loads(body)
@@ -216,7 +288,9 @@ def run_flow(root, config, database, existing):
         action('finish', token, 'checks', 422, **admin)
         action('save-database', token, expected=303, **credentials)
         assert json.loads(settings_path.read_text()) == settings
-        assert TITLE in request()[1]
+        _, body = request()
+        assert TITLE in body
+        run_approval_flow(request, browser, rpc_token(body))
     except Exception:
         print(log_path.read_text())
         raise

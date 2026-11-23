@@ -995,6 +995,7 @@ function saveSiteSettings(){
 		headerImg: $("#set-headerImg").val(),
 		backgroundImg: $("#set-backgroundImg").val(),
 		allowRegister: $("#set-allowRegister").is(":checked") ? 1 : 0,
+		adminVerifiesNewAccounts: $("#set-adminVerifiesNewAccounts").is(":checked") ? 1 : 0,
 		enableThemeChanger: $("#set-enableThemeChanger").is(":checked") ? 1 : 0,
 		hideLoginButton: $("#set-hideLoginButton").is(":checked") ? 1 : 0,
 		showHelpTips: $("#set-showHelpTips").is(":checked") ? 1 : 0,

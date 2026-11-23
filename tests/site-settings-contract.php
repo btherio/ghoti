@@ -98,7 +98,7 @@ $tmpName = 'ghoti.settings.test-'.getmypid().'.json';
 ghoti::$settingsFile = $tmpName;
 $restore = ghoti::currentSettings();
 try{
-	foreach(array('enableBpong','enableBoards','enableStore','enableVhosts') as $key){
+	foreach(array('enableBpong','enableBoards','enableStore','enableVhosts','adminVerifiesNewAccounts') as $key){
 		settingsCheck(ghoti::saveSettings(array($key => 1)) === true, "Could not save $key=1");
 		ghoti::$$key = false;         //forget it, the way a new request would
 		ghoti::loadSettings();

@@ -544,6 +544,8 @@ function cancelTwoFactor(){
 	return true;
 }
 
+const LOGIN_ACCOUNT_APPROVAL_PENDING = array('accountApproval' => 'pending');
+
 function login($username,$password){
 	$username = trim((string) $username);
 	$password = (string) $password;
@@ -602,9 +604,10 @@ function login($username,$password){
 	$_SESSION['login_attempts'] = $attempts + 1;
 	ghoti::logInfo("login.async.php:login", "Login attempt($username) from ".loginRemoteAddr());
 	$fingerprint = null;
-	$id = $_SESSION["loginObj"]->logindb->authenticate($username,$password,$fingerprint);
+	$approvalPending = false;
+	$id = $_SESSION["loginObj"]->logindb->authenticate($username,$password,$fingerprint,$approvalPending);
 	ghoti::logDebug("login.async.php:login", "Login authentication result for '$username': ".var_export($id, true));
-	if ($id && $id > 0) {
+	if ($approvalPending || ($id && $id > 0)) {
 		$_SESSION['login_attempts'] = 0;
 		$_SESSION['login_last_attempt'] = 0;
 		//Clear only this username; a valid login must not reset IP failures.
@@ -619,6 +622,7 @@ function login($username,$password){
 		//A correct password is the FIRST factor. When a second one is required
 		//this returns without setting loggedIn at all - see verifyTwoFactor().
 		login_2fa_clear();
+		if($approvalPending){ return LOGIN_ACCOUNT_APPROVAL_PENDING; }
 		if(login_2fa_required_for($id)){
 			$started = login_2fa_begin((int)$id, $username, $fingerprint);
 			if($started !== true){
@@ -744,6 +748,7 @@ function login_reg_begin($username, $email, $passwordHash){
 		'username'     => (string)$username,
 		'email'        => (string)$email,
 		'passwordHash' => (string)$passwordHash,
+		'approvalRequired' => ghoti::$adminVerifiesNewAccounts,
 		'codeHash'     => login_reg_hash($code),
 		'expiresAt'    => time() + LOGIN_REG_TTL,
 		'attempts'     => 0,
@@ -754,12 +759,16 @@ function login_reg_begin($username, $email, $passwordHash){
 
 /*
  * Second step of registering: the account is created HERE and nowhere else in
- * the verified flow. Returns true, 0 for a wrong code, or a string explaining
- * why the attempt cannot continue.
+ * the verified flow. Returns true or an approval status on success, 0 for a
+ * wrong code, or a string explaining why the attempt cannot continue.
  */
 function verifyRegistration($code){
 	if(empty($_SESSION['pendingRegistration']) || !is_array($_SESSION['pendingRegistration'])){
 		return "Your registration has expired. Start again.";
+	}
+	if(ghoti::$allowRegister !== true){
+		login_reg_clear();
+		return "Registration is disabled.";
 	}
 	$pending = $_SESSION['pendingRegistration'];
 
@@ -787,7 +796,8 @@ function verifyRegistration($code){
 
 	//The duplicate check inside addUser() runs again here, which is what closes
 	//the window between the code being sent and being entered.
-	$result = $_SESSION["loginObj"]->logindb->addUser($pending['username'], $pending['passwordHash'], $pending['email'], true);
+	$approvalPending = ghoti::$adminVerifiesNewAccounts || !empty($pending['approvalRequired']);
+	$result = $_SESSION["loginObj"]->logindb->addUser($pending['username'], $pending['passwordHash'], $pending['email'], true, $approvalPending);
 	if(!$result){
 		ghoti::logWarn("login.async.php:verifyRegistration", "account creation failed after a correct code for '".$pending['username']."'");
 		return "That username or e-mail was taken while you were confirming. Start again.";
@@ -796,7 +806,7 @@ function verifyRegistration($code){
 	//Deliberately NOT signing them in: registering is not authenticating, and
 	//an automatic session here would hand a brand-new account a way past the
 	//sign-in code that twoFactorAllUsers may require.
-	return true;
+	return $approvalPending ? LOGIN_ACCOUNT_APPROVAL_PENDING : true;
 }
 
 function cancelRegistration(){
@@ -858,11 +868,12 @@ function addUser($username,$email,$password,$captchaAnswer=''){
 	}
 
 	ghoti::logDebug("login.async.php:addUser", "Calling addUser for '$username'");
-	$result = $_SESSION["loginObj"]->logindb->addUser($username,$password,$email);
+	$approvalPending = ghoti::$adminVerifiesNewAccounts;
+	$result = $_SESSION["loginObj"]->logindb->addUser($username,$password,$email,false,$approvalPending);
 	ghoti::logDebug("login.async.php:addUser", "Registration database result for '$username': ".var_export($result, true));
 	if($result){
 		ghoti::logInfo("login.async.php:addUser", "Registered $username from ".loginRemoteAddr());
-		return true;
+		return $approvalPending ? LOGIN_ACCOUNT_APPROVAL_PENDING : true;
 	}
 	ghoti::logWarn("login.async.php:addUser", "Registration failed for '$username' with no exception details");
 	return "Error!";
@@ -982,8 +993,7 @@ function printAdminMenu(){
 }
 
 function printManageUserForm(){
-	if(!isset($_SESSION['userId']) || !isAdmin($_SESSION['userId'])){
-		ghoti::logWarn("login.async.php:printManageUserForm", "Unauthorized attempt from ".loginRemoteAddr());
+	if(!ghoti_require_admin()){
 		return "<h1>Users</h1><p>Admin access required.</p>";
 	}
 	$userList = $_SESSION["loginObj"]->logindb->getUserList();
@@ -993,6 +1003,25 @@ function printManageUserForm(){
 	$moderates  = function_exists('boards_user_moderation_summary') ? boards_user_moderation_summary() : array();
 	$totpEnrolled = $_SESSION["loginObj"]->logindb->totpEnrolledMap();
 	return $_SESSION["loginObj"]->loginui->printManageUserForm($userList, $postCounts, $moderates, $totpEnrolled);
+}
+
+function reviewUserRegistration($userId, $decision){
+	if(!ghoti_require_admin()){ return "Admin access required."; }
+	if(!in_array($decision, array('approve','decline'), true)){ return "Choose whether to approve or decline the registration."; }
+	try{
+		$userId = ghoti_validate()->id($userId, "user id");
+	}catch(Exception $e){
+		return "Invalid user.";
+	}
+	try{
+		$reviewed = $_SESSION["loginObj"]->logindb->reviewRegistration($userId, $decision === 'approve');
+	}catch(Throwable $e){
+		ghoti::logException('login.async.php:reviewUserRegistration', $e);
+		return "The registration could not be reviewed. Try again.";
+	}
+	if(!$reviewed){ return "This account is no longer awaiting approval."; }
+	ghoti::logInfo('login.async.php:reviewUserRegistration', "Decision $decision for account $userId by admin ".ghoti_current_user_id());
+	return true;
 }
 
 function printLoginForm(){
@@ -1050,6 +1079,7 @@ ghoti_async_register(
 	"logout",
 	"printAdminMenu",
 	"printManageUserForm",
+	"reviewUserRegistration",
 	"printLoginForm",
 	"printChangePasswordForm",
 	"printSystemMenu",
@@ -1125,7 +1155,7 @@ class loginui{
 		if(ghoti::$allowRegister == true){
 			$this->output .= "<button type=\"button\" class=\"ghotiButton ghotiButtonSecondary\" onclick=\"printRegisterForm();\">Register</button>\n";
 		}
-		$this->output .= "</div><p><a href=\"password-reset.php\">Forgot your password?</a></p></form><span id=\"loginFeedback\"></span></div>\n";
+		$this->output .= "</div><p><a href=\"password-reset.php\">Forgot your password?</a></p></form><span id=\"loginFeedback\" role=\"status\"></span></div>\n";
 		return $this->output;
 	}
 
@@ -1142,6 +1172,9 @@ class loginui{
 		$this->output .= "<label class=\"ghotiField\"><span>Password</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password\" id=\"registerForm-password\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
 		$this->output .= "<label class=\"ghotiField\"><span>Password again</span><span class=\"ghotiPasswordInput\"><input type=\"password\" name=\"password1\" id=\"registerForm-password1\" size=\"20\" autocomplete=\"new-password\" /><button type=\"button\" class=\"ghotiPasswordToggle\" onclick=\"ghotiTogglePassword(this);\" aria-label=\"Show password\" title=\"Show password\">&#128065;</button></span></label>\n";
 		$this->output .= '<p>We use your username and email to provide your account. Read the <a href="?view=privacy">privacy policy</a> before registering. Optional analytics is a separate choice.</p>';
+		if(ghoti::$adminVerifiesNewAccounts){
+			$this->output .= '<p>An administrator must approve your account before you can sign in.</p>';
+		}
 		$this->output .= loginCaptchaHtml('register','registerForm-captcha');
 		$this->output .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Register</button></div>\n";
 		$this->output .= "</form><span id=\"loginFeedback\"></span></div>\n";
@@ -1202,6 +1235,8 @@ class loginui{
 		$docs = ghoti_docs_panel("How to manage users", "roles, edits, removal, email", array(
 			array('heading' => 'Roles',
 				'list' => array('The <b>Admin</b> / <b>User</b> button toggles admin rights.', 'The last remaining admin cannot be demoted or deleted.')),
+			array('heading' => 'New registrations',
+				'list' => array('<b>Approve</b> allows a pending account to sign in. <b>Decline</b> removes the registration.')),
 			array('heading' => 'Edit an account',
 				'list' => array('Change the username or email and press <b>Save</b>.', 'Usernames and emails must be unique &mdash; an address in use by another account is rejected.')),
 			array('heading' => 'Email users',
@@ -1213,9 +1248,36 @@ class loginui{
 			array('heading' => 'Delete an account',
 				'list' => array('<b>Delete</b> removes the account and everything it posted. This cannot be undone.'))
 		));
+		if($userList === false){
+			return $this->output.'<p role="alert">Could not load the user accounts. Try again.</p></section>';
+		}
+		$pending = array();
+		$approved = array();
+		foreach($userList as $row){
+			if(!empty($row[4])){ $pending[] = $row; }
+			else { $approved[] = $row; }
+		}
+		if($pending || ghoti::$adminVerifiesNewAccounts){
+			$this->output .= '<section aria-labelledby="ghotiPendingApprovals"><h2 id="ghotiPendingApprovals">Pending approvals</h2>';
+			$this->output .= $pending ? '<div class="ghotiUserList">' : '<p>No accounts are awaiting approval.</p>';
+			foreach($pending as $row){
+				$userId = (int)$row[0];
+				$userName = htmlspecialchars((string)$row[1], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+				$email = htmlspecialchars((string)$row[2], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+				$this->output .= '<article class="ghotiUserCard" aria-label="Pending account '.$userName.'"><div class="ghotiUserFields">'
+					.'<div><span class="ghotiUserDetailLabel">Username</span> <strong>'.$userName.'</strong></div>'
+					.'<div><span class="ghotiUserDetailLabel">Email</span> '.$email.'</div></div>'
+					.'<div class="ghotiFormActions ghotiUserActions">'
+					.'<button type="button" class="ghotiButton ghotiButtonCompact" onclick="reviewUserRegistration('.$userId.', &quot;approve&quot;);">Approve</button>'
+					.'<button type="button" class="ghotiButton ghotiButtonCompact ghotiButtonDanger" onclick="reviewUserRegistration('.$userId.', &quot;decline&quot;);">Decline</button>'
+					.'</div></article>';
+			}
+			if($pending){ $this->output .= '</div>'; }
+			$this->output .= '</section>';
+		}
 		$this->output .= '<div class="ghotiUserList" aria-label="User accounts">';
 		$mailDirectory = array();
-		foreach($userList as $records => $row){
+		foreach($approved as $row){
 			$userId = (int)$row[0];
 			$mailDirectory[] = array('userId'=>$userId, 'userName'=>$row[1], 'email'=>$row[2], 'admin'=>$row[3]);
 			$userName = htmlspecialchars((string)$row[1], ENT_QUOTES);

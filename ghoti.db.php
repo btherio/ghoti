@@ -557,7 +557,7 @@ class ghotidb{
 
         self::$moduleInitState[$moduleName] = 'in-progress';
 
-        $tableExisted = $this->tableExists($moduleName);
+        $tableExisted = $this->tableExists($moduleName === 'login' ? 'users' : $moduleName);
 
         try{
             //Every statement is `create table if not exists`, so this is a no-op
@@ -575,6 +575,10 @@ class ghotidb{
             //upgraded sites reading columns their database had never heard of.
             if($tableExisted){
                 $this->ensureModuleSchema($moduleName, $tableSql);
+            }
+            if($moduleName === 'login'){
+                // Sign-in depends on this column. Retry a failed migration on the next request.
+                $this->queryArray('SELECT approvalPending FROM users LIMIT 0');
             }
 
             //Perform initial seed data only the first time the table is created.
@@ -813,7 +817,7 @@ class GhotiAdminDirectory extends ghotidb{
  */
 class GhotiUserDirectory extends ghotidb{
     public function recipients(){
-        $rows = $this->queryArray("select userId,userName,email,admin from users order by userName asc, userId asc");
+        $rows = $this->queryArray("select userId,userName,email,admin from users where approvalPending = 0 order by userName asc, userId asc");
         $users = array();
         foreach($rows as $row){
             $users[] = array(

@@ -25,6 +25,7 @@ class ghoti {
 	public static $defaultPageTitle = "Home"; 		//this page must exist          [UI]
 	public static $defaultTheme = "ghoticms";		//default theme                 [UI]
 	public static $allowRegister = False; 			//allow or disallow new registrations [UI]
+	public static $adminVerifiesNewAccounts = false;
 	public static $backgroundImg = ""; //shared theme background; blank uses theme defaults
 	public static $headerImg = "gfx/ghoti-logo.png"; //header image to use            [UI]
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
@@ -104,6 +105,7 @@ class ghoti {
 		'headerImg'          => 'path',
 		'backgroundImg'      => 'background',
 		'allowRegister'      => 'bool',
+		'adminVerifiesNewAccounts' => 'bool',
 		'enableThemeChanger' => 'bool',
 		'hideLoginButton'    => 'bool',
 		'showHelpTips'       => 'bool',

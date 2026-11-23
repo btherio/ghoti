@@ -45,9 +45,9 @@ class RegDb{
 	public $hashCalls = 0;
 	public function checkDuplicate($u, $e){ return $this->taken; }
 	public function hashPendingPassword($p){ $this->hashCalls++; return '$fake$'.sha1($p); }
-	public function addUser($u, $p, $e, $isHash = false){
+	public function addUser($u, $p, $e, $isHash = false, $approvalPending = false){
 		if($this->taken || $this->failInsert){ return false; }
-		$this->created[] = array('userName'=>$u, 'password'=>$p, 'email'=>$e, 'isHash'=>$isHash);
+		$this->created[] = array('userName'=>$u, 'password'=>$p, 'email'=>$e, 'isHash'=>$isHash, 'approvalPending'=>$approvalPending);
 		return true;
 	}
 }
@@ -267,6 +267,40 @@ addUser('quitter', 'quitter@example.test', 'a-good-password', regFreshCaptcha())
 regCheck(!empty($_SESSION['pendingRegistration']), 'Nothing to cancel');
 regCheck(cancelRegistration() === true, 'Cancel did not report success');
 regCheck(empty($_SESSION['pendingRegistration']), 'Cancel left the pending registration in place');
+
+/* ---------------- administrator approval ---------------- */
+
+regReset(); regResetThrottle();
+regSetMailer(new RegMailer(false));
+$db->created = array();
+ghoti::$adminVerifiesNewAccounts = true;
+$result = addUser('pending', 'pending@example.test', 'a-good-password', regFreshCaptcha());
+regCheck($result === LOGIN_ACCOUNT_APPROVAL_PENDING && $db->created[0]['approvalPending'] === true,
+	'Without email confirmation, a reviewed registration must still store a pending account');
+
+foreach(array(true, false) as $approvalWhenStarted){
+	regReset(); regResetThrottle();
+	$mailer = regSetMailer(new RegMailer(true));
+	$db->created = array();
+	ghoti::$adminVerifiesNewAccounts = $approvalWhenStarted;
+	$result = addUser('waiting', 'waiting@example.test', 'a-good-password', regFreshCaptcha());
+	regCheck(login_reg_is_pending($result) && !$db->created, 'Email confirmation must precede the approval queue');
+	ghoti::$adminVerifiesNewAccounts = !$approvalWhenStarted;
+	regCheck(verifyRegistration(regCode($mailer)) === LOGIN_ACCOUNT_APPROVAL_PENDING,
+		'Approval is required if enabled when registration started or when email was confirmed');
+	regCheck($db->created[0]['isHash'] && $db->created[0]['approvalPending'] && empty($_SESSION['loggedIn']),
+		'Email confirmation must store a pending hash and leave the person signed out');
+}
+ghoti::$adminVerifiesNewAccounts = false;
+
+regReset(); regResetThrottle();
+$mailer = regSetMailer(new RegMailer(true));
+$db->created = array();
+addUser('disabled', 'disabled@example.test', 'a-good-password', regFreshCaptcha());
+ghoti::$allowRegister = false;
+regCheck(verifyRegistration(regCode($mailer)) === 'Registration is disabled.' && !$db->created,
+	'Disabling registration must stop an outstanding email confirmation from creating an account');
+ghoti::$allowRegister = true;
 
 foreach(array($throttleFile, ghoti::$ghotiLog) as $f){ if(is_file($f)){ @unlink($f); } }
 echo "PASS: $checks registration verification assertions\n";

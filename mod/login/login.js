@@ -60,10 +60,23 @@ function printRegisterForm(){
 	$("#popupTitle").html("Register");
 	x_printRegisterForm(popup_cb);
 }
-function printManageUserForm(){
+function printManageUserForm(onLoaded){
 	x_printManageUserForm(function(content){
 		printPage(content);
 		initComposeMail();
+		if(typeof onLoaded === 'function'){ onLoaded(); }
+	});
+}
+function reviewUserRegistration(id, decision){
+	if(decision === 'decline' && !window.confirm('Decline and remove this registration?')){ return; }
+	x_reviewUserRegistration(id, decision, function(result){
+		if(result !== true){
+			pageFeedBack(typeof result === 'string' ? result : 'Could not review the registration.');
+			return;
+		}
+		printManageUserForm(function(){
+			pageFeedBack(decision === 'approve' ? 'Account approved.' : 'Registration declined.');
+		});
 	});
 }
 function saveUser(username,email,id){
@@ -285,7 +298,9 @@ function cancelTwoFactor(){
 }
 
 function login_cb(id){
-	if(loginTwoFactorPending(id)){
+	if(accountApprovalPending(id)){
+		$("#loginFeedback").text("Your account is awaiting administrator approval.");
+	}else if(loginTwoFactorPending(id)){
 		loginShowTwoFactorForm(id.method);
 	}else if(id > 0){
 		loginEstablished(id);
@@ -344,6 +359,10 @@ function register_cb(resultMessage){
 		showRegistrationCodeForm(resultMessage.email);
 		return;
 	}
+	if(accountApprovalPending(resultMessage)){
+		showRegistrationApproval();
+		return;
+	}
 	refreshRegisterCaptcha();
 	if(resultMessage == true){
 		pageFeedBack("Registered successfully. Please login to continue.");
@@ -362,6 +381,19 @@ function register_cb(resultMessage){
 
 function registrationPending(result){
 	return !!(result && typeof result === 'object' && result.verifyEmail === 'required');
+}
+
+function accountApprovalPending(result){
+	return !!(result && typeof result === 'object' && result.accountApproval === 'pending');
+}
+
+function showRegistrationApproval(){
+	$("#popupTitle").text("Registration submitted");
+	$("#popup-content").html(
+		'<p role="status">Your account is awaiting administrator approval. You can sign in after it is approved.</p>'+
+		'<div class="ghotiFormActions"><button type="button" class="ghotiButton" onclick="cancelPopup(\'popup-bg\');">Close</button></div>'
+	);
+	showPopup();
 }
 
 function showRegistrationCodeForm(email){
@@ -410,6 +442,10 @@ function submitRegistrationCode(){
 }
 
 function verifyRegistration_cb(result){
+	if(accountApprovalPending(result)){
+		showRegistrationApproval();
+		return;
+	}
 	if(result === true){
 		cancelPopup('popup-bg');
 		//Registering is not signing in - they still log in as normal, which is
