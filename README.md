@@ -13,17 +13,13 @@ Ghoti is a PHP content management framework with editable pages, account and adm
 
 ## Install Ghoti
 
-Serve Ghoti over HTTPS with PHP 8.1 or newer and the bundled Apache access rules or equivalent web server rules.
+1. Copy the Ghoti files into a fresh directory served over HTTPS by PHP 8.1 or newer. Enable `pdo_sqlite` and the bundled Apache access rules or equivalent web server rules. PHP needs write access to the directory during setup.
+2. Open the new site’s URL in your browser and enter a username, email, and password. Click **Create site**.
+3. Ghoti creates the SQLite database and takes you to sign-in. Open **Site Settings** after signing in to choose your site title and theme.
 
-For a new single-server installation, enable PHP's `pdo_sqlite` extension and run this from the Ghoti directory as the PHP service account. That account needs write access to the installation directory during setup.
+Open the new URL yourself before sharing it. The first completed setup creates the administrator. Keep `.ghoti-data/` private and writable by PHP.
 
-```sh
-php bin/create-admin.php --sqlite admin admin@example.com
-```
-
-Enter the administrator password at the prompt, then open the site and sign in. The command selects SQLite in `db.config.local.php` and creates the first administrator. It also accepts a password on standard input for automated deployments. Keep `.ghoti-data/` private and writable by PHP.
-
-For MySQL, MariaDB, MongoDB, or a custom SQLite path, configure the database for both PHP CLI and the web worker, then run the same command without `--sqlite`. [Database configuration and server requirements](docs/database-providers.md)
+Managed installations can configure MySQL, MariaDB, MongoDB, or a custom SQLite path separately and create the first admin with `php bin/create-admin.php USERNAME EMAIL`. [Database configuration and server requirements](docs/database-providers.md)
 
 ## Requirements for extension modules
 

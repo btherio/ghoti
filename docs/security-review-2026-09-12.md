@@ -1,7 +1,8 @@
 # ghoti security review — 12 September 2026
 
-The setup findings below describe the browser flow at the time of the review.
-Current installations use [server-side setup](../README.md#install-ghoti).
+The setup findings below cover the browser flow at the time of the review,
+including reconfiguration during an outage. In a fresh directory, the first
+person to complete setup creates the administrator. [Current setup instructions](../README.md#install-ghoti)
 
 ## Outcome and scope
 

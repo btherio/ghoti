@@ -1,7 +1,7 @@
 # Harden account recovery, session revocation, and shared security boundaries
 
-This describes the original security patch. Current installations use
-[server-side setup](../README.md#install-ghoti).
+This describes the original security patch. The first person to complete
+browser setup in a fresh directory creates the administrator. [Current setup instructions](../README.md#install-ghoti)
 
 Database outages previously exposed public setup when no key was configured, fresh public signup could become admin, and reset emails trusted the request Host. This change requires an operator key for setup, adds CLI-only initial admin provisioning, and builds recovery links from an explicitly configured HTTPS URL.
 

@@ -4,7 +4,8 @@ Ghoti supports MySQL/MariaDB, internal SQLite, and MongoDB. Existing installs
 keep their configured MySQL database. Selecting another provider opens a separate
 database; it does **not** copy existing users, pages, uploads, or store records.
 A fresh database provisions all module schemas and seed content on first use.
-Create the first administrator using `php bin/create-admin.php`.
+A fresh directory opens browser setup with SQLite. For a managed database, create
+the first administrator using `php bin/create-admin.php USERNAME EMAIL`.
 
 ## Configuration
 
@@ -32,21 +33,17 @@ are ignored so MySQL credentials and ports cannot accidentally reach MongoDB.
 Set database variables in the PHP web worker's environment as well as the CLI
 environment when using command-line tools. `GHOTI_DB_CONFIG` optionally points
 to a trusted operator-owned PHP configuration file in place of the default
-local file. If the database is unavailable, the site returns HTTP 503. Repair
+local file. When an existing installation loses its database connection, the site returns HTTP 503. Repair
 the connection through the operator configuration.
 
 ## Internal SQLite
 
-Enable PHP's `pdo_sqlite` extension. For a fresh installation, run this from the
-Ghoti directory as the PHP service account and enter the administrator password
-when prompted:
+Enable PHP's `pdo_sqlite` extension. Open a fresh Ghoti directory in your browser
+and create the first administrator. PHP needs write access to the installation
+directory. The installer creates a database under `.ghoti-data/` and records its
+location in `db.config.local.php`.
 
-```sh
-php bin/create-admin.php --sqlite admin admin@example.com
-```
-
-The command needs write access to the installation directory to create the local
-config. For a custom SQLite path or managed configuration, use the environment
+For a custom SQLite path or managed configuration, use the environment
 or the local file, then run `php bin/create-admin.php admin admin@example.com`.
 For example, a local config that selects the internal SQLite path contains:
 

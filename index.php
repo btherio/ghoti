@@ -11,9 +11,20 @@ ghoti_install_error_handlers();
 ghoti::loadSettings();
 ghoti_security_enforce_ip_access();
 
-// Database setup runs from the server shell. Unavailable sites return a
-// maintenance response before starting a session or loading modules.
-if(!ghotidb::isConfigured()){
+// Only an unconfigured directory without installation state can open setup.
+$method = ghoti_request_method();
+$setupPost = $method === 'POST' && ($_POST['ghoti_install'] ?? null) === '1';
+$databaseReady = ghotidb::isConfigured();
+$needsSetup = false;
+if(!$databaseReady){
+    require_once __DIR__.'/lib/install.php';
+    $needsSetup = ($method === 'GET' || $method === 'HEAD' || $setupPost) && GhotiInstaller::isFresh();
+}
+if(!$needsSetup && !$databaseReady){
+	if($setupPost){
+		ghoti::logWarn('install:browser', 'Setup is unavailable for this directory. Request from '
+			.ghoti_validate()->logLine(ghoti_remote_addr()));
+	}
 	header('Retry-After: 60');
 	if(ghoti_async_read_request() !== null){
 		ghoti_async_send_json(array('ok' => false, 'error' => 'Database unavailable.'), 503);
@@ -22,7 +33,7 @@ if(!ghotidb::isConfigured()){
 		header('Content-Type: text/plain; charset=utf-8');
 		header('Cache-Control: no-store');
 		header('X-Content-Type-Options: nosniff');
-		echo "Database unavailable. For a new installation, see the setup instructions in README.md.\n";
+		echo "Database unavailable.\n";
 	}
 	exit;
 }
@@ -61,6 +72,15 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
     $_SESSION = array();
 }
 $_SESSION['last_activity'] = time();
+
+if($needsSetup){
+    GhotiInstaller::dispatch();
+    exit;
+}
+if($setupPost){
+    header('Location: index.php?login', true, 303);
+    exit;
+}
 
 //Im going to a load the ghoti object instance into a session variable here
 $_SESSION['ghotiObj'] = new ghoti();

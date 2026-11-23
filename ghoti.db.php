@@ -48,6 +48,7 @@ class ghotidb{
      * opening/closing its own, which is what the old ADOdb-based version did.
      */
     private static $pdo = null;
+    private static ?array $installationConfig = null;
 
     /* Module names allowed to be auto-provisioned via loadModuleSql(). */
     private static $validModules = array('pages','banners','boards','links','login','analytics','gallery','mail','vhosts','store','bpong');
@@ -112,7 +113,7 @@ class ghotidb{
 
     /* Load the connection config array (db.config.php + optional local override). */
     public static function loadConfig(){
-        return require __DIR__.'/db.config.php';
+        return self::$installationConfig ?? require __DIR__.'/db.config.php';
     }
 
     private function connect(){
@@ -145,6 +146,19 @@ class ghotidb{
         if(empty($db->queryArray('SELECT 1 FROM pages LIMIT 1'))){ $db->seedModule('pages'); }
         return $db->ensurePageSchema()
             && !empty($db->queryArray("SELECT 1 FROM pages WHERE isDefault=1 AND groupName='public' LIMIT 1"));
+    }
+
+    public static function initializeStagedInstallation(array $config, callable $createAdministrator): bool {
+        if(self::$pdo !== null || self::$installationConfig !== null){ return false; }
+        self::$installationConfig = $config;
+        try{
+            return self::provisionInstallation() && $createAdministrator();
+        }finally{
+            // Close the staging database before publishing or removing files.
+            self::$pdo = null;
+            self::$installationConfig = null;
+            gc_collect_cycles();
+        }
     }
 
     protected function db(){

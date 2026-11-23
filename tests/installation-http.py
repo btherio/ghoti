@@ -1,4 +1,6 @@
-"""Exercise operator setup and registration approval on a disposable SQLite install."""
+"""Exercise browser setup and registration approval on a disposable SQLite install."""
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 import http.cookiejar
 import json
 import os
@@ -11,6 +13,7 @@ import subprocess
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -18,8 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 ADMIN_PASSWORD = 'first-admin-test-password'
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, url):
+        return None
+
+
 def client():
-    return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    return urllib.request.build_opener(NoRedirect(), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
 
 def run_approval_flow(request, admin, admin_token):
@@ -92,6 +100,36 @@ def copy_checkout(app):
         shutil.copy2(ROOT / relative, target)
 
 
+@contextmanager
+def test_server(root, env):
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    with (root / f'server-{port}.log').open('w+') as log:
+        server = subprocess.Popen(['php', '-d', f'session.save_path={root / "sessions"}', '-d', 'display_errors=0',
+                                   '-d', 'opcache.enable=0', '-d', 'opcache.enable_cli=0', '-S', f'127.0.0.1:{port}', '-t', str(root)], cwd=root,
+                                  env=env, stdout=log, stderr=log)
+        try:
+            for _ in range(50):
+                try:
+                    with socket.create_connection(('127.0.0.1', port), timeout=0.2):
+                        break
+                except OSError:
+                    if server.poll() is not None:
+                        raise RuntimeError('PHP test server failed to start')
+                    time.sleep(0.1)
+            else:
+                raise RuntimeError('PHP test server failed to respond')
+            yield f'http://127.0.0.1:{port}/'
+        except Exception:
+            log.seek(0)
+            print(log.read())
+            raise
+        finally:
+            server.terminate()
+            server.wait(timeout=5)
+
+
 def main():
     drivers = subprocess.check_output(['php', '-r', 'echo implode(",", PDO::getAvailableDrivers());'], text=True)
     if 'sqlite' not in drivers.split(','):
@@ -101,96 +139,92 @@ def main():
         root = Path(temp)
         app = root / 'ghoti'
         copy_checkout(app)
-        sessions = root / 'sessions'
-        sessions.mkdir()
+        (root / 'sessions').mkdir()
         local_config = app / 'db.config.local.php'
-        db_path = app / '.ghoti-data/ghoti.sqlite'
-        env = {key: value for key, value in os.environ.items() if not key.startswith('GHOTI_DB_')}
-        # The temporary database name keeps the pre-install request isolated.
-        server_env = dict(env, GHOTI_DB_NAME='ghoti_install_test_unconfigured', GHOTI_DB_PASSWORD='no-install-test-account')
-        with socket.socket() as probe:
-            probe.bind(('127.0.0.1', 0))
-            port = probe.getsockname()[1]
-        url = f'http://127.0.0.1:{port}/'
+        env = {key: value for key, value in os.environ.items() if not key.startswith('GHOTI_DB_') and key != 'GHOTI_SETUP_KEY'}
+        route = 'ghoti/index.php'
         admin = client()
+        reserve = client()
 
-        def request(path='ghoti/index.php', data=None, browser=admin, expected=200, raw_json=False):
-            headers = {'Content-Type': 'application/json'} if raw_json else {}
-            payload = json.dumps(data).encode() if data is not None else None
-            try:
-                response = browser.open(urllib.request.Request(url + path, payload, headers), timeout=15)
-            except urllib.error.HTTPError as error:
-                response = error
-            with response:
-                body = response.read().decode()
-                assert response.code == expected, (path, response.code, expected, body[:600])
-                return response.headers, body
-
-        with (root / 'server.log').open('w+') as log:
-            server = subprocess.Popen(['php', '-d', 'session.save_path=' + str(sessions), '-d', 'display_errors=0',
-                                       '-S', f'127.0.0.1:{port}', '-t', str(root)], cwd=root,
-                                      env=server_env, stdout=log, stderr=log)
-            try:
-                for _ in range(50):
-                    try:
-                        headers, body = request(expected=503)
-                        break
-                    except urllib.error.URLError:
-                        if server.poll() is not None:
-                            raise RuntimeError('PHP test server failed to start')
-                        time.sleep(0.1)
-                else:
-                    raise RuntimeError('PHP test server failed to respond')
-                assert headers['Retry-After'] == '60' and 'Set-Cookie' not in headers
-                assert 'Database unavailable.' in body and not local_config.exists()
-                for name in ('testDbConfig', 'saveDbConfig'):
-                    _, body = request(data={'__ghoti_async': 1, 'fn': name, 'args': []}, expected=503, raw_json=True)
-                    assert json.loads(body) == {'ok': False, 'error': 'Database unavailable.'}
-                request('ghoti/bin/create-admin.php', expected=404)
-                assert not local_config.exists() and not db_path.exists()
-
-                commands = [['php', 'bin/create-admin.php', '--sqlite', name, name + '@example.test']
-                            for name in ('admin', 'reserve')]
-                results = []
-                processes = [subprocess.Popen(command, cwd=app, env=env, text=True,
-                                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                             for command in commands]
+        with test_server(root, env) as url, test_server(root, env) as second_url:
+            def request(path=route, data=None, browser=admin, expected=200, raw_json=False, base=url):
+                headers = {}
+                payload = None
+                if data is not None:
+                    if raw_json:
+                        headers['Content-Type'] = 'application/json'
+                        payload = json.dumps(data).encode()
+                    else:
+                        headers['Content-Type'] = 'application/x-www-form-urlencoded'
+                        payload = urllib.parse.urlencode(data).encode()
                 try:
-                    for process in processes:
-                        process.stdin.write(ADMIN_PASSWORD + '\n')
-                        process.stdin.flush()
-                    for process in processes:
-                        stdout, stderr = process.communicate(timeout=20)
-                        results.append((process.returncode, stdout, stderr))
-                finally:
-                    for process in processes:
-                        if process.poll() is None:
-                            process.terminate()
-                            process.wait(timeout=5)
-                assert sorted(result[0] for result in results) == [0, 1], results
-                assert any('already contains accounts' in result[2] for result in results), results
-                assert local_config.stat().st_mode & 0o777 == 0o600
-                with sqlite3.connect(db_path) as connection:
-                    users = connection.execute('SELECT userName, admin FROM users').fetchall()
-                    assert len(users) == 1 and users[0][1] == 1, users
-                    assert connection.execute('SELECT title FROM pages').fetchall() == [('Home',)]
-                assert not list(app.glob('.ghoti-config-*'))
+                    response = browser.open(urllib.request.Request(base + path, payload, headers), timeout=15)
+                except urllib.error.HTTPError as error:
+                    response = error
+                with response:
+                    body = response.read().decode()
+                    codes = expected if isinstance(expected, tuple) else (expected,)
+                    assert response.code in codes, (path, response.code, codes, body[:600])
+                    return response.headers, body
 
-                token = rpc_token(request()[1])
-                _, body = request(data={'__ghoti_async': 1, 'fn': 'login', 'args': [users[0][0], ADMIN_PASSWORD],
-                                        'token': token}, raw_json=True)
-                assert int(json.loads(body)['result']) > 0, body
-                run_approval_flow(request, admin, token)
-            except Exception:
-                log.seek(0)
-                print(log.read())
-                if (app / 'ghoti.log').exists():
-                    print((app / 'ghoti.log').read_text())
-                raise
-            finally:
-                server.terminate()
-                server.wait(timeout=5)
-    print('PASS: CLI installation, concurrent setup, HTTP maintenance, sign-in and registration approval')
+            def setup_form(**options):
+                headers, body = request(**options)
+                assert 'Set up Ghoti' in body and 'Create site' in body and 'GHOTI_SETUP_KEY' not in body
+                assert 'no-store' in headers['Cache-Control']
+                assert "form-action 'self'" in headers['Content-Security-Policy']
+                return re.search(r'name="token" value="([a-f0-9]+)"', body)[1]
+
+            def details(name, token):
+                return {'ghoti_install': '1', 'adminName': name, 'adminEmail': name + '@example.test',
+                        'adminPassword': ADMIN_PASSWORD, 'token': token}
+
+            token = setup_form(path='ghoti/')
+            other_token = setup_form(path='ghoti/', browser=reserve, base=second_url)
+            request(data=details('admin', 'wrong-token'), expected=403)
+            request(data=details('admin', token), browser=client(), expected=403)
+            _, body = request(data=dict(details('admin', token), adminEmail='invalid'), expected=422)
+            assert ADMIN_PASSWORD not in body
+            assert not local_config.exists() and not (app / '.ghoti-data').exists()
+            for name in ('testDbConfig', 'saveDbConfig'):
+                _, body = request(data={'__ghoti_async': 1, 'fn': name, 'args': []}, expected=503, raw_json=True)
+                assert json.loads(body) == {'ok': False, 'error': 'Database unavailable.'}
+            request('ghoti/bin/create-admin.php', expected=404)
+
+            with ThreadPoolExecutor(max_workers=2) as workers:
+                first = workers.submit(request, data=details('admin', token), expected=(303, 503))
+                second = workers.submit(request, data=details('reserve', other_token), browser=reserve,
+                                        expected=(303, 503), base=second_url)
+                redirects = [result.result()[0].get('Location') for result in (first, second)]
+            assert 'index.php?login' in redirects, (redirects, (app / 'ghoti.log').read_text())
+            assert local_config.stat().st_mode & 0o777 == 0o600
+            databases = list(app.glob('.ghoti-data/site-*/ghoti.sqlite'))
+            assert len(databases) == 1, databases
+            with sqlite3.connect(databases[0]) as connection:
+                users = connection.execute('SELECT userName, admin FROM users').fetchall()
+                assert len(users) == 1 and users[0][1] == 1, users
+                assert connection.execute('SELECT title FROM pages').fetchall() == [('Home',)]
+            assert not list(app.glob('.ghoti-config-*'))
+            request(data=details('another', token), expected=303)
+
+            _, body = request(path=route + '?login')
+            assert 'Set up Ghoti' not in body
+            token = rpc_token(body)
+            _, body = request(data={'__ghoti_async': 1, 'fn': 'login', 'args': [users[0][0], ADMIN_PASSWORD],
+                                    'token': token}, raw_json=True)
+            assert int(json.loads(body)['result']) > 0, body
+            run_approval_flow(request, admin, token)
+
+            saved = local_config.read_text()
+            local_config.write_text("<?php return array('driver' => 'sqlite', 'sqlite_path' => 'invalid');")
+            headers, body = request(browser=client(), expected=503)
+            assert 'Retry-After' in headers and 'Set-Cookie' not in headers and 'Create site' not in body
+            request(data=details('another', token), expected=503)
+            local_config.unlink()
+            _, body = request(expected=503)
+            assert 'Create site' not in body
+            local_config.write_text(saved)
+
+    print('PASS: browser installation, concurrent setup, HTTP maintenance, sign-in and registration approval')
 
 
 if __name__ == '__main__':
