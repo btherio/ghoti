@@ -41,6 +41,10 @@
               <div><span class="workspace-eyebrow">BACKSTAGE ACCESS</span><h2>Workspace</h2></div>
               <button type="button" class="workspace-close" aria-label="Close account menu">×</button>
             </div>
+            <section class="workspace-section" id="workspace-private"<?php if (!ghoti_require_login()) { echo ' hidden'; } ?>>
+              <div class="workspace-section-heading"><h3>Private pages</h3><span class="workspace-section-note">MEMBERS</span></div>
+              <nav id="ghotiPrivateMenu" aria-label="Private pages"><?php if (ghoti_require_login()) { echo refreshPrivateMenu(); } ?></nav>
+            </section>
             <section class="workspace-section" id="workspace-admin"<?php if (!ghoti_require_login() || !isAdmin(ghoti_current_user_id())) { echo ' hidden'; } ?>>
               <div class="workspace-section-heading"><h3>Store controls</h3><span class="workspace-badge">ADMIN</span></div>
               <label class="workspace-search">
@@ -49,10 +53,6 @@
               </label>
               <nav id="ghotiAdminMenu" aria-label="Site administration"><?php if (ghoti_require_login() && isAdmin(ghoti_current_user_id())) { echo printAdminMenu(); } ?></nav>
               <p class="workspace-empty" id="workspace-empty" hidden>No matching tools.</p>
-            </section>
-            <section class="workspace-section" id="workspace-private"<?php if (!ghoti_require_login()) { echo ' hidden'; } ?>>
-              <div class="workspace-section-heading"><h3>Private pages</h3><span class="workspace-section-note">MEMBERS</span></div>
-              <nav id="ghotiPrivateMenu" aria-label="Private pages"><?php if (ghoti_require_login()) { echo refreshPrivateMenu(); } ?></nav>
             </section>
             <?php if (ghoti::$enableThemeChanger) { ?>
             <section class="workspace-section workspace-appearance" id="workspace-appearance">

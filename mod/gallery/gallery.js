@@ -2,10 +2,9 @@
  * gallery.js - gallery module client.
  *
  * Admin side: gallery manager (list + create), the per-gallery editor
- * (rename, add photos by URL, drag-drop uploads, captions, reorder, delete),
- * and a standalone viewer. Public side: a global lightbox that activates on
- * any .ghotiGalleryItem - both standalone gallery pages and [gallery:name]
- * embeds inside normal pages get the same experience with zero extra markup.
+ * (rename, link photos and server videos, upload photos, edit captions,
+ * reorder, delete), and a standalone viewer. Photos use the global lightbox
+ * in both standalone galleries and [gallery:name] embeds.
  */
 
 /* ================================================================== *
@@ -90,7 +89,7 @@ function gallerySaveDetails_cb(result){
 }
 
 function galleryDelete(id){
-	var confirmation = confirm('Delete this gallery and ALL of its photos?\nThis is permanent!');
+	var confirmation = confirm('Delete this gallery and all its entries?\nUploaded photos will be deleted from the server.');
 	if(confirmation){
 		x_deleteGallery(id,galleryDelete_cb);
 	}
@@ -104,7 +103,7 @@ function galleryDelete_cb(result){
 }
 
 /* ================================================================== *
- *  Admin: photos (URL add, uploads, captions, reorder, delete)
+ *  Admin: gallery items
  * ================================================================== */
 
 function galleryAddPhotoUrl(id){
@@ -124,6 +123,11 @@ function galleryAddPhotoUrl_cb(result){
 	}
 }
 
+function galleryAddServerVideo(id){
+	var filename = document.getElementById('galleryVideoFilename').value;
+	x_addGalleryVideo(id, filename, galleryPhotoOp_cb);
+}
+
 function gallerySaveCaption(photoId){
 	var caption = $("#photoCaption-"+photoId).val();
 	x_setPhotoCaption(photoId,caption,galleryPhotoOp_cb);
@@ -131,8 +135,8 @@ function gallerySaveCaption(photoId){
 function galleryMovePhoto(photoId,direction){
 	x_movePhoto(photoId,direction,galleryPhotoOp_cb);
 }
-function galleryDeletePhoto(photoId){
-	var confirmation = confirm('Delete this photo?\nThis is permanent!');
+function galleryDeletePhoto(photoId, isVideo){
+	var confirmation = confirm(isVideo ? 'Remove this video from the gallery?' : 'Delete this photo?\nThis is permanent!');
 	if(confirmation){
 		x_deletePhoto(photoId,galleryPhotoOp_cb);
 	}

@@ -4,7 +4,7 @@
  *
  * Data model:
  *   gallery         one row per album (name is a unique, shortcode-usable slug)
- *   gallery_photos  the images in an album, with a per-album sort order
+ *   gallery_photos  photo and video references, with a per-album sort order
  */
 class gallerydb extends ghotidb{
 	public function __construct(){

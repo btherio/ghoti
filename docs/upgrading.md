@@ -71,7 +71,8 @@ migrate existing data. See [database providers](database-providers.md). The MySQ
 provisioning cache now includes its target identity; the first request after
 upgrade rechecks the schema. SQLite and MongoDB use live schema checks.
 
-Fresh directories open browser setup automatically and use SQLite. Keep the
-database configuration for existing sites. You can remove `GHOTI_SETUP_KEY`
+Fresh directories open browser setup automatically and use SQLite. You can also
+initialize a fresh directory with `php bin/create-admin.php --sqlite USERNAME EMAIL`.
+Keep the database configuration for existing sites. You can remove `GHOTI_SETUP_KEY`
 from the deployment environment. The default database host is now loopback. Set `GHOTI_DB_HOST`
 if your deployment relied on the former network default. [First-run setup](../README.md#install-ghoti)

@@ -43,6 +43,14 @@ and create the first administrator. PHP needs write access to the installation
 directory. The installer creates a database under `.ghoti-data/` and records its
 location in `db.config.local.php`.
 
+To initialize a fresh installation from the shell, run the command below as
+the PHP service account. Enter the password at the prompt or pass it on standard
+input. This uses the same SQLite installer as browser setup.
+
+```sh
+php bin/create-admin.php --sqlite admin admin@example.com
+```
+
 For a custom SQLite path or managed configuration, use the environment
 or the local file, then run `php bin/create-admin.php admin admin@example.com`.
 For example, a local config that selects the internal SQLite path contains:
@@ -137,6 +145,12 @@ as Ghoti SQL; SQLite exports its native schema and indexes. Restore requires the
 not a cross-provider migration tool. The site ZIP excludes internal SQLite data;
 keep the database export with the ZIP. Native database backups remain useful for
 large deployments and preserving full server metadata.
+
+For a provider cutover, take a consistent source snapshot and pause application
+writes during the final copy. Verify row counts, IDs and next-ID counters,
+representative application queries, and transaction rollback before reopening
+traffic. Keep the source snapshot and original connection settings for recovery.
+If you switch back, reconcile any writes made to the new database after cutover.
 
 ## Verification
 

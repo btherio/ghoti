@@ -1,0 +1,21 @@
+# Public, manually placed videos. Apache serves the files and their byte ranges.
+Options -Indexes -MultiViews -ExecCGI -FollowSymLinks -SymLinksIfOwnerMatch
+
+<IfModule mod_rewrite.c>
+    RewriteEngine Off
+</IfModule>
+
+<FilesMatch "(?i)^(?![^.].*\.(mp4|m4v|webm|ogv)$)">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "(?i)^[^.].*\.(mp4|m4v|webm|ogv)$">
+    SetHandler default-handler
+    AddType video/mp4 .mp4 .m4v
+    AddType video/webm .webm
+    AddType video/ogg .ogv
+    <IfModule mod_headers.c>
+        Header always set X-Content-Type-Options "nosniff"
+        Header set Content-Disposition "attachment" "expr=%{QUERY_STRING} == 'download=1'"
+    </IfModule>
+</FilesMatch>

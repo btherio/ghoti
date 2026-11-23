@@ -47,6 +47,10 @@ critical-alerts.history.json
 __pycache__/
 *.pyc
 
+# Server-side gallery video files are managed on each installation.
+/files/gallery/videos/*
+!/files/gallery/videos/.htaccess
+
 # Internal SQLite data, journals and advisory locks.
 .ghoti-data/
 /.ghoti-config-*

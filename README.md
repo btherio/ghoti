@@ -19,6 +19,8 @@ Ghoti is a PHP content management framework with editable pages, account and adm
 
 Open the new URL yourself before sharing it. The first completed setup creates the administrator. Keep `.ghoti-data/` private and writable by PHP.
 
+To set up SQLite from the shell, run `php bin/create-admin.php --sqlite admin admin@example.com` from the fresh Ghoti directory as the PHP service account. Enter the password at the prompt or supply it on standard input for automated deployments.
+
 Managed installations can configure MySQL, MariaDB, MongoDB, or a custom SQLite path separately and create the first admin with `php bin/create-admin.php USERNAME EMAIL`. [Database configuration and server requirements](docs/database-providers.md)
 
 ## Requirements for extension modules
