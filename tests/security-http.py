@@ -1,4 +1,4 @@
-"""Exercise request parsing/CSRF/setup over loopback; no database or mail."""
+"""Exercise request parsing and CSRF over loopback; no database or mail."""
 import http.cookiejar
 import json
 import os
@@ -19,12 +19,11 @@ with tempfile.TemporaryDirectory(prefix='ghoti-http-test-') as tmp:
         "ghoti::$ghotiLog=__DIR__.'/test.log';\nsession_start();\n"
         "$path=parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);\n"
         "if($path==='/token'){ header('Content-Type: application/json'); echo json_encode(array('token'=>ghoti_csrf_token())); exit; }\n"
-        "if($path==='/setup'){ ghoti_setup_dispatch(); }\nghoti_async_handle_request();\n")
+        "ghoti_async_handle_request();\n")
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
         port = probe.getsockname()[1]
     env = dict(os.environ)
-    env.pop('GHOTI_SETUP_KEY', None)
     proc = subprocess.Popen(['php', '-d', 'session.save_path='+tmp, '-S', f'127.0.0.1:{port}', str(router)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
@@ -48,8 +47,6 @@ with tempfile.TemporaryDirectory(prefix='ghoti-http-test-') as tmp:
         assert status == 200
         token = json.loads(body)['token']
         cases = [
-            ('/setup', None, 503),
-            ('/setup', {'__ghoti_async':1, 'fn':'saveDbConfig', 'args':[{}], 'token':token}, 503),
             ('/rpc', {'__ghoti_async':1,'fn':'getDefaultPage','args':[],'token':'wrong'},403),
             ('/rpc', {'__ghoti_async':1,'fn':'getPage','args':['<script>alert(1)</script>'],'token':token},400),
             ('/rpc', {'__ghoti_async':1,'fn':['getPage'],'token':token},400),

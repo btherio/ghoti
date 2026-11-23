@@ -2,19 +2,21 @@
 /*
  * Created on Mar 1, 2009
  *
- * Database layer migrated from ADOdb to PDO.
+ * Shared database layer for MySQL/MariaDB, SQLite and MongoDB.
  */
 
 /*
- * Thin wrapper around a PDOStatement so callers written against ADOdb's
+ * Thin wrapper around a provider statement so callers written against ADOdb's
  * recordset shape keep working unchanged: ->fields[n] for the first row,
  * and foreach($rs as $row) yielding each row as a numeric array.
  */
+require_once __DIR__.'/lib/database/provider.php';
+
 class GhotiRecordSet implements IteratorAggregate, Countable {
     public $fields = array();
     private $rows = array();
 
-    public function __construct(PDOStatement $stmt){
+    public function __construct($stmt){
         $this->rows = $stmt->fetchAll(PDO::FETCH_NUM);
         $this->fields = isset($this->rows[0]) ? $this->rows[0] : array();
         try {
@@ -41,7 +43,7 @@ class ghotidb{
      */
 
     /*
-     * Shared PDO connection. Every ghotidb (and subclass) instance created
+     * Shared provider connection. Every ghotidb (and subclass) instance created
      * during a request reuses this single connection instead of each one
      * opening/closing its own, which is what the old ADOdb-based version did.
      */
@@ -97,124 +99,44 @@ class ghotidb{
     }
 
     private function disconnect(){
-        if (self::$pdo instanceof PDO) {
+        if (self::$pdo !== null) {
             self::$pdo = null;
         }
     }
 
     private function resetConnection(){
+        // The caller must retain the transaction connection long enough to roll back.
+        if(self::$pdo !== null && self::$pdo->inTransaction()){ return; }
         $this->disconnect();
     }
 
-    /* Load the connection config array (db.config.php + optional local override).
-     * Uses require (not require_once) so a db.config.local.php written by the
-     * setup screen mid-run is picked up on the next call. */
+    /* Load the connection config array (db.config.php + optional local override). */
     public static function loadConfig(){
         return require __DIR__.'/db.config.php';
     }
 
-    /* Build the PDO DSN string from a config array. */
-    private static function buildDsn($config){
-        $driver   = isset($config['driver'])   ? $config['driver']   : 'mysql';
-        $host     = isset($config['host'])      ? $config['host']     : '';
-        $port     = isset($config['port'])      ? $config['port']     : '3306';
-        $database = isset($config['database'])  ? $config['database'] : '';
-        $charset  = isset($config['charset'])   ? $config['charset']  : 'utf8mb4';
-        return "{$driver}:host={$host};port={$port};dbname={$database};charset={$charset}";
-    }
-
-    /* The PDO options this app requires. Shared by connect() and the config
-     * probe so a connection opened by either behaves identically. */
-    private static function pdoOptions($driver){
-        $pdoOptions = array(
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_NUM,
-            //Emulated prepares are kept on intentionally: the app relies on
-            //fetched values always being strings (eg. `$row[0] === '1'`).
-            //Turning emulation off makes mysqlnd return native ints/floats
-            //for numeric columns and would silently break those checks.
-            //Parameters are still always bound, never concatenated, so this
-            //remains fully safe against SQL injection.
-            PDO::ATTR_EMULATE_PREPARES   => true,
-            PDO::ATTR_PERSISTENT         => false,
-        );
-        //MYSQL_ATTR_* constants only exist once pdo_mysql is loaded - guard both
-        //the same way, rather than assuming the extension is always present
-        //(a transient PHP-FPM reload can serve a request before it's loaded,
-        //which previously threw "Undefined constant" and broke isConfigured()).
-        if ($driver === 'mysql' && defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
-            $pdoOptions[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET sql_mode=''";
-        }
-        if ($driver === 'mysql' && defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
-            $pdoOptions[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = true;
-        }
-        return $pdoOptions;
-    }
-
-    public static function openConnection(array $config, $timeout = null): PDO {
-        $options = self::pdoOptions($config['driver'] ?? 'mysql');
-        if($timeout !== null){ $options[PDO::ATTR_TIMEOUT] = $timeout; }
-        return new PDO(self::buildDsn($config), $config['username'] ?? '', $config['password'] ?? '', $options);
-    }
-
     private function connect(){
-        if (self::$pdo instanceof PDO){
-            return self::$pdo;
-        }
+        if(self::$pdo !== null){ return self::$pdo; }
         $config = self::loadConfig();
-        try {
-            self::$pdo = self::openConnection($config);
-            ghoti::logDebug("ghoti.db.php:connect", "Connected to ".(isset($config['host']) ? $config['host'] : '?')."/".(isset($config['database']) ? $config['database'] : '?'));
-        } catch (Throwable $e) {
-            self::$pdo = null;
-            ghoti::logException("ghoti.db.php:connect", $e);
-            throw $e;
-        }
+        self::$pdo = GhotiDatabaseProvider::connect($config);
+        ghoti::logDebug('ghoti.db.php:connect', 'Connected using '.$config['driver']);
         return self::$pdo;
     }
 
-    /*
-     * Non-fatal probe: can we actually reach the database with the current
-     * config? Returns true (and keeps the live connection for the rest of the
-     * request) or false. Used by index.php to decide whether to divert to the
-     * setup screen (see ghoti.setup.php). A short connect timeout keeps the
-     * setup page snappy when the configured host is dead/unroutable.
-     */
     public static function isConfigured(){
-        if (self::$pdo instanceof PDO){
+        if(self::$pdo !== null){ return true; }
+        try{
+            self::$pdo = GhotiDatabaseProvider::connect(self::loadConfig());
             return true;
-        }
-        try {
-            $config = self::loadConfig();
-            if (!is_array($config) || empty($config['host']) || empty($config['database'])){
-                return false;
-            }
-            self::$pdo = self::openConnection($config, 4);
-            return true;
-        } catch (Throwable $e) {
+        }catch(Throwable $e){
             self::$pdo = null;
             ghoti::logError("ghoti.db.php:isConfigured", "probe failed: ".$e->getMessage());
             return false;
         }
     }
 
-    // Read-only detection for sites installed before the wizard existed.
-    public static function hasUsers(?PDO $connection = null, bool $administratorsOnly = false): bool {
-        $connection = $connection ?? self::$pdo;
-        if($connection === null){ return false; }
-        try{
-            $sql = $administratorsOnly ? 'SELECT 1 FROM users WHERE admin=1 LIMIT 1' : 'SELECT 1 FROM users LIMIT 1';
-            return $connection->query($sql)->fetchColumn() !== false;
-        }catch(PDOException $e){
-            if($e->getCode() === '42S02'){ return false; } // fresh database, no users table yet
-            throw $e;
-        }
-    }
-
     public static function provisionInstallation(): bool {
         $modules = array_merge(array('pages'), ghoti::enabledModules());
-        // A previous connection may have left a cache for a different database.
-        self::$provisioned = array();
         $db = new self();
         foreach($modules as $module){
             if(self::allowsModuleSchema($module) && !$db->loadModuleSql($module)){ return false; }
@@ -238,7 +160,7 @@ class ghotidb{
             $stmt->execute($params);
             return new GhotiRecordSet($stmt);
         } catch (Throwable $e) {
-            if ($stmt instanceof PDOStatement) {
+            if ($stmt !== null) {
                 try {
                     $stmt->closeCursor();
                 } catch (Throwable $cursorError) {
@@ -261,7 +183,7 @@ class ghotidb{
             $rows = $stmt->fetchAll(PDO::FETCH_NUM);
             return $rows;
         } catch (Throwable $e) {
-            if ($stmt instanceof PDOStatement) {
+            if ($stmt !== null) {
                 try {
                     $stmt->closeCursor();
                 } catch (Throwable $cursorError) {
@@ -272,7 +194,7 @@ class ghotidb{
             ghoti::logException("ghoti.db.php:queryArray", $e, $sql);
             throw $e;
         } finally {
-            if ($stmt instanceof PDOStatement) {
+            if ($stmt !== null) {
                 try {
                     $stmt->closeCursor();
                 } catch (Throwable $e) {
@@ -290,7 +212,9 @@ class ghotidb{
 
     /* Path of the persistent provisioning marker. */
     private function provisionedMarkerFile(){
-        return __DIR__.'/db.provisioned.json';
+        // SQLite and MongoDB use live schema checks; no file from another
+        // database may suppress their bootstrap (including a replaced SQLite file).
+        return self::loadConfig()['driver'] === 'mysql' ? __DIR__.'/db.provisioned.json' : null;
     }
 
     /* Lazily load the persistent provisioning cache (best-effort). */
@@ -301,9 +225,9 @@ class ghotidb{
         self::$provisioned = array();
         try{
             $file = $this->provisionedMarkerFile();
-            if (is_file($file)) {
+            if ($file !== null && is_file($file)) {
                 $data = json_decode(@file_get_contents($file), true);
-                if (is_array($data)) {
+                if (is_array($data) && ($data['databaseIdentity'] ?? '') === GhotiDatabaseProvider::identity(self::loadConfig())) {
                     self::$provisioned = $data;
                 }
             }
@@ -322,6 +246,7 @@ class ghotidb{
         if ($known) {
             return;
         }
+        self::$provisioned['databaseIdentity'] = GhotiDatabaseProvider::identity(self::loadConfig());
         self::$provisioned[$moduleName] = true;
         if ($schemaKey !== null) {
             self::$provisioned[$schemaKey] = $schemaHash;
@@ -330,7 +255,7 @@ class ghotidb{
             self::$provisioned[$stampKey] = $stamp;
         }
         try{
-            @file_put_contents($this->provisionedMarkerFile(), json_encode(self::$provisioned), LOCK_EX);
+            if($this->provisionedMarkerFile() !== null){ @file_put_contents($this->provisionedMarkerFile(), json_encode(self::$provisioned), LOCK_EX); }
         }catch (Throwable $e){
             //Cache write is best-effort; on failure we simply probe again next time.
         }
@@ -496,7 +421,7 @@ class ghotidb{
             }
 
             self::$provisioned['pagesSchemaVersion'] = self::PAGE_SCHEMA_VERSION;
-            @file_put_contents($this->provisionedMarkerFile(), json_encode(self::$provisioned), LOCK_EX);
+            if($this->provisionedMarkerFile() !== null){ @file_put_contents($this->provisionedMarkerFile(), json_encode(self::$provisioned), LOCK_EX); }
             self::$pageSchemaReady = true;
             return true;
         }catch(Throwable $e){
@@ -563,12 +488,16 @@ class ghotidb{
             //Every statement is `create table if not exists`, so this is a no-op
             //for tables that are already there and creates any the module has
             //gained since it was installed.
-            // Schema files can contain several CREATE statements. Drain every
-            // result before the next query (required by newer MariaDB clients).
-            $schemaStatement = $this->db()->prepare($tableSql);
-            $schemaStatement->execute();
-            while ($schemaStatement->nextRowset()) { /* consume schema results */ }
-            $schemaStatement->closeCursor();
+            $connection = $this->db();
+            if($connection instanceof GhotiDbConnection){
+                $connection->exec($tableSql);
+            }else{
+                // MariaDB clients require all schema results to be drained.
+                $schemaStatement = $connection->prepare($tableSql);
+                $schemaStatement->execute();
+                while ($schemaStatement->nextRowset()) { /* consume schema results */ }
+                $schemaStatement->closeCursor();
+            }
 
             //Then add columns the module has gained. A create-if-not-exists
             //never alters a table that already exists, which is what left

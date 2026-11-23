@@ -34,7 +34,13 @@ server's message-size limit (base64 adds roughly one third); such errors remain
 email-delivery errors rather than exposing a browser download. If mail settings
 cannot be read, exports fail rather than assuming downloads are allowed.
 
-Restoration is unchanged: upload a Ghoti archive/dump and reconfirm your admin
+Database exports support MySQL/MariaDB, SQLite, and MongoDB and identify the
+source provider. Restore requires the same provider; older unlabeled dumps are
+MySQL. SQLite exports include its schema and indexes. Internal SQLite files and
+journals are excluded from site ZIPs, so retain the database export too. These
+exports do not migrate data between providers. See [database providers](database-providers.md).
+
+Restoration authorization is unchanged: upload a Ghoti archive/dump and reconfirm your admin
 password and `RESTORE`.
 
 ## Verification

@@ -16,15 +16,10 @@ function check($condition, $message){
 }
 function rejects($callback){ try{ $callback(); return false; }catch(Throwable $e){ return true; } }
 $_SESSION = array('csrf_token'=>'test-token');
-putenv('GHOTI_SETUP_KEY');
-check(!ghoti_setup_access_ok('', 'test-token'), 'setup denies missing operator key despite valid CSRF');
-putenv('GHOTI_SETUP_KEY=operator-test-key');
-check(!ghoti_setup_access_ok('wrong', 'test-token'), 'setup rejects wrong key');
-$setupKeyHash = hash('sha256', 'operator-test-key');
-check(!ghoti_setup_access_ok($setupKeyHash, 'wrong'), 'setup rejects wrong CSRF');
-check(ghoti_setup_access_ok($setupKeyHash, 'test-token'), 'setup accepts an authorized session with valid CSRF');
-putenv('GHOTI_SETUP_KEY=rotated-key');
-check(!ghoti_setup_access_ok($setupKeyHash, 'test-token'), 'setup key rotation revokes authorized sessions');
+check(!ghoti_async_is_registered('testDbConfig'), 'database setup probe is unavailable over RPC');
+check(!ghoti_async_is_registered('saveDbConfig'), 'database setup writes are unavailable over RPC');
+check(!ghoti_csrf_verify('wrong'), 'CSRF rejects a mismatched token');
+check(ghoti_csrf_verify('test-token'), 'CSRF accepts the session token');
 check(!ghoti_async_is_registered('getPage'), 'internal HTML renderer is not public RPC');
 check(ghoti_async_is_registered('printDocumentation'), 'admin documentation endpoint is registered');
 check(!ghoti_csrf_verify(array('test-token')), 'CSRF rejects structured input');

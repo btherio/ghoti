@@ -46,3 +46,7 @@ critical-alerts.history.json
 # Python bytecode caches (bitcoin-pong and anything else under lib/)
 __pycache__/
 *.pyc
+
+# Internal SQLite data, journals and advisory locks.
+.ghoti-data/
+/.ghoti-config-*

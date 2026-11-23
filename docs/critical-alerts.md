@@ -28,4 +28,4 @@ Delivery is best-effort and synchronous through the configured SMTP client. A re
 
 Validation: `php tests/alerts.php` covers classifications, thresholds, persisted cooldowns, recipient validation and fan-out to each administrator, message minimization, disabled alerts, delivery failure and recursion, and the alert history (events per window, per-admin delivery results, failed deliveries recorded, caps, escaping in Analytics, file protection); the transport is mocked. `python3 tests/alerts-runtime.py` checks uncaught exceptions and fatal errors in subprocesses without sending mail.
 
-The consolidated security changes also require operators to set `GHOTI_PUBLIC_URL` to the canonical HTTPS site URL for password-recovery links and explicitly configure `GHOTI_SETUP_KEY` for browser-based setup/recovery. See the security review and bootstrap CLI instructions before deployment.
+Set `GHOTI_PUBLIC_URL` to the canonical HTTPS site URL for password-recovery links. [Ghoti installation instructions](../README.md#install-ghoti)

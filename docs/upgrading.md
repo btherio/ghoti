@@ -18,7 +18,7 @@ loadModuleSql()` keeps the database matching it:
 3. **Seed rows are inserted only for tables created from scratch**, so an
    upgrade never overwrites configuration you have already saved.
 
-`db.provisioned.json` records, per module, the fingerprint of the schema file the
+For MySQL, `db.provisioned.json` records, per module, the fingerprint of the schema file the
 database currently matches. The common case — nothing deployed since the last
 request — costs one `stat` per module and no database work. The upgrade pass runs
 when a deployment changes a schema file, and only then.
@@ -60,3 +60,18 @@ Applying that statement by hand and reloading is usually the whole repair.
 Back up the database before deploying, as always. The upgrade pass only issues
 `ALTER TABLE … ADD COLUMN`, but a backup is what makes that claim cheap to verify
 rather than something you have to trust.
+
+## Database providers
+
+MySQL remains the default. SQLite and MongoDB can be selected through
+`GHOTI_DB_DRIVER` or `db.config.local.php`. Environment variables now take
+precedence over local values; selecting another provider through the environment
+also discards the old provider's local credentials. Switching providers does not
+migrate existing data. See [database providers](database-providers.md). The MySQL
+provisioning cache now includes its target identity; the first request after
+upgrade rechecks the schema. SQLite and MongoDB use live schema checks.
+
+Browser-based database setup has moved to the server shell. Remove
+`GHOTI_SETUP_KEY` from the deployment environment and keep your existing database
+configuration. The default database host is now loopback. Set `GHOTI_DB_HOST`
+if your deployment relied on the former network default. [First-run setup](../README.md#install-ghoti)

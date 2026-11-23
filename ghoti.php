@@ -10,7 +10,6 @@ include_once('ghoti.validate.php');
 include_once('ghoti.privacy.php');
 include_once(__DIR__.'/ghoti.security.php');
 include_once(__DIR__.'/ghoti.alerts.php');
-require_once __DIR__.'/ghoti.setup.php';
 
 class ghoti {
 #################################################################
