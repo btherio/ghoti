@@ -1,6 +1,6 @@
 <?php
 
-// First-run setup is dispatched by index.php before normal module startup.
+// Browser and CLI setup share the same staging and database activation.
 final class GhotiInstaller {
     private const ROOT = __DIR__.'/..';
     private const DATA_DIR = self::ROOT.'/.ghoti-data';
@@ -72,7 +72,11 @@ final class GhotiInstaller {
                 }
                 if($error === ''){
                     try{
-                        $installed = self::install($credentials);
+                        $installed = self::installSqlite($credentials);
+                        if($installed){
+                            ghoti::logInfo('install:browser', 'First administrator created for '.ghoti_validate()->logLine($credentials[0])
+                                .' from '.ghoti_validate()->logLine($_SERVER['REMOTE_ADDR'] ?? ''));
+                        }
                         if($installed || is_file(self::CONFIG)){
                             unset($_SESSION['csrf_token']);
                             session_regenerate_id(true);
@@ -107,7 +111,7 @@ final class GhotiInstaller {
         return is_string($value) && strlen($value) <= $limit ? $value : '';
     }
 
-    private static function install(array $credentials): bool {
+    public static function installSqlite(array $credentials): bool {
         if(!is_dir(self::DATA_DIR) && !@mkdir(self::DATA_DIR, 0700) && !is_dir(self::DATA_DIR)){
             throw new RuntimeException('Could not create the SQLite data directory.');
         }
@@ -145,8 +149,6 @@ final class GhotiInstaller {
                 throw new RuntimeException('Could not publish the database configuration.');
             }
             $installed = true;
-            ghoti::logInfo('install:browser', 'First administrator created for '.ghoti_validate()->logLine($credentials[0])
-                .' from '.ghoti_validate()->logLine($_SERVER['REMOTE_ADDR'] ?? ''));
             return true;
         }finally{
             if(is_string($pending)){ @unlink($pending); }

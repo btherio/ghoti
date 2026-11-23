@@ -1,4 +1,4 @@
-"""Exercise browser setup and registration approval on a disposable SQLite install."""
+"""Exercise browser and CLI setup on disposable SQLite installations."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 import http.cookiejar
@@ -100,6 +100,26 @@ def copy_checkout(app):
         shutil.copy2(ROOT / relative, target)
 
 
+def run_cli_setup(app, env):
+    copy_checkout(app)
+    command = ['php', 'bin/create-admin.php', '--sqlite', 'shell-admin', 'shell-admin@example.test']
+    options = dict(cwd=app, input=ADMIN_PASSWORD + '\n', capture_output=True, text=True, timeout=30)
+    config = app / 'db.config.local.php'
+    configured = subprocess.run(command, env=dict(env, GHOTI_DB_DRIVER='sqlite'), **options)
+    assert configured.returncode == 1 and not config.exists() and not (app / '.ghoti-data').exists()
+
+    result = subprocess.run(command, env=env, **options)
+    assert result.returncode == 0 and 'Administrator created.' in result.stdout, result.stderr
+    assert config.stat().st_mode & 0o777 == 0o600
+    original = config.read_bytes()
+    repeated = subprocess.run(command, env=env, **options)
+    assert repeated.returncode == 1 and config.read_bytes() == original
+    database, = app.glob('.ghoti-data/site-*/ghoti.sqlite')
+    with sqlite3.connect(database) as connection:
+        assert connection.execute('SELECT userName, admin FROM users').fetchall() == [('shell-admin', 1)]
+        assert connection.execute('SELECT title FROM pages').fetchall() == [('Home',)]
+
+
 @contextmanager
 def test_server(root, env):
     with socket.socket() as probe:
@@ -142,6 +162,7 @@ def main():
         (root / 'sessions').mkdir()
         local_config = app / 'db.config.local.php'
         env = {key: value for key, value in os.environ.items() if not key.startswith('GHOTI_DB_') and key != 'GHOTI_SETUP_KEY'}
+        run_cli_setup(root / 'cli', env)
         route = 'ghoti/index.php'
         admin = client()
         reserve = client()
@@ -224,7 +245,7 @@ def main():
             assert 'Create site' not in body
             local_config.write_text(saved)
 
-    print('PASS: browser installation, concurrent setup, HTTP maintenance, sign-in and registration approval')
+    print('PASS: CLI and browser installation, concurrent setup, HTTP maintenance, sign-in and registration approval')
 
 
 if __name__ == '__main__':

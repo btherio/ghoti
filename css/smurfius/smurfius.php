@@ -44,15 +44,15 @@
               <div><span class="workspace-eyebrow">smurfius / workspace</span><h2>Your space.</h2></div>
               <button type="button" class="workspace-close" aria-label="Close account menu">×</button>
             </div>
+            <section class="workspace-section" id="workspace-private"<?php if (!ghoti_require_login()) { echo ' hidden'; } ?>>
+              <div class="workspace-section-heading"><h3>Private pages</h3><span class="workspace-section-note">Members only</span></div>
+              <nav id="ghotiPrivateMenu" aria-label="Private pages"><?php if (ghoti_require_login()) { echo refreshPrivateMenu(); } ?></nav>
+            </section>
             <section class="workspace-section" id="workspace-admin"<?php if (!ghoti_require_login() || !isAdmin(ghoti_current_user_id())) { echo ' hidden'; } ?>>
               <div class="workspace-section-heading"><h3>Manage your site</h3><span class="workspace-badge">Admin</span></div>
               <label class="workspace-search"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5"/></svg><input type="search" id="workspace-search" placeholder="Find a tool…" aria-label="Find an administration tool" autocomplete="off"></label>
               <nav id="ghotiAdminMenu" aria-label="Site administration"><?php if (ghoti_require_login() && isAdmin(ghoti_current_user_id())) { echo printAdminMenu(); } ?></nav>
               <p class="workspace-empty" id="workspace-empty" hidden>No matching tools. Try another name.</p>
-            </section>
-            <section class="workspace-section" id="workspace-private"<?php if (!ghoti_require_login()) { echo ' hidden'; } ?>>
-              <div class="workspace-section-heading"><h3>Private pages</h3><span class="workspace-section-note">Members only</span></div>
-              <nav id="ghotiPrivateMenu" aria-label="Private pages"><?php if (ghoti_require_login()) { echo refreshPrivateMenu(); } ?></nav>
             </section>
             <?php if (ghoti::$enableThemeChanger) { ?>
             <section class="workspace-section workspace-appearance" id="workspace-appearance">

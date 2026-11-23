@@ -18,7 +18,8 @@
  * (jpg/png/gif/webp/avif) are stored as-is; HEIC/HEIF (the default format on
  * recent iPhones/iPads), TIFF and BMP are auto-transcoded to JPEG via
  * ImageMagick since browsers can't render them directly. URL-added photos go
- * through the same scheme validation as links/banners.
+ * through the same scheme validation as links/banners. Server videos are
+ * stored as links to static files under files/gallery/videos/.
  */
 
 /* ---------------------------------------------------------------- *
@@ -30,6 +31,8 @@ const GALLERY_MAX_TITLE     = 120;
 const GALLERY_MAX_DESC      = 500;
 const GALLERY_MAX_CAPTION   = 255;
 const GALLERY_MAX_UPLOAD    = 12582912;              // 12MB
+const GALLERY_VIDEO_DIR     = 'files/gallery/videos/';
+const GALLERY_VIDEO_EXT     = array('mp4','m4v','webm','ogv');
 
 //Formats the browser can display directly - stored as-is once validated.
 const GALLERY_WEB_SAFE_EXT  = array('jpg','jpeg','png','gif','webp','avif');
@@ -110,16 +113,30 @@ function gallery_image_src($url){
 	return gallery_asset_base().$url;
 }
 
-//Best-effort removal of a locally-uploaded image file. Only ever touches paths
-//inside files/gallery/ (realpath-confined to that exact directory) - never
-//anything else on disk.
+function gallery_valid_video_filename($filename){
+	return is_string($filename) && $filename !== '' && strlen($filename) <= 255
+		&& $filename[0] !== '.' && strpbrk($filename, "/\\") === false
+		&& preg_match('/[\x00-\x1F\x7F]/u', $filename) === 0
+		&& in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), GALLERY_VIDEO_EXT, true);
+}
+
+//The reserved path identifies video rows in the existing gallery table.
+function gallery_video_filename($url){
+	if(strpos($url, GALLERY_VIDEO_DIR) !== 0){ return null; }
+	$encoded = substr($url, strlen(GALLERY_VIDEO_DIR));
+	$filename = rawurldecode($encoded);
+	return rawurlencode($filename) === $encoded && gallery_valid_video_filename($filename) ? $filename : null;
+}
+
+//Remove locally uploaded images only when the stored path resolves directly
+//inside its numbered upload directory.
 function gallery_unlink_if_local($imageUrl){
 	if(!is_string($imageUrl) || !preg_match('#^files/gallery/[0-9]+/[A-Za-z0-9._-]+$#', $imageUrl)){
 		return;
 	}
 	$base = realpath(dirname(__DIR__, 2).'/files/gallery');
 	$path = realpath(dirname(__DIR__, 2).'/'.$imageUrl);
-	if($base !== false && $path !== false && strpos($path, $base.'/') === 0 && is_file($path)){
+	if($base !== false && $path === $base.'/'.substr($imageUrl, strlen('files/gallery/')) && is_file($path)){
 		@unlink($path);
 	}
 }
@@ -281,6 +298,28 @@ function addPhoto($galleryId,$imageUrl,$caption = ''){
 		? true : "Could not add the photo.";
 }
 
+function addGalleryVideo($galleryId,$filename){
+	if(!ghoti_require_admin()){ return "Admin access required."; }
+	try{
+		$galleryId = ghoti_validate()->id($galleryId, "gallery id");
+	}catch (Exception $e){
+		return $e->getMessage();
+	}
+	if(!gallery_valid_video_filename($filename)){
+		return "Enter a filename ending in .mp4, .m4v, .webm, or .ogv.";
+	}
+	$galleryDb = $_SESSION['galleryObj']->gallerydb;
+	if(!$galleryDb->getGalleryById($galleryId)){
+		return "Gallery not found.";
+	}
+	$path = dirname(__DIR__, 2).'/'.GALLERY_VIDEO_DIR.$filename;
+	if(is_link($path) || !is_file($path) || !is_readable($path)){
+		return "The video file could not be read in ".GALLERY_VIDEO_DIR.".";
+	}
+	return $galleryDb->addPhoto($galleryId, GALLERY_VIDEO_DIR.rawurlencode($filename))
+		? true : "Could not add the video.";
+}
+
 //Photo upload: called with args[0] = galleryId and a multipart 'file' field
 //(the async layer accepts form-encoded POSTs for exactly this reason). The
 //client re-renders the editor on success.
@@ -439,6 +478,7 @@ ghoti_async_register(
 	"editGallery",
 	"deleteGallery",
 	"addPhoto",
+	"addGalleryVideo",
 	"uploadPhoto",
 	"deletePhoto",
 	"setPhotoCaption",
@@ -480,7 +520,7 @@ class galleryui{
 		if($gallery['description'] !== ''){
 			$o .= "<p class=\"ghotiGalleryBlurb\">".$esc($gallery['description'])."</p>\n";
 		}
-		$o .= "<span class=\"ghotiGalleryCount\">".count($photos)." photo".(count($photos) === 1 ? '' : 's')."</span>\n";
+		$o .= "<span class=\"ghotiGalleryCount\">".count($photos)." item".(count($photos) === 1 ? '' : 's')."</span>\n";
 		$o .= "</header>\n";
 		$o .= $this->renderGrid($gallery, $photos, $esc);
 		$o .= "</div>\n";
@@ -505,11 +545,22 @@ class galleryui{
 
 	private function renderGrid($gallery, $photos, $esc){
 		if(empty($photos)){
-			return "<div class=\"ghotiGalleryEmpty\">This gallery has no photos yet.</div>\n";
+			return "<div class=\"ghotiGalleryEmpty\">This gallery has no photos or videos yet.</div>\n";
 		}
 		$o  = "<div class=\"ghotiGalleryGrid\">\n";
 		$index = 0;
 		foreach($photos as $photo){
+			$filename = gallery_video_filename($photo['imageUrl']);
+			if($filename !== null){
+				$src = $esc(gallery_asset_base().$photo['imageUrl']);
+				$label = $photo['caption'] !== '' ? $photo['caption'] : $filename;
+				$o .= "<figure class=\"ghotiGalleryVideo\">\n";
+				$o .= "<video controls playsinline preload=\"none\" src=\"".$src."\" aria-label=\"".$esc($label)."\"></video>\n";
+				$o .= "<figcaption><span>".$esc($label)."</span> "
+					."<a href=\"".$src."?download=1\" download=\"".$esc($filename)."\" aria-label=\"Download video &ndash; " .$esc($label)."\">Download video</a></figcaption>\n";
+				$o .= "</figure>\n";
+				continue;
+			}
 			$index++;
 			$src = gallery_image_src($photo['imageUrl']);
 			$cap = ($photo['caption'] !== '') ? $photo['caption'] : $gallery['title'];
@@ -528,22 +579,26 @@ class galleryui{
 	public function printManager($galleries){
 		$esc = function($value){ return htmlspecialchars((string)$value, ENT_QUOTES); };
 		$o  = "<section id=\"ghotiGalleryManager\" class=\"ghotiAdminPanel\">\n";
-		$o .= "<div class=\"ghotiCrudHeader\"><div><h1>Galleries</h1><p class=\"ghotiHelpText\">Standalone photo pages that can also be embedded inside any other page.</p></div>";
+		$o .= "<div class=\"ghotiCrudHeader\"><div><h1>Galleries</h1><p class=\"ghotiHelpText\">Photo and video galleries you can also embed in another page.</p></div>";
 		$o .= "<button type=\"button\" class=\"ghotiButton\" onclick=\"galleryNewForm();\">New Gallery</button></div>\n";
-		$docs = ghoti_docs_panel("How to use galleries", "embed, add photos, manage", array(
+		$docs = ghoti_docs_panel("How to use galleries", "embed, add photos and videos, manage", array(
 			array('heading' => 'Display a gallery',
-				'list' => array('<b>Standalone page</b> &mdash; press <i>View</i> on a gallery card (or link to it from anywhere). It renders as its own page with the title header and the full photo grid.',
+				'list' => array('<b>Standalone page</b> &mdash; press <i>View</i> on a gallery card (or link to it from anywhere). It renders as its own page with a title and the full gallery.',
 					'<b>Embedded in another page</b> &mdash; edit any page and put the gallery&rsquo;s embed code in the body: <code class="ghotiDocCode">[gallery:NAME]</code>',
 					'The gallery renders in place of that code whenever the page is viewed. Use the same code on as many pages as you like &mdash; change the gallery once and every page using it updates automatically.')),
 			array('heading' => 'Add photos',
 				'list' => array('<b>Image URL</b> &mdash; paste a direct link to an image file (http:// or https://).',
 					'<b>Upload</b> &mdash; drag and drop files onto the upload zone, or click it to browse. jpg, png, gif, webp and avif are accepted as-is; heic/heif (iPhone photos), tiff and bmp are automatically converted to jpg. File size is limited by the server.')),
-			array('heading' => 'Manage photos',
+			array('heading' => 'Add server videos',
+				'list' => array('Copy the video into <code>files/gallery/videos/</code> on the server. Open the gallery editor, enter its exact filename under <b>Server video filename</b>, and select <b>Add video</b>.',
+					'Use MP4 with H.264 video and AAC audio for broad browser support. M4V, WebM and Ogg video (.ogv) can also be linked. The web server delivers these public files directly, bypassing PHP upload limits.')),
+			array('heading' => 'Manage gallery items',
 				'list' => array('<b>Caption</b> &mdash; type into the caption box; it saves as soon as you leave the field.',
-					'<b>Order</b> &mdash; use the up/down arrows to reorder photos.',
-					'<b>Delete</b> &mdash; removes the photo and its uploaded file. Deleting a whole gallery deletes all of its photos too (this cannot be undone).')),
+					'<b>Order</b> &mdash; use the up/down arrows to reorder photos and videos.',
+					'<b>Delete</b> &mdash; removes the gallery entry and deletes uploaded photos from disk. Manage the video files themselves on the server.')),
 			array('heading' => 'Viewing on the site',
-				'list' => array('Visitors click any photo to open the lightbox. Arrow keys step through the gallery, Esc closes it, and captions appear under each photo.'))
+				'list' => array('Visitors can play videos directly in the gallery or select <b>Download video</b>.',
+					'Click a photo to open the lightbox. Use the arrow keys to browse photos and Esc to close it.'))
 		));
 		$o .= "<div class=\"ghotiGalleryManagerList\">\n";
 		if(empty($galleries)){
@@ -554,7 +609,7 @@ class galleryui{
 			$o .= "<article class=\"ghotiGalleryCard\">\n";
 			$o .= "<div class=\"ghotiGalleryCardBody\">\n";
 			$o .= "<h2>".$esc($g['title'])."</h2>\n";
-			$o .= "<p class=\"ghotiCrudMeta\"><code>[gallery:".$esc($g['name'])."]</code> &middot; ".$g['photoCount']." photo".($g['photoCount'] === 1 ? '' : 's')."</p>\n";
+			$o .= "<p class=\"ghotiCrudMeta\"><code>[gallery:".$esc($g['name'])."]</code> &middot; ".$g['photoCount']." item".($g['photoCount'] === 1 ? '' : 's')."</p>\n";
 			if($g['description'] !== ''){
 				$o .= "<p class=\"ghotiGalleryCardDesc\">".$esc($g['description'])."</p>\n";
 			}
@@ -598,23 +653,36 @@ class galleryui{
 		$o .= "<div id=\"galleryUploadZone\" class=\"ghotiGalleryUploadZone\"><span class=\"ghotiGalleryUploadIcon\">&#8682;</span><span><b>Drop images here</b> or click to browse &middot; jpg, png, gif, webp, avif, heic/heif, tiff, bmp</span><input type=\"file\" id=\"galleryUploadInput\" multiple accept=\".jpg,.jpeg,.png,.gif,.webp,.avif,.heic,.heif,.tif,.tiff,.bmp,image/*\" /></div>\n";
 		$o .= "<p id=\"galleryUploadProgress\" class=\"ghotiHelpText\"></p>\n";
 		$o .= "</div>\n";
+		$o .= "<div class=\"ghotiGalleryAdd\">\n";
+		$o .= "<div class=\"ghotiCrudHeader\"><h2>Add a server video</h2></div>\n";
+		$o .= "<p class=\"ghotiHelpText\" id=\"galleryVideoHelp\">Copy an MP4, M4V, WebM or Ogg video (.ogv) into <code>".GALLERY_VIDEO_DIR."</code> on the server, then enter its exact filename below.</p>\n";
+		$o .= "<form class=\"ghotiForm ghotiInlineForm\" action=\"#\" onsubmit=\"galleryAddServerVideo(".$id."); return false;\">\n";
+		$o .= "<label class=\"ghotiField\"><span>Server video filename</span><input type=\"text\" id=\"galleryVideoFilename\" maxlength=\"255\" placeholder=\"Summer trip.mp4\" aria-describedby=\"galleryVideoHelp\" required /></label>\n";
+		$o .= "<div class=\"ghotiFormActions\"><button type=\"submit\" class=\"ghotiButton\">Add video</button></div>\n";
+		$o .= "</form>\n";
+		$o .= "</div>\n";
 
 		$o .= "<div id=\"galleryPhotoList\" class=\"ghotiGalleryPhotoList\">\n";
 		if(empty($photos)){
-			$o .= "<p class=\"ghotiEmptyState\">No photos yet - add one above.</p>\n";
+			$o .= "<p class=\"ghotiEmptyState\">No photos or videos yet.</p>\n";
 		}
 		foreach($photos as $photo){
 			$pid = (int)$photo['photoId'];
-			$src = gallery_image_src($photo['imageUrl']);
+			$filename = gallery_video_filename($photo['imageUrl']);
 			$o .= "<article class=\"ghotiGalleryPhotoRow\" data-photo-id=\"".$pid."\">\n";
-			$o .= "<img class=\"ghotiGalleryPhotoThumb\" src=\"".$esc($src)."\" alt=\"\" />\n";
+			if($filename === null){
+				$o .= "<img class=\"ghotiGalleryPhotoThumb\" src=\"".$esc(gallery_image_src($photo['imageUrl']))."\" alt=\"\" />\n";
+			}
 			$o .= "<div class=\"ghotiGalleryPhotoFields\">\n";
+			if($filename !== null){
+				$o .= "<p class=\"ghotiGalleryVideoFile\">".$esc($filename)."</p>\n";
+			}
 			$o .= "<label class=\"ghotiField\"><span>Caption</span><input type=\"text\" maxlength=\"255\" id=\"photoCaption-".$pid."\" value=\"".$esc($photo['caption'])."\" onchange=\"gallerySaveCaption(".$pid.");\" /></label>\n";
 			$o .= "</div>\n";
 			$o .= "<div class=\"ghotiCrudActions\">\n";
 			$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"galleryMovePhoto(".$pid.",-1);\" title=\"Move up\">&#8593;</button>";
 			$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonSecondary\" onclick=\"galleryMovePhoto(".$pid.",1);\" title=\"Move down\">&#8595;</button>";
-			$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"galleryDeletePhoto(".$pid.");\">Delete</button>";
+			$o .= "<button type=\"button\" class=\"ghotiButton ghotiButtonCompact ghotiButtonDanger\" onclick=\"galleryDeletePhoto(".$pid.($filename === null ? '' : ',true').");\">".($filename === null ? 'Delete' : 'Remove')."</button>";
 			$o .= "</div>\n";
 			$o .= "</article>\n";
 		}
