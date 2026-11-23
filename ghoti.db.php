@@ -212,11 +212,12 @@ class ghotidb{
     }
 
     public static function provisionInstallation(): bool {
+        $modules = array_merge(array('pages'), ghoti::enabledModules());
         // A previous connection may have left a cache for a different database.
         self::$provisioned = array();
         $db = new self();
-        foreach(array('pages', 'links', 'login', 'banners', 'analytics', 'gallery', 'mail') as $module){
-            if(!$db->loadModuleSql($module)){ return false; }
+        foreach($modules as $module){
+            if(self::allowsModuleSchema($module) && !$db->loadModuleSql($module)){ return false; }
         }
         // Retry the starter page if a previous install created an empty table.
         if(empty($db->queryArray('SELECT 1 FROM pages LIMIT 1'))){ $db->seedModule('pages'); }
@@ -504,8 +505,12 @@ class ghotidb{
         }
     }
 
+    private static function allowsModuleSchema(string $moduleName): bool {
+        return in_array($moduleName, self::$validModules, true) || ghoti_extensions()->allowsSchema($moduleName);
+    }
+
     function loadModuleSql($moduleName="default"){
-        if(!in_array($moduleName, self::$validModules, true) && !(is_string($moduleName) && ghoti_extensions()->allowsSchema($moduleName))){
+        if(!is_string($moduleName) || !self::allowsModuleSchema($moduleName)){
             ghoti::logError("ghoti.db.php:loadModuleSql", "Can't load module '$moduleName'");
             return false;
         }

@@ -6,7 +6,7 @@ Ghoti is a PHP content management framework with editable pages, account and adm
 
 1. Serve this directory over HTTPS with PHP 8.1 or newer and the `pdo_mysql`, `dom`, `fileinfo`, `mbstring`, and `xml` extensions. Enable the bundled Apache access rules or configure equivalent rules on your web server.
 2. Create an empty MySQL or MariaDB database and an account with `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, and `INDEX` on that database. Give PHP write access to the installation, `files/`, and `files/gallery/` directories and to any existing runtime settings and log files.
-3. Set a strong, temporary `GHOTI_SETUP_KEY` in the PHP environment and open `index.php?k=YOUR_SETUP_KEY`. The wizard tests the database connection, collects the site title, theme, and optional public URL, and checks the PHP runtime and file permissions. Finish installation to create the first administrator, then sign in and remove the setup key.
+3. Set a strong, temporary `GHOTI_SETUP_KEY` in the PHP environment and open `index.php?k=YOUR_SETUP_KEY`. The wizard tests the database connection, collects the site title, theme, and optional public URL, and checks the PHP runtime and file permissions. Finish installation to prepare the enabled module schemas and create the first administrator, then sign in and remove the setup key.
 
 The wizard can use an existing connection configured through `GHOTI_DB_*` or `GHOTI_DB_CONFIG`. Choose **Use current connection** when it is available. For unattended installs, configure the connection and run `php bin/create-admin.php USERNAME EMAIL`, supplying the password on standard input.
 

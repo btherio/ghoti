@@ -186,11 +186,11 @@ function ghoti_setup_checks(): array {
 function ghoti_setup_finish($lock, array $site, array $input): void {
     try{
         if(!ghotidb::provisionInstallation()){
-            throw new RuntimeException('Core schema or public home page is missing.');
+            throw new RuntimeException('An enabled module schema or the public home page is missing.');
         }
     }catch(Throwable $e){
         ghoti::logException('installation: database provisioning', $e);
-        throw new RuntimeException('Ghoti could not prepare its database tables and public home page. Check the database privileges and server log.');
+        throw new RuntimeException('Ghoti could not prepare the enabled modules or the public home page. Check the database privileges and server log.');
     }
 
     require_once __DIR__.'/lib/first-admin.php';

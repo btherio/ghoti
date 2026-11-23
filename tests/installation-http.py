@@ -35,6 +35,19 @@ def client():
     return urllib.request.build_opener(NoRedirect(), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
 
+def write_extension(app, name, *, requires=(), sql=None, entry='<?php\n'):
+    module = app / 'mod' / name
+    module.mkdir()
+    (module / 'module.json').write_text(json.dumps({'apiVersion': 1, 'name': name, 'description': 'Install fixture',
+                                                  'requires': requires, 'schema': sql is not None}))
+    (module / (name + '.php')).write_text(entry)
+    (module / (name + '.async.php')).write_text('<?php\n')
+    schema = module / (name + '.sql')
+    if sql is not None:
+        schema.write_text(sql)
+    return schema
+
+
 def run_flow(root, config, database, existing):
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
@@ -154,15 +167,32 @@ def run_flow(root, config, database, existing):
         admin = dict(adminName='fixture-admin', adminEmail='admin@example.test', adminPassword=ADMIN_PASSWORD)
         _, body = action('finish', token, 'checks', 422, **dict(admin, adminPassword='short'))
         assert 'Password must be at least' in body and not settings_path.exists()
+
+        # Restore a selection with a dependency, a disabled schema, and a code-only extension.
+        invalid_sql = 'This fixture schema fails until fixed.'
+        write_extension(app, 'install_parent', sql='CREATE TABLE IF NOT EXISTS install_parent (id INT PRIMARY KEY) ENGINE=InnoDB;')
+        child_schema = write_extension(app, 'install_child', requires=('install_parent',), sql=invalid_sql)
+        write_extension(app, 'install_disabled', sql=invalid_sql)
+        write_extension(app, 'install_code', entry="<?php file_put_contents(__DIR__.'/loaded', 'yes');")
+        loaded = app / 'mod/install_code/loaded'
+        selection = {'install_child': True, 'install_parent': True, 'install_disabled': False, 'install_code': True}
+        settings_path.write_text(json.dumps({'extensionModules': selection}))
+        _, body = action('finish', token, 'checks', 422, **admin)
+        assert 'could not prepare the enabled modules' in body
+        assert state_path.read_text().strip() != 'complete' and not loaded.exists()
+        child_schema.write_text('CREATE TABLE IF NOT EXISTS install_child (id INT PRIMARY KEY, '
+                                'parentId INT, FOREIGN KEY (parentId) REFERENCES install_parent(id)) ENGINE=InnoDB;')
+
         headers, _ = action('finish', token, 'checks', 303, **admin)
         assert headers['Location'] == 'index.php'
-        assert state_path.read_text().strip() == 'complete'
+        assert state_path.read_text().strip() == 'complete' and not loaded.exists()
         settings = json.loads(settings_path.read_text())
         assert settings['siteTitle'] == TITLE and settings['seoSiteUrl'] == 'https://example.test/ghoti'
+        assert settings['extensionModules'] == selection
         assert settings['seoAllowIndexing'] is False and ADMIN_PASSWORD not in settings_path.read_text()
 
         _, body = request(browser=client())
-        assert TITLE in body and 'Under Construction.' in body and 'Set up Ghoti' not in body
+        assert TITLE in body and 'Under Construction.' in body and 'Set up Ghoti' not in body and loaded.exists()
         action('finish', token, 'checks', 409, **admin)
         _, body = request()
         csrf = re.search(r'var GHOTI_CSRF_TOKEN = "([a-f0-9]+)"', body)[1]
