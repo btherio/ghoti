@@ -65,7 +65,7 @@ function ghoti_documentation_html(){
           <h3>Requirements</h3>
           <ul class="ghotiGuideChecklist">
             <li>Apache or another PHP-capable web server, with HTTPS for production</li>
-            <li>PHP 8 or newer with PDO MySQL, DOM, fileinfo, mbstring, and XML extensions</li>
+            <li>PHP 8.1 or newer with PDO MySQL, DOM, fileinfo, mbstring, and XML extensions</li>
             <li>MySQL or MariaDB and a dedicated database account</li>
             <li>Write access for the PHP service account to Ghoti’s runtime files and upload directory</li>
             <li>Optional: ImageMagick for HEIC, TIFF, and BMP gallery conversion; a local or remote SMTP relay for mail</li>
@@ -83,10 +83,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
 
           <h3>3. Configure the connection</h3>
           <p>Use environment variables for managed deployments: <code>GHOTI_DB_HOST</code>, <code>GHOTI_DB_PORT</code>, <code>GHOTI_DB_NAME</code>, <code>GHOTI_DB_USER</code>, <code>GHOTI_DB_PASSWORD</code>, and optionally <code>GHOTI_DB_CHARSET</code>. Alternatively, create the ignored <code>db.config.local.php</code> file beside <code>db.config.php</code>. Never commit a database password.</p>
-          <p>If you prefer the web setup screen, set a strong temporary <code>GHOTI_SETUP_KEY</code>, open <code>/?k=YOUR_SETUP_KEY</code>, test and save the connection, then remove the setup key from the web-server environment. Web setup is unavailable without that key.</p>
+          <p>To enter the connection in the wizard, set a strong temporary <code>GHOTI_SETUP_KEY</code> in the PHP environment and open <code>index.php?k=YOUR_SETUP_KEY</code>. The wizard can also use a connection you configured before opening it.</p>
 
           <h3>4. Prepare writable paths</h3>
-          <p>The PHP service account must be able to maintain <code>ghoti.settings.json</code>, <code>ghoti.log</code>, <code>db.provisioned.json</code>, <code>critical-alerts.json</code> (and the alert history beside it, <code>critical-alerts.pending.json</code> and <code>critical-alerts.history.json</code>), <code>login.throttle.json</code>, and <code>files/gallery/</code>. If web setup is used, it must also be able to create <code>db.config.local.php</code>. Grant access only to these paths; avoid making the entire application tree world-writable.</p>
+          <p>The PHP service account must be able to maintain <code>ghoti.settings.json</code>, <code>ghoti.log</code>, <code>db.provisioned.json</code>, <code>critical-alerts.json</code> (and the alert history beside it, <code>critical-alerts.pending.json</code> and <code>critical-alerts.history.json</code>), <code>login.throttle.json</code>, and <code>files/gallery/</code>. The wizard needs to create <code>.ghoti-install</code> and can write the local database configuration. Grant write access to the PHP service account without making the application tree world-writable.</p>
 
           <h3>5. Serve securely</h3>
           <p>Enable HTTPS, keep PHP error display off in production, and ensure the web server honors the root access-control rules. Login session cookie names are scoped automatically to the installation directory, so separate Ghoti installations on one host use separate cookies. Moving an installation changes its cookie name and requires a new sign-in. For password-reset links, set <code>GHOTI_PUBLIC_URL</code> to the public HTTPS base URL, such as <code>https://example.com/ghoti</code>.</p>
@@ -97,7 +97,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
         <span class="ghotiGuideNumber">03</span>
         <div>
           <h2>First-run setup</h2>
-          <p>After the database connects, provision the first administrator from the server. Public registration cannot create the initial administrator.</p>
+          <p>After testing the database connection in the wizard, choose the site title, theme, public URL, and indexing preference. Run the installation checks, resolve any failures, and create the first administrator. Sign in and remove <code>GHOTI_SETUP_KEY</code> from the PHP environment when you finish.</p>
+          <p>For a shell-based installation, configure the connection and provision the first administrator from the server:</p>
           <pre><code>read -r -s -p 'Initial admin password: ' ghoti_admin_password
 printf '%s\\n' "\$ghoti_admin_password" | php bin/create-admin.php admin admin@example.com
 unset ghoti_admin_password</code></pre>
@@ -158,7 +159,8 @@ unset ghoti_admin_password</code></pre>
           <h2>Users &amp; access</h2>
           <p>Users may view private pages, post on boards, and change their own password. Administrators additionally receive the Workspace management tools. In <b>Users</b>, edit account details, grant or revoke admin access, and remove accounts. When boards are enabled, each account also shows its total post count and the boards it moderates: press <b>Moderates</b> to choose them. A moderator can edit or remove any post on their board and lock, pin or delete its topics; administrators moderate every board. The application protects the last administrator from accidental demotion or deletion.</p>
           <h3>Confirming a new registration</h3>
-          <p>When public registration is on and outbound mail has been tested, a new registrant is sent a six-digit code and must enter it before the account exists. Nothing is written until the code comes back, so an address that is never confirmed costs nothing and leaves no half-made account behind. The code lasts fifteen minutes, allows five attempts, and confirming does not sign the person in &mdash; they log in afterwards like anyone else. If mail is not working there is nobody to send a code to, so registration behaves as it always has and the account is created directly.</p>
+          <p>When public registration is on and outbound mail has been tested, the registrant must enter the six-digit email code before Ghoti creates the account. The code lasts fifteen minutes and allows five attempts. Without a working mail setup, Ghoti creates the account after the registration form is submitted.</p>
+          <p>To review new accounts before they can sign in, enable <b>Admin verifies new accounts</b> beside <b>Allow new user registration</b> in <b>Site Settings &rarr; Visitor access</b>. In <b>Admin Menu &rarr; Users</b>, open <b>Pending approvals</b> and select <b>Approve</b> or <b>Decline</b>. Approval allows the user to sign in, and declining removes the registration. Turning off the setting applies to future registrations. Accounts already awaiting approval still need a decision.</p>
           <h3>Two-factor sign-in</h3>
           <p>When <b>Require an emailed sign-in code for administrators</b> is on (Site Settings &rarr; Security), an administrator signs in with their password and then a six-digit code sent to the address on their account. The code is also the first thing in the e-mail&rsquo;s subject line, so it can be read from a phone notification. It lasts ten minutes, can be used once, and an incorrect one counts towards the same throttle as an incorrect password.</p>
           <p><b>Authenticator app instead of e-mail.</b> Any account can switch to an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, 1Password and the like) under <b>Your account &rarr; Sign-in security</b>: scan the QR code, then confirm with the code the app shows and your password. From then on that account is asked for the app&rsquo;s code and sent no e-mail, so it keeps working when mail is down. A code works once; the same code cannot sign in twice. <b>Switch to e-mailed codes</b> returns the account to e-mailed codes (also needs the password, and is refused while mail is untested). If a phone is lost, another administrator presses <b>Reset app</b> on that account in <b>Users</b>. The QR code is drawn in the browser; the secret is never sent to an outside service, but it is stored in the database like the SMTP password, so protect database backups.</p>

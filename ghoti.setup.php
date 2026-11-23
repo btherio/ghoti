@@ -1,437 +1,366 @@
 <?php
-/*
- * ghoti.setup.php - first-run / recovery database setup.
- *
- * When the app cannot reach its database (a fresh install pointed at the wrong
- * host, or an outage), index.php hands control here instead of bootstrapping
- * the module stack against a dead connection. We render a small self-contained
- * page with a modal to enter the connection details, test them live, and - on
- * success - write them permanently to db.config.local.php (the untracked local
- * override that db.config.php already merges over its defaults).
- *
- * Security model (same as any web installer, e.g. WordPress's install screen):
- * this flow is ONLY reachable while ghotidb::isConfigured() is false. There are
- * no users/admins to authenticate against when the database is down, so it
- * can't be gated on login. To keep the exposure minimal while it IS open:
- *   - every field is strictly validated, the driver is whitelisted, values are
- *     written with var_export() (no PHP injection into the generated file),
- *     and the target path is fixed (not an arbitrary-file-write primitive);
- *   - the async calls carry the session CSRF token (same as every other
- *     endpoint), so a cross-site request can't drive the form;
- *   - GHOTI_SETUP_KEY is mandatory: without it web setup is disabled.
- *     The setup page and its endpoints require that key (?k=... / payload "k"),
- *     turning the outage window into a locked door instead of an open portal;
- *   - raw PDO error text is flattened and truncated so it stays useful for the
- *     operator without becoming a network-probing oracle.
- * The moment a working config is saved and connects, index.php stops diverting
- * here and the setup endpoints below refuse.
- */
 
-/* Drivers we actually support. The data layer is written for MySQL/MariaDB. */
-function ghoti_setup_allowed_drivers(){
-	return array('mysql');
+// The installer runs before normal module startup. A configured operator key
+// and a session CSRF token are required before it can make changes.
+function ghoti_setup_state(): string {
+    $path = __DIR__.'/.ghoti-install';
+    clearstatcache(true, $path);
+    return is_file($path) ? trim((string)@file_get_contents($path)) : '';
 }
 
-/* Operator-provided setup key; an empty value disables web setup. */
-function ghoti_setup_configured_key(){
-	$key = getenv('GHOTI_SETUP_KEY');
-	return is_string($key) ? $key : '';
+function ghoti_setup_mode(): string {
+    $connected = ghotidb::isConfigured();
+    $state = ghoti_setup_state();
+    if($state === 'complete'){ return $connected ? 'ready' : 'recovery'; }
+    if($connected && $state === ''){
+        try{
+            if(ghotidb::hasUsers()){ return 'ready'; }
+        }catch(PDOException $e){
+            ghoti::logException('installation: detect existing site', $e);
+        }
+    }
+    return 'install';
 }
 
-/*
- * Validate + normalize a submitted config array. Returns a clean config array,
- * or throws Exception with a user-facing message. Host/database/charset are
- * constrained to a safe charset because they are interpolated into the PDO DSN
- * string (where ';' would let an attacker inject extra DSN parameters). The
- * username/password are passed to PDO as separate arguments, never into the
- * DSN, so they may contain any characters.
- */
-function ghoti_setup_sanitize_config($input){
-	if(!is_array($input)){
-		throw new Exception("Invalid settings.");
-	}
-	$v = ghoti_validate();
-
-	$driver = strtolower(trim((string)($input['driver'] ?? 'mysql')));
-	if(!in_array($driver, ghoti_setup_allowed_drivers(), true)){
-		throw new Exception("Unsupported database driver.");
-	}
-
-	$host = trim((string)($input['host'] ?? ''));
-	if($host === '' || !preg_match('/^[A-Za-z0-9_.\-]{1,255}$/', $host)){
-		throw new Exception("Enter a valid host name or IP address.");
-	}
-
-	$portRaw = $input['port'] ?? '3306';
-	if($portRaw === '' || $portRaw === null){ $portRaw = '3306'; }
-	$port = $v->intInRange($portRaw, 1, 65535, "port");
-
-	$database = trim((string)($input['database'] ?? ''));
-	if($database === '' || !preg_match('/^[A-Za-z0-9_.\-]{1,64}$/', $database)){
-		throw new Exception("Enter a valid database name.");
-	}
-
-	$username = trim((string)($input['username'] ?? ''));
-	if($username === '' || strlen($username) > 128){
-		throw new Exception("Enter a database username.");
-	}
-
-	$password = (string)($input['password'] ?? '');
-	if(strlen($password) > 512){
-		throw new Exception("Password is too long.");
-	}
-
-	$charset = trim((string)($input['charset'] ?? 'utf8mb4'));
-	if($charset === ''){ $charset = 'utf8mb4'; }
-	if(!preg_match('/^[A-Za-z0-9_\-]{1,32}$/', $charset)){
-		throw new Exception("Enter a valid charset (letters, numbers, _ and - only).");
-	}
-
-	return array(
-		'driver'   => $driver,
-		'host'     => $host,
-		'port'     => (string)$port,
-		'database' => $database,
-		'username' => $username,
-		'password' => $password,
-		'charset'  => $charset,
-	);
+function ghoti_setup_access_ok($keyHash, $token): bool {
+    $key = getenv('GHOTI_SETUP_KEY');
+    return $key !== false && $key !== '' && is_string($keyHash)
+        && hash_equals(hash('sha256', $key), $keyHash) && ghoti_csrf_verify($token);
 }
 
-/*
- * Try to open a PDO connection with the given (already sanitized) config.
- * Returns true on success, or a short human-readable error string on failure.
- */
-function ghoti_setup_test_config($cfg){
-	try{
-		$dsn = "{$cfg['driver']}:host={$cfg['host']};port={$cfg['port']};dbname={$cfg['database']};charset={$cfg['charset']}";
-		$pdo = new PDO($dsn, $cfg['username'], $cfg['password'], array(
-			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-			PDO::ATTR_TIMEOUT => 5,
-		));
-		$pdo = null; // close immediately; we only wanted to prove it connects
-		return true;
-	}catch (Throwable $e){
-		//Flatten + truncate the driver's message: keep it useful for the
-		//operator ("access denied", "unknown database", ...) without dumping a
-		//multi-line DSN/stack blob that doubles as a network-probing oracle.
-		$msg = preg_replace('/\s+/', ' ', $e->getMessage());
-		$msg = trim((string)$msg);
-		if(strlen($msg) > 200){ $msg = substr($msg, 0, 200).'...'; }
-		return "Connection failed: ".$msg;
-	}
+function ghoti_setup_headers(int $status): void {
+    http_response_code($status);
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: no-referrer');
+    header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
 }
 
-/* Absolute path of the untracked local override we write. */
-function ghoti_setup_local_config_path(){
-	return __DIR__.'/db.config.local.php';
+function ghoti_setup_redirect(string $step = ''): void {
+    header('Location: index.php'.($step === '' ? '' : '?step='.$step), true, 303);
+    exit;
 }
 
-/*
- * Endpoint: validate + test + permanently persist a submitted config.
- * Returns true on success, or an error message string. Refuses once the app is
- * already configured (defence in depth - index.php shouldn't route here then).
- */
-function ghoti_setup_save_config($input){
-	if(ghotidb::isConfigured()){
-		return "The database is already configured.";
-	}
-	try{
-		$cfg = ghoti_setup_sanitize_config($input);
-	}catch (Exception $e){
-		return $e->getMessage();
-	}
-
-	$test = ghoti_setup_test_config($cfg);
-	if($test !== true){
-		return $test; // don't persist a config that doesn't actually connect
-	}
-
-	//Write valid PHP that returns the config array. var_export() safely encodes
-	//every value, so nothing the operator typed can break out into code.
-	$php  = "<?php\n";
-	$php .= "/* Database connection override written by the ghoti setup screen.\n";
-	$php .= " * Generated ".date('c').". Safe to edit or delete (delete to re-run setup). */\n";
-	$php .= "return ".var_export($cfg, true).";\n";
-
-	if(@file_put_contents(ghoti_setup_local_config_path(), $php, LOCK_EX) === false){
-		ghoti::logError("ghoti.setup.php:ghoti_setup_save_config", "could not write ".ghoti_setup_local_config_path());
-		return "Connected, but could not write db.config.local.php. Check that the web server can write to the ghoti directory.";
-	}
-
-	@chmod(ghoti_setup_local_config_path(), 0600); // credentials file - keep it tight where the OS honours it
-	ghoti::logInfo("ghoti.setup.php:ghoti_setup_save_config", "database configured for {$cfg['username']}@{$cfg['host']}:{$cfg['port']}/{$cfg['database']} from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
-	return true;
+function ghoti_setup_fingerprint(): string {
+    try{
+        return hash('sha256', serialize(ghotidb::loadConfig()));
+    }catch(Throwable $e){
+        return '';
+    }
 }
 
-/*
- * True only when the presented setup key (when one is configured) matches AND
- * the request carries the session CSRF token.
- */
-function ghoti_setup_access_ok($presentedKey, $token){
-	$key = ghoti_setup_configured_key();
-	if($key === '' || !is_string($presentedKey) || !hash_equals($key, $presentedKey)){
-		return false;
-	}
-	return ghoti_csrf_verify($token);
+function ghoti_setup_db_managed(): bool {
+    $path = getenv('GHOTI_DB_CONFIG');
+    return $path !== false && $path !== '' && $path !== __DIR__.'/db.config.local.php';
 }
 
-/*
- * Entry point called from index.php when the DB is unreachable. If this request
- * is the setup form's async POST, dispatch it and exit; otherwise render the
- * setup page and exit. Setup endpoints are handled HERE (not via the normal
- * async registry) so they exist only on this path, while the DB is down.
- */
-function ghoti_setup_dispatch(){
-	$key = ghoti_setup_configured_key();
-	if($key === ''){
-		http_response_code(503);
-		header('Content-Type: text/plain; charset=utf-8');
-		header('Cache-Control: no-store');
-		echo 'Database unavailable. Web setup is disabled until the operator configures GHOTI_SETUP_KEY.';
-		exit;
-	}
-	$req = ghoti_async_read_request();
-	if($req !== null){
-		list($fn, $args, $token) = $req;
-		$payload = isset($args[0]) ? $args[0] : array();
-		$presentedKey = (is_array($payload) && isset($payload['k'])) ? (string)$payload['k'] : '';
-		if(!ghoti_setup_access_ok($presentedKey, $token)){
-			//logLine() strips CR/LF so an attacker-chosen fn can't forge log entries.
-			ghoti::logWarn("ghoti.setup.php:ghoti_setup_dispatch", "denied setup request '".ghoti_validate()->logLine($fn)."' (bad key/token) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
-			ghoti_async_send_json(array('ok' => false, 'error' => 'Setup access denied.'), 403);
-			exit;
-		}
-		if($fn === 'saveDbConfig'){
-			ghoti_async_send_json(array('ok' => true, 'result' => ghoti_setup_save_config($payload)));
-		}else if($fn === 'testDbConfig'){
-			try{
-				$cfg = ghoti_setup_sanitize_config($payload);
-				$result = ghoti_setup_test_config($cfg);
-				ghoti_async_send_json(array('ok' => true, 'result' => ($result === true ? "Connection succeeded." : $result)));
-			}catch (Exception $e){
-				ghoti_async_send_json(array('ok' => true, 'result' => $e->getMessage()));
-			}
-		}else{
-			//Any other endpoint is unavailable until the database is configured.
-			ghoti_async_send_json(array('ok' => false, 'error' => 'The site is not configured yet. Reload to finish database setup.'), 503);
-		}
-		exit;
-	}
-
-	//Page render: when a setup key is configured, require it in the URL.
-	if($key !== ''){
-		$presentedKey = isset($_GET['k']) ? (string)$_GET['k'] : '';
-		if(!is_string($presentedKey) || !hash_equals($key, $presentedKey)){
-			ghoti::logWarn("ghoti.setup.php:ghoti_setup_dispatch", "denied setup page (missing/bad key) from ".(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''));
-			http_response_code(403);
-			header('Content-Type: text/plain; charset=utf-8');
-			echo "Database setup is locked. Set GHOTI_SETUP_KEY and open this page with ?k=<key>.";
-			exit;
-		}
-	}
-	ghoti_setup_render_page();
-	exit;
+function ghoti_setup_database_input(array $input): array {
+    $host = trim(ghoti_setup_input($input, 'host'));
+    if(!preg_match('/^[A-Za-z0-9_.-]{1,255}$/D', $host) && !filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)){
+        throw new InvalidArgumentException('Enter a valid database hostname or IP address.');
+    }
+    $port = filter_var(trim(ghoti_setup_input($input, 'port')), FILTER_VALIDATE_INT,
+        array('options' => array('min_range' => 1, 'max_range' => 65535)));
+    if($port === false){
+        throw new InvalidArgumentException('Enter a database port between 1 and 65535.');
+    }
+    $database = trim(ghoti_setup_input($input, 'database'));
+    if(!preg_match('/^[A-Za-z0-9_.-]{1,64}$/D', $database)){
+        throw new InvalidArgumentException('Enter a database name using letters, numbers, dots, underscores or hyphens.');
+    }
+    $username = trim(ghoti_setup_input($input, 'username'));
+    if($username === '' || strlen($username) > 128){
+        throw new InvalidArgumentException('Enter a database username of up to 128 bytes.');
+    }
+    $password = ghoti_setup_input($input, 'password');
+    if(strlen($password) > 512){ throw new InvalidArgumentException('The database password is too long.'); }
+    $charset = trim(ghoti_setup_input($input, 'charset')) ?: 'utf8mb4';
+    if(!preg_match('/^[A-Za-z0-9_-]{1,32}$/D', $charset)){
+        throw new InvalidArgumentException('Enter a valid database character set.');
+    }
+    return array('driver' => 'mysql', 'host' => $host, 'port' => (string)$port, 'database' => $database,
+        'username' => $username, 'password' => $password, 'charset' => $charset);
 }
 
-/* Render the standalone setup page (its own HTML - the normal theme/header
- * bootstraps modules that need the database). */
-function ghoti_setup_render_page(){
-	$cfg = ghotidb::loadConfig();
-	$esc = function($v){ return htmlspecialchars((string)$v, ENT_QUOTES); };
-	//Prefill everything except the password (never echo a secret into the page).
-	$host     = $esc($cfg['host']     ?? '');
-	$port     = $esc($cfg['port']     ?? '3306');
-	$database = $esc($cfg['database'] ?? '');
-	$username = $esc($cfg['username'] ?? '');
-	$charset  = $esc($cfg['charset']  ?? 'utf8mb4');
-	$endpoint = $esc(isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : 'index.php');
-	//CSRF token (same session token the async layer uses) + optional setup key.
-	$csrfJs   = json_encode(ghoti_csrf_token());
-	$keyJs    = json_encode(isset($_GET['k']) ? (string)$_GET['k'] : '');
+function ghoti_setup_input(array $input, string $key): string {
+    $value = $input[$key] ?? '';
+    if(!is_string($value)){ throw new InvalidArgumentException('Invalid installation settings.'); }
+    return $value;
+}
 
-	if(!headers_sent()){
-		http_response_code(503); // "not ready yet" - correct while unconfigured
-		header('Content-Type: text/html; charset=utf-8');
-		header('Cache-Control: no-store');
-		header('Retry-After: 60');
-		header('X-Content-Type-Options: nosniff');
-		header('X-Frame-Options: DENY');
-		header('Referrer-Policy: no-referrer'); // the setup URL carries ?k= - don't leak it
-	}
+function ghoti_setup_site_input(array $input): array {
+    $title = trim(ghoti_setup_input($input, 'siteTitle'));
+    if($title === '' || strlen($title) > 120 || !preg_match('//u', $title) || preg_match('/[<>"\x00-\x1f\x7f]/', $title)){
+        throw new InvalidArgumentException('Enter a site title of up to 120 bytes, without markup or double quotes.');
+    }
+    $theme = ghoti_setup_input($input, 'defaultTheme');
+    if(!ghoti::isValidTheme($theme)){ throw new InvalidArgumentException('Choose an installed theme.'); }
+    $url = trim(ghoti_setup_input($input, 'seoSiteUrl'));
+    if($url !== '' && ghoti_seo_clean_url($url) === ''){
+        throw new InvalidArgumentException('Enter a full HTTPS site URL without a query string or fragment, or leave it blank.');
+    }
+    return array('siteTitle' => $title, 'defaultTheme' => $theme, 'seoSiteUrl' => $url,
+        'seoAllowIndexing' => ghoti_setup_input($input, 'seoAllowIndexing') === '1');
+}
 
-	echo <<<HTML
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="robots" content="noindex,nofollow" />
-<title>ghoti &middot; Database setup</title>
-<style>
-:root{
-	--bg:#0f1216; --surface:#171b21; --surface-2:#1e242c; --border:#2b333d;
-	--text:#e8edf3; --muted:#9aa7b4; --accent:#2a78d6; --accent-2:#1c5cab;
-	--danger:#e5534b; --ok:#3fb950; --radius:14px;
+function ghoti_setup_save_database(array $config): void {
+    $temporary = @tempnam(__DIR__, '.ghoti-db-');
+    if($temporary === false){ throw new RuntimeException('PHP could not create the local database configuration. Check the installation directory permissions.'); }
+    try{
+        $contents = "<?php\nreturn ".var_export($config, true).";\n";
+        if(dirname($temporary) !== __DIR__ || !@chmod($temporary, 0600)
+            || @file_put_contents($temporary, $contents) !== strlen($contents)
+            || !@rename($temporary, __DIR__.'/db.config.local.php')){
+            throw new RuntimeException('PHP could not save db.config.local.php. Check the installation directory permissions.');
+        }
+        if(function_exists('opcache_invalidate')){ @opcache_invalidate(__DIR__.'/db.config.local.php', true); }
+    }finally{
+        if(is_file($temporary)){ @unlink($temporary); }
+    }
 }
-@media (prefers-color-scheme: light){
-	:root{ --bg:#eef1f5; --surface:#ffffff; --surface-2:#f4f6f9; --border:#d7dee6;
-		--text:#1b2530; --muted:#5b6875; }
+
+// Keep the lock file in place so concurrent setup requests always lock the
+// same inode. A pending state prevents bypass if setup stops after creating
+// the administrator and before recording completion.
+function ghoti_setup_with_lock(callable $operation): void {
+    $lock = @fopen(__DIR__.'/.ghoti-install', 'c+');
+    if($lock === false){ throw new RuntimeException('PHP could not write the installation state. Check the installation directory permissions.'); }
+    try{
+        if(!flock($lock, LOCK_EX)){ throw new RuntimeException('PHP could not lock the installation state. Retry setup.'); }
+        $operation($lock);
+    }finally{
+        fclose($lock);
+    }
 }
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-	background:var(--bg);color:var(--text);
-	font:15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px}
-.setup-card{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);
-	border-radius:var(--radius);box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden}
-.setup-head{padding:22px 26px 6px}
-.setup-head h1{margin:0 0 4px;font-size:1.35rem;letter-spacing:.2px}
-.setup-head p{margin:0;color:var(--muted);font-size:.92rem}
-.setup-body{padding:14px 26px 22px}
-.setup-note{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
-	padding:10px 12px;color:var(--muted);font-size:.85rem;margin:6px 0 16px}
-label{display:block;margin:0 0 12px}
-label span{display:block;font-size:.82rem;color:var(--muted);margin-bottom:4px}
-input,select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;
-	background:var(--surface-2);color:var(--text);font-size:.95rem;outline:none}
-input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(42,120,214,.25)}
-.password-input{display:flex}.password-input input{border-radius:9px 0 0 9px}.password-toggle{width:34px;flex:0 0 34px;padding:0;border-left:0;border-radius:0 9px 9px 0;font-size:.78rem;opacity:.65}.password-toggle:hover,.password-toggle:focus-visible{opacity:1}
-.row{display:flex;gap:12px}
-.row .grow{flex:1}
-.row .port{width:110px}
-.actions{display:flex;gap:10px;align-items:center;margin-top:8px}
-button{appearance:none;border:1px solid var(--border);border-radius:9px;padding:10px 16px;
-	font-size:.95rem;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);
-	position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
-	transition:transform .12s ease,box-shadow .18s ease,filter .18s ease}
-button:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.28)}
-button:active{transform:translateY(1px);box-shadow:inset 0 2px 5px rgba(0,0,0,.22)}
-button:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(42,120,214,.45)}
-button.primary{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 88%,#fff 12%),var(--accent));border-color:var(--accent);color:#fff}
-button.primary:hover{filter:saturate(1.1) brightness(1.05)}
-button:disabled{opacity:.6;cursor:progress;transform:none;filter:grayscale(.45);box-shadow:none}
-button.is-busy{pointer-events:none;color:transparent}
-button.is-busy > *{visibility:hidden}
-button.is-busy::after{content:"";position:absolute;inset:0;margin:auto;width:1.1em;height:1.1em;
-	border:2px solid color-mix(in srgb,var(--text) 30%,transparent);border-top-color:var(--text);
-	border-radius:50%;animation:ghotiSpin .7s linear infinite}
-@keyframes ghotiSpin{to{transform:rotate(360deg)}}
-.msg{margin-left:auto;font-size:.88rem;min-height:1.2em}
-.msg.ok{color:var(--ok)} .msg.err{color:var(--danger)}
-.setup-foot{padding:0 26px 20px;color:var(--muted);font-size:.78rem}
-code{background:var(--surface-2);padding:1px 5px;border-radius:5px}
-@media (max-width:420px){
-	body{align-items:flex-start;padding:8px;overflow-wrap:anywhere}
-	.setup-card{border-radius:10px}
-	.setup-head{padding:16px 14px 5px}
-	.setup-body{padding:10px 14px 16px}
-	.setup-foot{padding:0 14px 14px}
-	.row{flex-direction:column;gap:0}
-	.row .port{width:100%}
-	.actions{align-items:stretch;flex-direction:column}
-	.actions button{width:100%}
-	.msg{margin-left:0;text-align:center}
+
+function ghoti_setup_write_state($lock, string $state): void {
+    // These fixed-width values replace one another without truncating the file.
+    $value = str_pad($state, 8);
+    if(!rewind($lock) || fwrite($lock, $value) !== strlen($value) || !fflush($lock)){
+        throw new RuntimeException('PHP could not record installation progress. Check the installation directory permissions.');
+    }
 }
-</style>
-</head>
-<body>
-<div class="setup-card">
-	<div class="setup-head">
-		<h1>Database setup</h1>
-		<p>ghoti can't reach its database yet. Enter the connection details to finish.</p>
-	</div>
-	<div class="setup-body">
-		<div class="setup-note">These are saved to <code>db.config.local.php</code> in the ghoti directory (kept out of version control). Delete that file to run this setup again.</div>
-		<form id="dbSetupForm" onsubmit="return false;">
-			<label><span>Driver</span>
-				<select id="db-driver"><option value="mysql" selected>MySQL / MariaDB</option></select>
-			</label>
-			<div class="row">
-				<label class="grow"><span>Host</span><input id="db-host" value="{$host}" autocomplete="off" spellcheck="false" placeholder="localhost or 10.0.0.17" /></label>
-				<label class="port"><span>Port</span><input id="db-port" value="{$port}" autocomplete="off" inputmode="numeric" /></label>
-			</div>
-			<label><span>Database name</span><input id="db-database" value="{$database}" autocomplete="off" spellcheck="false" /></label>
-			<label><span>Username</span><input id="db-username" value="{$username}" autocomplete="off" spellcheck="false" /></label>
-			<label><span>Password</span><span class="password-input"><input id="db-password" type="password" value="" autocomplete="off" /><button type="button" class="password-toggle" onclick="togglePassword(this)" aria-label="Show password" title="Show password">&#128065;</button></span></label>
-			<label><span>Charset</span><input id="db-charset" value="{$charset}" autocomplete="off" spellcheck="false" /></label>
-			<div class="actions">
-				<button type="button" id="db-test">Test connection</button>
-				<button type="button" class="primary" id="db-save">Save &amp; continue</button>
-				<span class="msg" id="db-msg"></span>
-			</div>
-		</form>
-	</div>
-	<div class="setup-foot">Once saved and connected, this screen disappears automatically.</div>
-</div>
-<script>
-(function(){
-	var ENDPOINT = "{$endpoint}";
-	var CSRF_TOKEN = {$csrfJs};
-	var SETUP_KEY = {$keyJs};
-	window.togglePassword = function(button){
-		var input = button.parentNode.querySelector('input');
-		var show = input.type === 'password';
-		input.type = show ? 'text' : 'password';
-		button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-		button.setAttribute('title', show ? 'Hide password' : 'Show password');
-		button.setAttribute('aria-pressed', show ? 'true' : 'false');
-	};
-	function fields(){
-		return {
-			driver:   document.getElementById('db-driver').value,
-			host:     document.getElementById('db-host').value,
-			port:     document.getElementById('db-port').value,
-			database: document.getElementById('db-database').value,
-			username: document.getElementById('db-username').value,
-			password: document.getElementById('db-password').value,
-			charset:  document.getElementById('db-charset').value,
-			k:        SETUP_KEY
-		};
-	}
-	var msg = document.getElementById('db-msg');
-	function setMsg(text, cls){ msg.className = 'msg ' + (cls||''); msg.textContent = text || ''; }
-	function call(fn, onResult){
-		var testBtn = document.getElementById('db-test');
-		var saveBtn = document.getElementById('db-save');
-		testBtn.disabled = saveBtn.disabled = true;
-		testBtn.classList.add('is-busy');
-		saveBtn.classList.add('is-busy');
-		setMsg('Working...', '');
-		fetch(ENDPOINT, {
-			method:'POST', credentials:'same-origin',
-			headers:{'Content-Type':'application/json'},
-			body: JSON.stringify({ __ghoti_async:1, fn:fn, args:[fields()], token:CSRF_TOKEN })
-		}).then(function(r){ return r.json(); }).then(function(data){
-			testBtn.disabled = saveBtn.disabled = false;
-			testBtn.classList.remove('is-busy');
-			saveBtn.classList.remove('is-busy');
-			onResult(data && data.ok ? data.result : (data && data.error) || 'Request failed.');
-		}).catch(function(){
-			testBtn.disabled = saveBtn.disabled = false;
-			testBtn.classList.remove('is-busy');
-			saveBtn.classList.remove('is-busy');
-			setMsg('Network error - is the server reachable?', 'err');
-		});
-	}
-	document.getElementById('db-test').addEventListener('click', function(){
-		call('testDbConfig', function(result){
-			setMsg(result, result === 'Connection succeeded.' ? 'ok' : 'err');
-		});
-	});
-	document.getElementById('db-save').addEventListener('click', function(){
-		call('saveDbConfig', function(result){
-			if(result === true){
-				setMsg('Saved. Starting up...', 'ok');
-				setTimeout(function(){ location.reload(); }, 900);
-			}else{
-				setMsg(result, 'err');
-			}
-		});
-	});
-})();
-</script>
-</body>
-</html>
-HTML;
+
+function ghoti_setup_check_directory(string $directory): bool {
+    if(!is_dir($directory)){ return false; }
+    $path = $directory.'/.ghoti-check-'.bin2hex(random_bytes(8));
+    $file = @fopen($path, 'x');
+    if($file === false){ return false; }
+    $wrote = @fwrite($file, 'ok') === 2 && @fflush($file);
+    fclose($file);
+    return @unlink($path) && $wrote;
 }
-?>
+
+function ghoti_setup_checks(): array {
+    $checks = array();
+    $checks['PHP 8.1 or newer'] = PHP_VERSION_ID >= 80100 ? null : 'Select PHP 8.1 or newer for this site.';
+    foreach(array('pdo_mysql', 'dom', 'fileinfo', 'mbstring', 'xml') as $extension){
+        $checks['PHP extension '.$extension] = extension_loaded($extension) ? null : 'Enable '.$extension.' for the web server’s PHP runtime.';
+    }
+    $checks['PHP session'] = session_status() === PHP_SESSION_ACTIVE ? null : 'Check PHP session storage and permissions.';
+    $checks['Database connection'] = ghotidb::isConfigured() ? null : 'Return to Database and test the connection again.';
+    foreach(array('.' => 'Installation directory', 'files' => 'Upload directory (files/)',
+        'files/gallery' => 'Gallery directory (files/gallery/)') as $relative => $label){
+        $checks[$label] = ghoti_setup_check_directory(__DIR__.'/'.$relative)
+            ? null : 'Ensure this directory exists and PHP can create, write and remove files in it.';
+    }
+    $uploadTemp = ini_get('upload_tmp_dir') ?: sys_get_temp_dir();
+    $checks['PHP upload temporary directory'] = ghoti_setup_check_directory($uploadTemp)
+        ? null : 'Configure a writable upload_tmp_dir for PHP.';
+    foreach(array(basename(ghoti::settingsPath()), ghoti::$ghotiLog, '.ghoti-install',
+        'db.provisioned.json', 'login.throttle.json', 'security.blacklist.json', 'critical-alerts.json',
+        'critical-alerts.pending.json', 'critical-alerts.history.json') as $name){
+        $path = __DIR__.'/'.$name;
+        if(file_exists($path) && (!is_file($path) || !is_readable($path) || !is_writable($path))){
+            $checks[$name] = 'Give the PHP service account read and write access to this file.';
+        }else{
+            $checks[$name] = null;
+        }
+    }
+    return $checks;
+}
+
+function ghoti_setup_finish($lock, array $site, array $input): void {
+    try{
+        if(!ghotidb::provisionInstallation()){
+            throw new RuntimeException('An enabled module schema or the public home page is missing.');
+        }
+    }catch(Throwable $e){
+        ghoti::logException('installation: database provisioning', $e);
+        throw new RuntimeException('Ghoti could not prepare the enabled modules or the public home page. Check the database privileges and server log.');
+    }
+
+    require_once __DIR__.'/lib/first-admin.php';
+    $credentials = null;
+    if(!ghotidb::hasUsers(null, true)){
+        try{
+            $credentials = GhotiFirstAdmin::validateCredentials(ghoti_setup_input($input, 'adminName'),
+                ghoti_setup_input($input, 'adminEmail'), ghoti_setup_input($input, 'adminPassword'));
+        }catch(Exception $e){
+            throw new InvalidArgumentException($e->getMessage());
+        }
+    }
+
+    ghoti_setup_write_state($lock, 'pending');
+    $saved = ghoti::saveSettings($site);
+    if($saved !== true){ throw new RuntimeException($saved); }
+    if($credentials !== null){
+        try{
+            (new GhotiFirstAdmin())->createFirstAdmin(...$credentials);
+        }catch(Throwable $e){
+            ghoti::logException('installation: administrator', $e);
+            throw new RuntimeException('Ghoti could not create the first administrator. Check the server log and confirm the users table is empty.');
+        }
+    }
+    ghoti_setup_write_state($lock, 'complete');
+}
+
+function ghoti_setup_dispatch(string $mode = 'install'): void {
+    ghoti_setup_headers(503);
+    $key = getenv('GHOTI_SETUP_KEY');
+    if($mode === 'ready'){
+        ghoti_setup_headers(409);
+        ghoti_setup_render(array('message' => 'Setup has already finished.', 'title' => 'Ghoti is ready'));
+        exit;
+    }
+    if($key === false || $key === ''){
+        ghoti_setup_render(array('message' => 'Set GHOTI_SETUP_KEY in the PHP environment, then open this installation with ?k=YOUR_SETUP_KEY.',
+            'title' => 'Ghoti setup is locked'));
+        exit;
+    }
+    $keyHash = hash('sha256', $key);
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if($method === 'GET' && isset($_GET['k']) && is_string($_GET['k']) && hash_equals($key, $_GET['k'])){
+        if(session_status() !== PHP_SESSION_ACTIVE || !session_regenerate_id(true)){
+            ghoti_setup_render(array('message' => 'Check PHP session storage and permissions, then open the setup link again.',
+                'title' => 'Ghoti could not start a setup session'));
+            exit;
+        }
+        $_SESSION['ghoti_setup_key'] = $keyHash;
+        ghoti_setup_redirect();
+    }
+    if(!hash_equals($keyHash, $_SESSION['ghoti_setup_key'] ?? '')){
+        ghoti_setup_headers(403);
+        ghoti_setup_render(array('message' => 'Open this installation with the operator setup key in ?k=YOUR_SETUP_KEY.',
+            'title' => 'Ghoti setup is locked'));
+        exit;
+    }
+
+    $connected = ghotidb::isConfigured();
+    $managed = ghoti_setup_db_managed();
+    $fingerprint = ghoti_setup_fingerprint();
+    $databaseReady = $mode === 'install' && $connected && $fingerprint !== ''
+        && $fingerprint === ($_SESSION['ghoti_setup_database'] ?? '');
+    $site = $databaseReady ? ($_SESSION['ghoti_setup_site'] ?? null) : null;
+    $requested = $_GET['step'] ?? '';
+    $step = $databaseReady && $requested === 'checks' && $site !== null ? 'checks'
+        : ($databaseReady && ($requested === 'site' || $requested === 'checks') ? 'site' : 'database');
+    $error = $notice = '';
+    $checks = null;
+    $databaseValues = array();
+    if($method === 'POST'){
+        if(!ghoti_setup_access_ok($_SESSION['ghoti_setup_key'], $_POST['token'] ?? null)){
+            ghoti_setup_headers(403);
+            ghoti_setup_render(array('message' => 'Reload setup to get a fresh session and try again.', 'title' => 'Setup session expired'));
+            exit;
+        }
+        try{
+            $action = ghoti_setup_input($_POST, 'ghoti_setup_action');
+            if($action === 'run-checks'){
+                $checks = ghoti_setup_checks();
+            }elseif($step === 'database' && in_array($action, array('test-database', 'save-database', 'use-database'), true)){
+                if($action === 'use-database'){
+                    if(!$connected || $mode !== 'install'){ throw new RuntimeException('The current database connection is unavailable.'); }
+                    if(!$databaseReady){ unset($_SESSION['ghoti_setup_site']); }
+                    $_SESSION['ghoti_setup_database'] = $fingerprint;
+                    ghoti_setup_redirect('site');
+                }
+                if($managed){ throw new RuntimeException('Update the database settings in the file selected by GHOTI_DB_CONFIG.'); }
+                $databaseValues = $_POST;
+                $config = ghoti_setup_database_input($_POST);
+                try{
+                    $candidate = ghotidb::openConnection($config, 4);
+                }catch(Throwable $e){
+                    throw new RuntimeException('Connection failed. Check the PDO MySQL extension, host, port, database name and credentials.');
+                }
+                if($mode === 'recovery' && !ghotidb::hasUsers($candidate)){
+                    throw new RuntimeException('Select the existing site database or restore it from backup before reconnecting.');
+                }
+                if($action === 'test-database'){
+                    $notice = 'Database connection succeeded.';
+                }else{
+                    ghoti_setup_with_lock(function() use ($config, $fingerprint, $mode){
+                        if(ghoti_setup_fingerprint() !== $fingerprint || ghoti_setup_mode() !== $mode){
+                            throw new RuntimeException('Installation changed in another request. Reload setup and try again.');
+                        }
+                        ghoti_setup_save_database($config);
+                    });
+                    unset($_SESSION['ghoti_setup_site']);
+                    $_SESSION['ghoti_setup_database'] = ghoti_setup_fingerprint();
+                    ghoti_setup_redirect($mode === 'recovery' ? '' : 'site');
+                }
+            }elseif($step === 'site' && $action === 'save-site'){
+                $_SESSION['ghoti_setup_site'] = ghoti_setup_site_input($_POST);
+                ghoti_setup_redirect('checks');
+            }elseif($step === 'checks' && $action === 'finish'){
+                $checks = ghoti_setup_checks();
+                if(array_filter($checks)){ throw new RuntimeException('Fix the failed installation checks and try again.'); }
+                ghoti_setup_with_lock(function($lock) use ($site, $fingerprint){
+                    if(ghoti_setup_fingerprint() !== $fingerprint || ghoti_setup_mode() !== 'install'){
+                        throw new RuntimeException('Installation changed in another request. Reload setup and try again.');
+                    }
+                    ghoti_setup_finish($lock, $site, $_POST);
+                });
+                unset($_SESSION['ghoti_setup_key'], $_SESSION['ghoti_setup_database'], $_SESSION['ghoti_setup_site']);
+                ghoti_setup_redirect();
+            }else{
+                throw new InvalidArgumentException('Complete the current setup step before continuing.');
+            }
+        }catch(PDOException $e){
+            ghoti::logException('installation: database check', $e);
+            $error = 'Ghoti could not read the database. Check the account permissions and server log.';
+        }catch(InvalidArgumentException | RuntimeException $e){
+            $error = $e->getMessage();
+        }catch(Throwable $e){
+            ghoti::logException('installation: request', $e);
+            $error = 'Setup could not complete this request. Check the server log and try again.';
+        }
+    }
+
+    $hasAdmin = false;
+    if($step === 'checks'){
+        try{
+            $hasAdmin = ghotidb::hasUsers(null, true);
+        }catch(Throwable $e){
+            ghoti::logException('installation: account check', $e);
+        }
+    }
+    try{
+        $config = ghotidb::loadConfig();
+    }catch(Throwable $e){
+        $config = array();
+    }
+    $fields = array('host' => '127.0.0.1', 'port' => '3306', 'database' => 'ghoti', 'username' => 'ghoti', 'charset' => 'utf8mb4');
+    foreach($fields as $name => $default){
+        $value = $databaseValues[$name] ?? $config[$name] ?? $default;
+        if($name === 'host' && $databaseValues === array() && !is_file(__DIR__.'/db.config.local.php')
+            && !$managed && getenv('GHOTI_DB_HOST') === false){ $value = $default; }
+        $fields[$name] = is_string($value) ? $value : $default;
+    }
+    if($step === 'site' && $error !== ''){
+        $site = array_intersect_key($_POST, array_flip(array('siteTitle', 'defaultTheme', 'seoSiteUrl', 'seoAllowIndexing')));
+        $site['seoAllowIndexing'] = ($site['seoAllowIndexing'] ?? '') === '1';
+    }
+    $site = ($site ?? array()) + ghoti::currentSettings();
+    $status = $error !== '' || ($checks !== null && array_filter($checks)) ? 422 : 200;
+    ghoti_setup_headers($status);
+    ghoti_setup_render(compact('mode', 'step', 'connected', 'managed', 'fields', 'site', 'checks', 'error', 'notice', 'hasAdmin'));
+    exit;
+}
+
+function ghoti_setup_render(array $view): void {
+    require __DIR__.'/lib/install-view.php';
+}

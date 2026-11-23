@@ -1,6 +1,11 @@
 # Untracked local override for database credentials (see db.config.php)
 db.config.local.php
 
+# Per-install wizard state and temporary credential files.
+/.ghoti-install
+/.ghoti-db-*
+.ghoti-check-*
+
 # Runtime cache of which module tables have been provisioned (see ghoti.db.php).
 # Safe to delete; it will be rebuilt (and forces a re-check if you drop tables).
 db.provisioned.json

@@ -111,7 +111,7 @@ class logindb extends ghotidb{
 	 * check below is the race protection, and a second insert path that grew its
 	 * own copy of it is exactly what this parameter exists to avoid.
 	 */
-	public function addUser($userName,$password,$email,$passwordIsHash = false){
+	public function addUser($userName,$password,$email,$passwordIsHash = false, bool $approvalPending = false){
 		$userName = $this->normalizeValue($userName);
 		$email = $this->normalizeValue($email);
 		$password = (string) $password;
@@ -135,7 +135,8 @@ class logindb extends ghotidb{
 				$hashedPassword = $this->hashPassword($password);
 				ghoti::logDebug("login.db.php:addUser", "hashing succeeded for '$userName'");
 				}
-				$this->query("insert into users(userName,password,email,admin) values(?,?,?,?)",array($userName,$hashedPassword,$email,0));
+				$this->query("insert into users(userName,password,email,admin,approvalPending) values(?,?,?,0,?)",
+					array($userName,$hashedPassword,$email,(int)$approvalPending));
 				ghoti::logInfo("login.db.php:addUser", "insert succeeded for '$userName'");
 
 			}catch (Throwable $e){
@@ -197,7 +198,7 @@ class logindb extends ghotidb{
 		$this->result = array();
 		$this->result[0] = "";
 		try{
-			$records = $this->query("select admin from users where userId = ?",array((int) $id));
+			$records = $this->query("select admin from users where userId = ? and approvalPending = 0",array((int) $id));
 		}catch (Throwable $e){
 			ghoti::logException("login.db.php:isAdmin", $e);
 			return false;
@@ -213,13 +214,14 @@ class logindb extends ghotidb{
 		return false;
 	}
 
-	public function authenticate($userName,$password,&$credentialFingerprint = null){
+	public function authenticate($userName,$password,&$credentialFingerprint = null,&$approvalPending = null){
 		$credentialFingerprint = null;
+		$approvalPending = false;
 		$userName = $this->normalizeValue($userName);
 		$password = (string) $password;
 		ghoti::logDebug("login.db.php:authenticate", "start for '$userName'");
 		try{
-			$auth = $this->query("select userId,password from users where userName = ? limit 1",array($userName));
+			$auth = $this->query("select userId,password,approvalPending from users where userName = ? limit 1",array($userName));
 		}catch (Throwable $e){
 			ghoti::logException("login.db.php:authenticate", $e, "userName='$userName'");
 			return false;
@@ -228,6 +230,10 @@ class logindb extends ghotidb{
 			$storedHash = (string) $row[1];
 			ghoti::logDebug("login.db.php:authenticate", "found user '$userName' with stored hash length ".strlen($storedHash));
 			if (is_string($storedHash) && $storedHash !== '' && password_verify($password, $storedHash)) {
+				if((int)$row[2] !== 0){
+					$approvalPending = true;
+					return false;
+				}
 				ghoti::logInfo("login.db.php:authenticate", "verified password hash for '$userName'");
 				if (password_needs_rehash($storedHash, $this->algo())) {
 					$newHash = $this->hashPassword($password);
@@ -255,7 +261,7 @@ class logindb extends ghotidb{
 
 	public function credentialFingerprint($userId){
 		try{
-			$rows = $this->queryArray("select password from users where userId = ?", array((int)$userId));
+			$rows = $this->queryArray("select password from users where userId = ? and approvalPending = 0", array((int)$userId));
 			return isset($rows[0][0]) ? hash('sha256', (string)$rows[0][0]) : null;
 		}catch(Throwable $e){
 			ghoti::logException("login.db.php:credentialFingerprint", $e);
@@ -265,12 +271,23 @@ class logindb extends ghotidb{
 
 	public function getUserList(){
 		try{
-			$userList = $this->query("select userId,userName,email,admin from users");
+			$userList = $this->query("select userId,userName,email,admin,approvalPending from users");
 		}catch (Throwable $e){
 			ghoti::logException("login.db.php:getUserList", $e);
 			return false;
 		}
 		return $userList;
+	}
+
+	public function reviewRegistration(int $userId, bool $approve): bool {
+		// Each decision applies only to a still-pending account. Two administrators
+		// acting on the same registration cannot overwrite one another's decision.
+		$sql = $approve
+			? 'UPDATE users SET approvalPending = 0 WHERE userId = ? AND admin = 0 AND approvalPending = 1'
+			: 'DELETE FROM users WHERE userId = ? AND admin = 0 AND approvalPending = 1';
+		$stmt = $this->db()->prepare($sql);
+		$stmt->execute(array($userId));
+		return $stmt->rowCount() === 1;
 	}
 
 	public function updateUser($userId,$userName,$email){
@@ -328,7 +345,9 @@ class logindb extends ghotidb{
 					$this->query("update users set admin = 0 where userId = ?;",array($userId));
 				}
 			}else{
-				$this->query("update users set admin = 1 where userId = ?;",array($userId));
+				$stmt = $this->db()->prepare("update users set admin = 1 where userId = ? and approvalPending = 0");
+				$stmt->execute(array($userId));
+				if($stmt->rowCount() === 0){ return "Select an approved user account."; }
 			}
 		}catch (Throwable $e){
 			ghoti::logException("login.db.php:toggleAdmin", $e);
@@ -403,7 +422,7 @@ class logindb extends ghotidb{
 		$email = trim((string)$email);
 		if($email === ''){ return null; }
 		try{
-			$rows = $this->queryArray("select userId from users where LOWER(TRIM(email)) = LOWER(TRIM(?))", array($email));
+			$rows = $this->queryArray("select userId from users where LOWER(TRIM(email)) = LOWER(TRIM(?)) and approvalPending = 0", array($email));
 		}catch(Throwable $e){
 			ghoti::logException("login.db.php:findUserIdByEmail", $e);
 			return null;

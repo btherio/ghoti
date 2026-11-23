@@ -10,7 +10,7 @@ include_once('ghoti.validate.php');
 include_once('ghoti.privacy.php');
 include_once(__DIR__.'/ghoti.security.php');
 include_once(__DIR__.'/ghoti.alerts.php');
-include_once('ghoti.setup.php'); //DB-unreachable fallback: setup screen + saveDbConfig
+require_once __DIR__.'/ghoti.setup.php';
 
 class ghoti {
 #################################################################
@@ -25,6 +25,7 @@ class ghoti {
 	public static $defaultPageTitle = "Home"; 		//this page must exist          [UI]
 	public static $defaultTheme = "ghoticms";		//default theme                 [UI]
 	public static $allowRegister = False; 			//allow or disallow new registrations [UI]
+	public static $adminVerifiesNewAccounts = false;
 	public static $backgroundImg = ""; //shared theme background; blank uses theme defaults
 	public static $headerImg = "gfx/ghoti-logo.png"; //header image to use            [UI]
 	public static $enableThemeChanger = True;      //enable theme changing dropdown [UI]
@@ -104,6 +105,7 @@ class ghoti {
 		'headerImg'          => 'path',
 		'backgroundImg'      => 'background',
 		'allowRegister'      => 'bool',
+		'adminVerifiesNewAccounts' => 'bool',
 		'enableThemeChanger' => 'bool',
 		'hideLoginButton'    => 'bool',
 		'showHelpTips'       => 'bool',
@@ -431,7 +433,7 @@ class ghoti {
         }
 		$json = json_encode($clean, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 		if($json === false){ return "Could not encode settings."; }
-		if(@file_put_contents(self::settingsPath(), $json, LOCK_EX) === false){
+		if(@file_put_contents(self::settingsPath(), $json, LOCK_EX) !== strlen($json)){
 			ghoti::logError("ghoti.php:saveSettings", "could not write ".self::settingsPath());
 			return "Could not write the settings file. Check that it is writable by the web server.";
 		}
